@@ -58,7 +58,6 @@ export default function HomePage() {
     slogan: { en: "Find skill, pay with π.", sr: "Pronađite veštinu, platite π-jem.", zh: "寻找技能，用 π 支付。", es: "Encuentra habilidad, paga con π.", vi: "Tìm kỹ năng, trả bằng π.", hi: "कौशल ढूंढें, π के साथ भुगतान करें।", id: "Temukan keahlian, bayar dengan π." }
   }
 
-  // MOCK PODACI
   const MOCK_GIGS = [
     { id: 1, title: "Modern Minimalist Logo Design", author: "pixel_art", price: 50, rating: 5.0, reviews: 124, gradient: "from-pink-500 to-rose-500", icon: <Palette className="text-white h-10 w-10" /> },
     { id: 2, title: "Full Stack Web Development", author: "dev_guy", price: 300, rating: 4.9, reviews: 85, gradient: "from-blue-500 to-cyan-500", icon: <Code className="text-white h-10 w-10" /> },
@@ -66,7 +65,6 @@ export default function HomePage() {
     { id: 4, title: "Pro Video Editing & VFX", author: "vid_master", price: 100, rating: 5.0, reviews: 42, gradient: "from-orange-500 to-amber-500", icon: <Video className="text-white h-10 w-10" /> },
   ];
 
-  // MAPA KATEGORIJA
   const categoryMap: { [key: string]: string } = {
     "Graphics & Design": "design", "Digital Marketing": "marketing", "Writing & Translation": "writing", "Video & Animation": "video", "Programming & Tech": "programming", "Business": "business", "Lifestyle": "lifestyle"
   };
@@ -107,22 +105,22 @@ export default function HomePage() {
           
           <Link href="/" className="flex items-center"><img src="/skillclick_logo.png" alt="SkillClick Logo" width={140} height={30} style={{ objectFit: 'contain' }} className="object-contain" /></Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
              
-             {/* --- NOVI PLAVI DROPDOWN ZA JEZIKE --- */}
+             {/* --- 1. SELEKTOR JEZIKA (SADA VIDLJIV UVEK) --- */}
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className={buttonStyle + " flex items-center gap-1"}>
-                        <Globe className="h-4 w-4" /> {languages.find(l => l.code === lang)?.code.toUpperCase()}
+                    <Button variant="outline" className={buttonStyle + " flex items-center gap-1 px-2 md:px-4"}>
+                        <Globe className="h-4 w-4" /> 
+                        <span className="text-xs md:text-sm">{languages.find(l => l.code === lang)?.code.toUpperCase()}</span>
                     </Button>
                 </DropdownMenuTrigger>
-                {/* FIX: Plavi border i hover efekat */}
-                <DropdownMenuContent align="end" className="bg-white border border-blue-200 shadow-lg">
+                <DropdownMenuContent align="end" className="bg-white border border-blue-200 shadow-lg z-[60]">
                     {languages.map((l) => (
                         <DropdownMenuItem 
                             key={l.code} 
                             onClick={() => setLang(l.code)}
-                            className="cursor-pointer hover:bg-blue-50 text-gray-700 hover:text-blue-700 font-medium focus:bg-blue-50 focus:text-blue-700"
+                            className="cursor-pointer hover:bg-blue-50 text-gray-700 hover:text-blue-700 font-medium"
                         >
                             <span className="mr-2">{l.flag}</span> {l.name}
                         </DropdownMenuItem>
@@ -133,7 +131,8 @@ export default function HomePage() {
              <Link href="/services"><Button variant="outline" className={`hidden md:flex ${buttonStyle}`}>{t.explore[lang]}</Button></Link>
              <Link href="/auth/register"><Button variant="outline" className={`hidden md:flex ${buttonStyle}`}>{t.becomeSeller[lang]}</Button></Link>
              
-             <Button variant="ghost" size="icon" onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-gray-600"><Menu className="h-5 w-5" /></Button>
+             {/* --- 2. HAMBURGER MENI (SAMO NAVIGACIJA) --- */}
+             <Button variant="ghost" size="icon" onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-gray-600"><Menu className="h-7 w-7" /></Button>
 
              {isLoggedIn ? (
                 <div className="hidden md:flex gap-3 ml-2"><Link href="/messages"><Button variant="ghost" className="h-8 px-2 text-xs text-gray-600 hover:text-blue-600"><MessageSquare className="h-4 w-4 mr-1" />{t.messages[lang]}</Button></Link><Link href="/profile"><Button variant="ghost" className="h-8 px-2 text-xs text-gray-600 hover:text-blue-600"><User className="h-4 w-4 mr-1" />{t.profile[lang]}</Button></Link></div>
@@ -152,22 +151,52 @@ export default function HomePage() {
                 </ul>
             </div>
         </div>
+
+        {/* --- MOBILNI PADAJUĆI MENI (BEZ JEZIKA) --- */}
+        {menuOpen && (
+            <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-blue-200 shadow-xl z-50 h-[calc(100vh-60px)] overflow-y-auto">
+                <div className="container mx-auto px-4 py-4 flex flex-col gap-6">
+                
+                {/* GLAVNE AKCIJE (LOGIN, REGISTER, EXPLORE...) */}
+                <div className="flex flex-col gap-3 border-b border-gray-100 pb-6">
+                    {!isLoggedIn ? (
+                        <>
+                            <Link href="/auth/login" onClick={() => setMenuOpen(false)}><Button className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 text-base">{t.login[lang]}</Button></Link>
+                            <Link href="/auth/register" onClick={() => setMenuOpen(false)}><Button variant="outline" className="w-full border-blue-600 text-blue-600 h-10 text-base">{t.register[lang]}</Button></Link>
+                        </>
+                    ) : (
+                        <>
+                            <Link href="/messages" onClick={() => setMenuOpen(false)}><Button variant="ghost" size="sm" className="w-full justify-start text-lg font-medium"><MessageSquare className="h-5 w-5 mr-3" />{t.messages[lang]}</Button></Link>
+                            <Link href="/profile" onClick={() => setMenuOpen(false)}><Button variant="ghost" size="sm" className="w-full justify-start text-lg font-medium"><User className="h-5 w-5 mr-3" />{t.profile[lang]}</Button></Link>
+                        </>
+                    )}
+                    <div className="flex flex-col gap-2 mt-2 text-gray-600 font-medium pl-2">
+                        <Link href="/services" onClick={() => setMenuOpen(false)} className="py-2 border-b border-gray-50">{t.explore[lang]}</Link>
+                        <Link href="/auth/register" onClick={() => setMenuOpen(false)} className="py-2">{t.becomeSeller[lang]}</Link>
+                        <Link href="/create" onClick={() => setMenuOpen(false)} className="py-2 text-blue-600 font-bold">{t.offerService[lang]}</Link>
+                    </div>
+                </div>
+
+                {/* KATEGORIJE */}
+                <div>
+                    <h3 className="font-bold text-gray-900 mb-3 px-2 text-lg">Categories</h3>
+                    <div className="flex flex-col gap-1">
+                        {categoryLinks.map((cat, index) => (
+                            <Link key={index} href={`/services?category=${categoryMap[cat] || 'all'}`} onClick={() => setMenuOpen(false)}>
+                                <div className="flex items-center justify-between p-3 hover:bg-blue-50 rounded-md text-gray-700 text-base">
+                                    {cat}
+                                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+                </div>
+            </div>
+        )}
       </header>
       
-      {/* MOBILNI MENI */}
-      {menuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-border shadow-xl z-50 h-[calc(100vh-60px)] overflow-y-auto">
-            <div className="container mx-auto px-4 py-4 flex flex-col gap-6">
-              <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-100">
-                 {languages.map((l) => (
-                    <Button key={l.code} variant={lang === l.code ? "default" : "outline"} size="sm" onClick={() => setLang(l.code)} className={lang === l.code ? "bg-blue-600 text-white" : "text-blue-600 border-blue-200 hover:bg-blue-50"}>{l.flag} {l.code.toUpperCase()}</Button>
-                 ))}
-              </div>
-              {/* ... ostatak menija ... */}
-            </div>
-          </div>
-      )}
-
+      {/* OSTATAK STRANICE (HERO, KARTICE) OSTAJE ISTI */}
       <main className="bg-blue-600 text-white py-16 md:py-32 relative overflow-hidden">
          <div className="container mx-auto px-4 relative z-10 text-center md:text-left">
             <h1 className="text-5xl md:text-7xl font-bold mb-4 tracking-tight">SkillClick</h1>
@@ -199,7 +228,7 @@ export default function HomePage() {
                 {services.map((gig) => (
                      <div key={gig.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full flex flex-col relative">
                         <Link href={`/services/${gig.id}`} className="block relative">
-                            <div className={`h-40 w-full bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center`}>
+                            <div className={`h-40 w-full bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center relative`}>
                                 <div className="transform group-hover:scale-110 transition-transform duration-300 text-white text-4xl">
                                     {gig.icon ? gig.icon : (gig.image && gig.image.length < 5 ? gig.image : <Layers className="h-10 w-10 text-white" />)}
                                 </div>
