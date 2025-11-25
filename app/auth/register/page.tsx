@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from 'react';
-import { Mail, Lock, User, CheckCircle, UserPlus, Briefcase, ShoppingBag } from 'lucide-react';
+import { Mail, Lock, User, CheckCircle, UserPlus, Briefcase, ShoppingBag, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox'; // Ako nemaš ovu komponentu, koristićemo običan input
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -15,6 +16,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false); // NOVO: Stanje za checkbox
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,6 +36,13 @@ export default function RegisterPage() {
 
     if (!fullName) {
         setError("Please enter your full name.");
+        setLoading(false);
+        return;
+    }
+
+    // NOVO: Provera da li su uslovi prihvaćeni
+    if (!termsAccepted) {
+        setError("You must agree to the Terms of Service.");
         setLoading(false);
         return;
     }
@@ -92,7 +101,7 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             
-            {/* IZBOR ULOGE (ENGLESKI) */}
+            {/* IZBOR ULOGE */}
             <div className="grid grid-cols-2 gap-4 mb-6">
                 <div 
                     onClick={() => setRole('buyer')}
@@ -113,7 +122,6 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            {/* Polja za unos */}
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <div className="relative">
@@ -142,10 +150,24 @@ export default function RegisterPage() {
                 <Input id="confirm" type="password" placeholder="••••••••" className="pl-10" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
               </div>
             </div>
-            
-            {error && <p className="text-sm text-red-500 text-center font-medium">{error}</p>}
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
+            {/* --- NOVO: TERMS OF SERVICE CHECKBOX --- */}
+            <div className="flex items-center space-x-2 mt-4">
+                <input 
+                    type="checkbox" 
+                    id="terms" 
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                />
+                <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer select-none">
+                    I agree to the <Link href="/terms" className="text-blue-600 hover:underline font-medium">Terms of Service</Link>
+                </label>
+            </div>
+            
+            {error && <p className="text-sm text-red-500 text-center font-medium bg-red-50 p-2 rounded">{error}</p>}
+
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2" disabled={loading}>
               {loading ? "Creating..." : (role === 'seller' ? "Become a Seller" : "Join as Buyer")}
             </Button>
           </form>

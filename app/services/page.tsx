@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, Suspense, useEffect } from "react"
-import { Search, Star, Heart, ArrowLeft, MessageSquare, User, Menu, LogIn, UserPlus, Palette, Code, PenTool, Video, Layers, Filter, ArrowUpDown } from "lucide-react"
+import { Search, Star, Heart, ArrowLeft, MessageSquare, User, Menu, LogIn, UserPlus, Palette, Code, PenTool, Video, Layers, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -27,6 +27,7 @@ function SearchContent() {
   const [filteredServices, setFilteredServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // FILTERI
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sortBy, setSortBy] = useState("recommended");
@@ -46,6 +47,7 @@ function SearchContent() {
     details: { en: "Details", sr: "Detalji" }
   }
 
+  // 1. UČITAVANJE PODATAKA
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -67,8 +69,9 @@ function SearchContent() {
     fetchServices();
   }, []);
 
+  // 2. FILTRIRANJE
   useEffect(() => {
-    let result = [...services];
+    let result = [...services]; 
 
     if (initialCategory) {
         const cat = initialCategory.toLowerCase();
@@ -86,16 +89,24 @@ function SearchContent() {
             s.title.toLowerCase().includes(q) || 
             (s.description && s.description.toLowerCase().includes(q)) ||
             s.category.toLowerCase().includes(q) ||
-            (s.author && s.author.toLowerCase().includes(q))
+            (s.author && s.author.toLowerCase().includes(q)) 
         );
     }
 
-    if (minPrice) result = result.filter(s => s.price >= parseFloat(minPrice));
-    if (maxPrice) result = result.filter(s => s.price <= parseFloat(maxPrice));
+    if (minPrice) {
+        result = result.filter(s => s.price >= parseFloat(minPrice));
+    }
+    if (maxPrice) {
+        result = result.filter(s => s.price <= parseFloat(maxPrice));
+    }
 
-    if (sortBy === "price_low") result.sort((a, b) => a.price - b.price);
-    else if (sortBy === "price_high") result.sort((a, b) => b.price - a.price);
-    else if (sortBy === "rating") result.sort((a, b) => b.rating - a.rating);
+    if (sortBy === "price_low") {
+        result.sort((a, b) => a.price - b.price);
+    } else if (sortBy === "price_high") {
+        result.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "rating") {
+        result.sort((a, b) => b.rating - a.rating);
+    }
 
     setFilteredServices(result);
   }, [services, initialCategory, query, initialQuery, minPrice, maxPrice, sortBy]);
@@ -144,14 +155,15 @@ function SearchContent() {
                 <div>
                     <Link href="/" className="text-sm text-blue-600 hover:underline mb-2 inline-block flex items-center font-medium"><ArrowLeft className="w-4 h-4 mr-1"/> {t.back[lang]}</Link>
                     <h1 className="text-3xl font-bold text-gray-900">
-                    {initialCategory ? `Category: ${initialCategory.replace(/-/g, ' ').toUpperCase()}` : (query ? `Results for: "${query}"` : "Browse All Services")}
+                    {initialCategory ? `Category: ${initialCategory.replace(/-/g, ' ').toUpperCase()}` : "Browse All Services"}
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">Found {filteredServices.length} services</p>
                 </div>
+                
                 <div className="flex w-full md:w-auto gap-2">
                     <div className="relative flex-grow md:w-80">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyPress} className="pl-10 bg-white border-blue-200 focus-visible:ring-blue-600" placeholder={lang === "en" ? "Search..." : "Pretraži..."} />
+                        <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="pl-10 bg-white border-blue-200 focus-visible:ring-blue-600" placeholder={lang === "en" ? "Search..." : "Pretraži..."} />
                     </div>
                     <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white">{t.search[lang]}</Button>
                 </div>
@@ -171,10 +183,10 @@ function SearchContent() {
                     <Select value={sortBy} onValueChange={setSortBy}>
                         <SelectTrigger className="w-[180px] h-9 text-sm border-gray-300 focus:ring-blue-600"><SelectValue placeholder="Recommended" /></SelectTrigger>
                         <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="recommended" className="focus:bg-blue-50 focus:text-blue-700 cursor-pointer">Recommended</SelectItem>
-                            <SelectItem value="price_low" className="focus:bg-blue-50 focus:text-blue-700 cursor-pointer">Price: Low to High</SelectItem>
-                            <SelectItem value="price_high" className="focus:bg-blue-50 focus:text-blue-700 cursor-pointer">Price: High to Low</SelectItem>
-                            <SelectItem value="rating" className="focus:bg-blue-50 focus:text-blue-700 cursor-pointer">Top Rated</SelectItem>
+                            <SelectItem value="recommended">Recommended</SelectItem>
+                            <SelectItem value="price_low">Price: Low to High</SelectItem>
+                            <SelectItem value="price_high">Price: High to Low</SelectItem>
+                            <SelectItem value="rating">Top Rated</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -183,32 +195,20 @@ function SearchContent() {
           {loading ? (<div className="text-center py-20 text-gray-500">Loading marketplace...</div>) : filteredServices.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filteredServices.map((gig) => (
-                    // FIX: UKLONJEN GLAVNI LINK OKO CELE KARTICE
-                    <div key={gig.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full flex flex-col relative">
-                        
-                        {/* LINK NA SLIKU */}
+                    <div key={gig.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col relative">
                         <Link href={`/services/${gig.id}`} className="block relative">
                             <div className={`h-40 w-full bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center relative`}>
                                 <div className="transform group-hover:scale-110 transition-transform duration-300 text-white text-5xl">{gig.icon ? gig.icon : (gig.image && gig.image.length < 5 ? gig.image : <Layers className="h-10 w-10 text-white" />)}</div>
-                                <button className="absolute top-3 right-3 p-1.5 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40 text-white transition z-20 cursor-pointer"><Heart className="h-4 w-4" /></button>
+                                <button className="absolute top-3 right-3 p-1.5 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40 text-white transition z-20"><Heart className="h-4 w-4" /></button>
                             </div>
                         </Link>
-                        
                         <div className="p-4 flex flex-col flex-grow">
                             <div className="flex items-center gap-2 mb-2 relative z-20">
                                 <div className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">{gig.author ? gig.author[0].toUpperCase() : 'U'}</div>
-                                {/* LINK NA AUTORA */}
-                                <Link href={`/seller/${gig.author}`} className="text-xs font-semibold text-gray-700 truncate hover:text-blue-600 hover:underline">
-                                    {gig.author || "Unknown"}
-                                </Link>
+                                <Link href={`/seller/${gig.author}`} className="text-xs font-semibold text-gray-700 truncate hover:text-blue-600 hover:underline">{gig.author || "Unknown"}</Link>
                                 <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full ml-auto">{gig.category}</span>
                             </div>
-
-                            {/* LINK NA NASLOV */}
-                            <Link href={`/services/${gig.id}`}>
-                                <p className="text-gray-900 hover:text-blue-600 font-bold mb-3 line-clamp-2 min-h-[3rem] text-sm relative z-20 cursor-pointer">{gig.title}</p>
-                            </Link>
-
+                            <Link href={`/services/${gig.id}`}><p className="text-gray-900 hover:text-blue-600 font-bold mb-3 line-clamp-2 min-h-[3rem] text-sm relative z-20 cursor-pointer">{gig.title}</p></Link>
                             <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-3">
                                 <div className="flex items-center text-yellow-500 text-sm font-bold gap-1"><Star className="h-4 w-4 fill-current" /> {gig.rating || 'New'} <span className="text-gray-400 font-normal text-xs">({gig.reviews || 0})</span></div>
                                 <div className="text-right"><p className="text-sm font-bold text-gray-900">{gig.price} π</p></div>
