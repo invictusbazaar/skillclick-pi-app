@@ -1,21 +1,21 @@
 "use client"
 
-import { useState } from 'react';
-import { User, Mail, DollarSign, LogOut, Settings, BarChart3, Users, Package, ShieldCheck, MapPin, Plus, Search, Save, X } from 'lucide-react'; // Dodati Save i X
+import { useState, useEffect } from 'react';
+import { User, Mail, DollarSign, LogOut, Settings, BarChart3, Users, Package, ShieldCheck, MapPin, Plus, Search, Ban, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input'; // Dodat Input
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge'; // Ako nemaš badge, koristićemo span sa stilom
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+
+// MOCK KORISNICI (Ovo će dolaziti iz users.json)
+const MOCK_USERS = [
+    { id: 1, username: "marko123", email: "marko@gmail.com", status: "active" },
+    { id: 2, username: "scammer_guy", email: "bad@guy.com", status: "suspended" },
+    { id: 3, username: "ana_design", email: "ana@design.com", status: "active" },
+];
 
 export default function ProfilePage() {
-  const router = useRouter();
-  
-  // STANJE ZA UREĐIVANJE
-  const [isEditing, setIsEditing] = useState(false);
-
-  // PODACI O VLASNIKU (Sada su u State-u da bi mogli da se menjaju)
-  const [owner, setOwner] = useState({
+  const owner = {
     name: "Invictus Bazaar",
     role: "Platform Owner & Admin",
     email: "invictusbazaar@gmail.com",
@@ -24,108 +24,64 @@ export default function ProfilePage() {
     totalEarnings: "1,250.00",
     totalUsers: 142, 
     activeGigs: 28
-  });
-
-  // FUNKCIJA ZA ODJAVU
-  const handleLogout = () => {
-      // Ovde bi išla prava logika za brisanje sesije
-      alert("Logging out...");
-      setTimeout(() => {
-          router.push('/auth/login');
-      }, 1000);
   };
 
-  // FUNKCIJA ZA ČUVANJE PODEŠAVANJA
-  const handleSave = () => {
-      setIsEditing(false);
-      // Ovde bi išao API poziv za čuvanje u bazu
-      alert("Settings saved!");
+  // Stanje za listu korisnika
+  const [users, setUsers] = useState<any[]>(MOCK_USERS);
+
+  // FUNKCIJE ZA BANOVANJE
+  const handleSuspend = (id: number) => {
+      if(confirm("Are you sure you want to suspend this user for 30 days?")) {
+          setUsers(users.map(u => u.id === id ? { ...u, status: "suspended" } : u));
+          alert("User suspended for 30 days.");
+      }
   };
 
-  // STIL ZA DUGMAD
+  const handleBan = (id: number) => {
+      if(confirm("PERMANENT BAN: Are you sure? This cannot be undone easily.")) {
+          setUsers(users.map(u => u.id === id ? { ...u, status: "banned" } : u));
+          alert("User permanently banned.");
+      }
+  };
+
+  const handleUnban = (id: number) => {
+      setUsers(users.map(u => u.id === id ? { ...u, status: "active" } : u));
+      alert("User reactivated.");
+  };
+
+  // Stilovi dugmadi
   const buttonStyleOutline = "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md px-4 py-1 h-9 transition-all text-sm font-medium";
   const buttonStyleSolid = "bg-blue-600 hover:bg-blue-700 text-white rounded-md px-4 py-1 h-9 transition-all text-sm font-medium shadow-lg shadow-blue-200";
 
   return (
     <div className="container mx-auto px-4 py-12 min-h-screen bg-gray-50">
-      
       <div className="max-w-6xl mx-auto">
         
-        {/* --- HEADER VLASNIKA --- */}
+        {/* --- HEADER (ISTI KAO PRE) --- */}
         <div className="bg-white rounded-2xl shadow-sm border border-blue-100 p-8 mb-8 flex flex-col md:flex-row items-center gap-8">
             <div className="relative">
                 <div className="w-40 h-40 bg-white rounded-full border-4 border-blue-50 flex items-center justify-center shadow-sm overflow-hidden p-0">
-                    <img 
-                        src={owner.logo} 
-                        alt="Invictus Bazaar" 
-                        className="w-full h-full object-cover scale-[1.75]" 
-                    />
+                    <img src={owner.logo} alt="Invictus Bazaar" className="w-full h-full object-cover scale-[1.75]" />
                 </div>
                 <div className="absolute bottom-2 right-2 bg-blue-600 text-white p-1.5 rounded-full shadow-md z-10" title="Verified Owner">
                     <ShieldCheck className="w-5 h-5" />
                 </div>
             </div>
-            
-            <div className="flex-1 text-center md:text-left w-full">
-                {isEditing ? (
-                    // REŽIM UREĐIVANJA
-                    <div className="space-y-3 max-w-md mx-auto md:mx-0">
-                        <Input 
-                            value={owner.name} 
-                            onChange={(e) => setOwner({...owner, name: e.target.value})} 
-                            className="font-bold text-xl"
-                            placeholder="Company Name"
-                        />
-                        <Input 
-                            value={owner.role} 
-                            onChange={(e) => setOwner({...owner, role: e.target.value})} 
-                            placeholder="Role"
-                        />
-                        <Input 
-                            value={owner.location} 
-                            onChange={(e) => setOwner({...owner, location: e.target.value})} 
-                            placeholder="Location"
-                        />
-                         <Input 
-                            value={owner.email} 
-                            onChange={(e) => setOwner({...owner, email: e.target.value})} 
-                            placeholder="Email"
-                        />
-                        <div className="flex gap-2 mt-2">
-                            <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white w-full"><Save className="w-4 h-4 mr-2"/> Save</Button>
-                            <Button onClick={() => setIsEditing(false)} variant="outline" className="w-full"><X className="w-4 h-4 mr-2"/> Cancel</Button>
-                        </div>
-                    </div>
-                ) : (
-                    // REŽIM PRIKAZA (NORMALNO)
-                    <>
-                        <h1 className="text-3xl font-extrabold text-gray-900 mb-1">{owner.name}</h1>
-                        <p className="text-blue-600 font-semibold text-lg mb-3">{owner.role}</p>
-                        
-                        <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-gray-500">
-                            <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {owner.location}</span>
-                            <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {owner.email}</span>
-                        </div>
-                    </>
-                )}
-            </div>
-
-            {!isEditing && (
-                <div className="flex flex-col gap-3 min-w-[160px]">
-                    {/* DUGME SETTINGS - AKTIVIRA EDIT MODE */}
-                    <Button variant="outline" className={buttonStyleOutline} onClick={() => setIsEditing(true)}>
-                        <Settings className="w-4 h-4 mr-2" /> Settings
-                    </Button>
-                    
-                    {/* DUGME LOG OUT - RADI! */}
-                    <Button className={buttonStyleSolid} onClick={handleLogout}>
-                        <LogOut className="w-4 h-4 mr-2" /> Log Out
-                    </Button>
+            <div className="flex-1 text-center md:text-left">
+                <h1 className="text-3xl font-extrabold text-gray-900 mb-1">{owner.name}</h1>
+                <p className="text-blue-600 font-semibold text-lg mb-3">{owner.role}</p>
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-gray-500">
+                    <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {owner.location}</span>
+                    <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {owner.email}</span>
                 </div>
-            )}
+            </div>
+            <div className="flex flex-col gap-3 min-w-[160px]">
+                <Button variant="outline" className={buttonStyleOutline}><Settings className="w-4 h-4 mr-2" /> Settings</Button>
+                <Button className={buttonStyleSolid}><LogOut className="w-4 h-4 mr-2" /> Log Out</Button>
+            </div>
         </div>
 
-        {/* --- STATISTIKA (OSTALO ISTO) --- */}
+        {/* --- STATISTIKA (ISTO) --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8 blur-xl"></div>
@@ -157,7 +113,58 @@ export default function ProfilePage() {
             </Card>
         </div>
 
-        {/* --- UPRAVLJANJE --- */}
+        {/* --- ADMIN ZONA: UPRAVLJANJE KORISNICIMA (NOVO!) --- */}
+        <div className="mb-10">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <ShieldCheck className="w-6 h-6 mr-2 text-blue-600" /> User Management (Admin)
+            </h2>
+            
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                {/* HEADER TABELE */}
+                <div className="grid grid-cols-4 p-4 bg-gray-50 border-b border-gray-200 font-semibold text-sm text-gray-600">
+                    <div>User</div>
+                    <div>Email</div>
+                    <div>Status</div>
+                    <div className="text-right">Actions</div>
+                </div>
+
+                {/* LISTA KORISNIKA */}
+                {users.map((u) => (
+                    <div key={u.id} className="grid grid-cols-4 p-4 border-b border-gray-100 items-center hover:bg-blue-50/30 transition-colors">
+                        <div className="font-medium text-gray-900 flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-600">
+                                {u.username[0].toUpperCase()}
+                            </div>
+                            {u.username}
+                        </div>
+                        <div className="text-sm text-gray-500">{u.email}</div>
+                        <div>
+                            {u.status === 'active' && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium flex w-fit items-center gap-1"><CheckCircle className="w-3 h-3"/> Active</span>}
+                            {u.status === 'suspended' && <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium flex w-fit items-center gap-1"><AlertTriangle className="w-3 h-3"/> Suspended</span>}
+                            {u.status === 'banned' && <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium flex w-fit items-center gap-1"><Ban className="w-3 h-3"/> Banned</span>}
+                        </div>
+                        <div className="text-right flex justify-end gap-2">
+                            {u.status === 'active' ? (
+                                <>
+                                    <Button size="sm" variant="outline" className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 h-8 px-2" onClick={() => handleSuspend(u.id)} title="Suspend 30 Days">
+                                        <AlertTriangle className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-50 h-8 px-2" onClick={() => handleBan(u.id)} title="Permanent Ban">
+                                        <Ban className="w-4 h-4" />
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button size="sm" variant="outline" className="border-green-500 text-green-600 hover:bg-green-50 h-8 px-2" onClick={() => handleUnban(u.id)} title="Unban User">
+                                    <CheckCircle className="w-4 h-4 mr-2" /> Restore
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* --- UPRAVLJANJE PREČICE (ISTO) --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card>
                 <CardHeader><CardTitle className="text-lg">Platform Management</CardTitle><CardDescription>Quick actions for the owner.</CardDescription></CardHeader>
