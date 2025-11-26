@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, Suspense, useEffect } from "react"
-import { Search, Star, Heart, ArrowLeft, MessageSquare, User, Menu, LogIn, UserPlus, Palette, Code, PenTool, Video, Layers, Filter } from "lucide-react"
+import { Search, Star, Heart, ArrowLeft, MessageSquare, User, Menu, LogIn, UserPlus, Palette, Code, PenTool, Video, Layers, Filter, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -69,10 +69,11 @@ function SearchContent() {
     fetchServices();
   }, []);
 
-  // 2. FILTRIRANJE
+  // 2. NAPREDNO FILTRIRANJE
   useEffect(() => {
     let result = [...services]; 
 
+    // A) Kategorija
     if (initialCategory) {
         const cat = initialCategory.toLowerCase();
         result = result.filter(s => {
@@ -82,6 +83,7 @@ function SearchContent() {
         });
     }
     
+    // B) Pretraga
     const activeQuery = query || initialQuery;
     if (activeQuery) {
         const q = activeQuery.toLowerCase();
@@ -93,6 +95,7 @@ function SearchContent() {
         );
     }
 
+    // C) Cena
     if (minPrice) {
         result = result.filter(s => s.price >= parseFloat(minPrice));
     }
@@ -100,6 +103,7 @@ function SearchContent() {
         result = result.filter(s => s.price <= parseFloat(maxPrice));
     }
 
+    // D) Sortiranje
     if (sortBy === "price_low") {
         result.sort((a, b) => a.price - b.price);
     } else if (sortBy === "price_high") {
@@ -155,7 +159,7 @@ function SearchContent() {
                 <div>
                     <Link href="/" className="text-sm text-blue-600 hover:underline mb-2 inline-block flex items-center font-medium"><ArrowLeft className="w-4 h-4 mr-1"/> {t.back[lang]}</Link>
                     <h1 className="text-3xl font-bold text-gray-900">
-                    {initialCategory ? `Category: ${initialCategory.replace(/-/g, ' ').toUpperCase()}` : "Browse All Services"}
+                    {initialCategory ? `Category: ${initialCategory.replace(/-/g, ' ').toUpperCase()}` : (query ? `Results for: "${query}"` : "Browse All Services")}
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">Found {filteredServices.length} services</p>
                 </div>
@@ -169,6 +173,7 @@ function SearchContent() {
                 </div>
             </div>
 
+            {/* FILTERI */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-100 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex items-center gap-2 text-gray-600 text-sm font-medium"><Filter className="h-4 w-4" /> Filters:</div>
@@ -192,21 +197,23 @@ function SearchContent() {
                 </div>
             </div>
 
+          {/* REZULTATI */}
           {loading ? (<div className="text-center py-20 text-gray-500">Loading marketplace...</div>) : filteredServices.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filteredServices.map((gig) => (
                     <div key={gig.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col relative">
+                        
                         <Link href={`/services/${gig.id}`} className="block relative">
                             <div className={`h-40 w-full bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center relative`}>
                                 <div className="transform group-hover:scale-110 transition-transform duration-300 text-white text-5xl">{gig.icon ? gig.icon : (gig.image && gig.image.length < 5 ? gig.image : <Layers className="h-10 w-10 text-white" />)}</div>
                                 <button className="absolute top-3 right-3 p-1.5 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40 text-white transition z-20"><Heart className="h-4 w-4" /></button>
                             </div>
                         </Link>
+                        
                         <div className="p-4 flex flex-col flex-grow">
                             <div className="flex items-center gap-2 mb-2 relative z-20">
                                 <div className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">{gig.author ? gig.author[0].toUpperCase() : 'U'}</div>
                                 <Link href={`/seller/${gig.author}`} className="text-xs font-semibold text-gray-700 truncate hover:text-blue-600 hover:underline">{gig.author || "Unknown"}</Link>
-                                <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full ml-auto">{gig.category}</span>
                             </div>
                             <Link href={`/services/${gig.id}`}><p className="text-gray-900 hover:text-blue-600 font-bold mb-3 line-clamp-2 min-h-[3rem] text-sm relative z-20 cursor-pointer">{gig.title}</p></Link>
                             <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-3">

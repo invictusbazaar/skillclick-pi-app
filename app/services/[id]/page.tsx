@@ -24,12 +24,12 @@ export default function ServiceDetailsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Forma za ocene
   const [rating, setRating] = useState("5");
   const [comment, setComment] = useState("");
   
   const [menuOpen, setMenuOpen] = useState(false); 
   const [lang, setLang] = useState<"en" | "sr">("en");
+  const [orderClicked, setOrderClicked] = useState(false); // Dodato stanje
 
   const t = {
     login: { en: "Login", sr: "Prijavi se" }, 
@@ -94,7 +94,14 @@ export default function ServiceDetailsPage() {
   };
 
   const handleOrder = () => {
-      alert("Order simulation...");
+    if (typeof window !== 'undefined' && (window as any).Pi) {
+      setOrderClicked(true); 
+      alert(`Pi Payment: Requesting ${service.price} Pi...`);
+    } else {
+      alert(`⚠️ SIMULACIJA: Naručujete uslugu za ${service.price} Pi.`);
+      setOrderClicked(true);
+    }
+    setTimeout(() => { setOrderClicked(false); }, 3000); 
   };
 
   const buttonStyle = "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md px-4 py-1 h-9 transition-all text-sm font-medium";
@@ -177,11 +184,9 @@ export default function ServiceDetailsPage() {
                                     <div className="flex text-yellow-500 text-xs"><Star className="w-3 h-3 fill-current mr-1"/> {r.rating}</div>
                                 </div>
                                 <p className="text-sm text-gray-700 mt-2 leading-relaxed">{r.comment}</p>
-                                <p className="text-xs text-gray-400 mt-2">{r.date}</p>
                             </CardContent>
                         </Card>
                     ))}
-                    {reviews.length === 0 && <p className="text-gray-500 text-sm italic bg-white p-4 rounded-lg border border-blue-50 text-center">No reviews yet. Be the first!</p>}
                 </div>
             </div>
 
@@ -192,10 +197,12 @@ export default function ServiceDetailsPage() {
             <Card className="sticky top-24 shadow-lg border-blue-100 overflow-hidden bg-white">
               <div className="bg-blue-50 p-4 border-b border-blue-100 flex justify-between items-center"><span className="font-bold text-blue-800 text-sm uppercase tracking-wide">Standard</span><span className="text-3xl font-extrabold text-blue-900">{service.price} π</span></div>
               <CardContent className="p-6 space-y-4">
-                  <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg h-12 shadow-md" onClick={handleOrder}>Order Now</Button>
+                  <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg h-12 shadow-md" onClick={handleOrder} disabled={orderClicked}>
+                      {orderClicked ? <><CheckCircle className="mr-2 h-5 w-5" /> Sent!</> : 'Order Now'}
+                  </Button>
                   
-                  {/* FIX: LINKUJE NA MESSAGES STRANICU */}
-                  <Link href="/messages">
+                  {/* FIX: POPRAVLJEN LINK (Sada je čist kod, bez escape znakova) */}
+                  <Link href={`/messages?seller=${service.author}`}>
                     <Button variant="outline" className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 font-bold text-lg h-12">Contact Seller</Button>
                   </Link>
               </CardContent>
