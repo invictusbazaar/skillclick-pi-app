@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { useState, Suspense, useEffect } from "react"
-import { Search, Star, Heart, ArrowLeft, MessageSquare, User, Menu, LogIn, UserPlus, Palette, Code, PenTool, Video, Layers, Filter, ArrowUpDown } from "lucide-react"
+import { Search, Star, Heart, ArrowLeft, MessageSquare, User, Menu, LogIn, UserPlus, Palette, Code, PenTool, Video, Layers, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -11,9 +11,7 @@ import Link from "next/link"
 // MOCK SERVICES (Fallback)
 const MOCK_SERVICES = [
   { id: 1, title: "Modern Minimalist Logo Design", author: "pixel_art", price: 50, rating: 5.0, reviews: 124, category: "Design", gradient: "from-pink-500 to-rose-500", icon: <Palette className="text-white h-10 w-10" /> },
-  { id: 2, title: "Full Stack Web Development", author: "dev_guy", price: 300, rating: 4.9, reviews: 85, category: "Programming", gradient: "from-blue-500 to-cyan-500", icon: <Code className="text-white h-10 w-10" /> },
-  { id: 3, title: "SEO Blog Writing & Copy", author: "writer_pro", price: 30, rating: 4.8, reviews: 210, category: "Writing", gradient: "from-emerald-500 to-teal-500", icon: <PenTool className="text-white h-10 w-10" /> },
-  { id: 4, title: "Pro Video Editing & VFX", author: "vid_master", price: 100, rating: 5.0, reviews: 42, category: "Video", gradient: "from-orange-500 to-amber-500", icon: <Video className="text-white h-10 w-10" /> },
+  // ...
 ];
 
 function SearchContent() {
@@ -27,7 +25,6 @@ function SearchContent() {
   const [filteredServices, setFilteredServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // FILTERI
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sortBy, setSortBy] = useState("recommended");
@@ -44,7 +41,6 @@ function SearchContent() {
     profile: { en: "Profile", sr: "Profil" },
     search: { en: "Search", sr: "Traži" },
     back: { en: "Back to Home", sr: "Nazad na početnu" },
-    details: { en: "Details", sr: "Detalji" }
   }
 
   // 1. UČITAVANJE PODATAKA
@@ -57,33 +53,21 @@ function SearchContent() {
           const combined = [...realData, ...MOCK_SERVICES];
           const unique = combined.filter((v,i,a)=>a.findIndex(v2=>(v2.id===v.id))===i);
           setServices(unique);
-        } else {
-            setServices(MOCK_SERVICES);
-        }
-      } catch (error) {
-        setServices(MOCK_SERVICES);
-      } finally {
-        setLoading(false);
-      }
+        } else { setServices(MOCK_SERVICES); }
+      } catch (error) { setServices(MOCK_SERVICES); } finally { setLoading(false); }
     };
     fetchServices();
   }, []);
 
-  // 2. NAPREDNO FILTRIRANJE
+  // 2. FILTRIRANJE
   useEffect(() => {
-    let result = [...services]; 
+    let result = [...services];
 
-    // A) Kategorija
     if (initialCategory) {
         const cat = initialCategory.toLowerCase();
-        result = result.filter(s => {
-            const serviceCat = s.category.toLowerCase();
-            return serviceCat.includes(cat) || cat.includes(serviceCat) || 
-                   (cat === "graphics" && serviceCat.includes("design"));
-        });
+        result = result.filter(s => s.category.toLowerCase().includes(cat));
     }
     
-    // B) Pretraga
     const activeQuery = query || initialQuery;
     if (activeQuery) {
         const q = activeQuery.toLowerCase();
@@ -95,34 +79,20 @@ function SearchContent() {
         );
     }
 
-    // C) Cena
-    if (minPrice) {
-        result = result.filter(s => s.price >= parseFloat(minPrice));
-    }
-    if (maxPrice) {
-        result = result.filter(s => s.price <= parseFloat(maxPrice));
-    }
+    if (minPrice) result = result.filter(s => s.price >= parseFloat(minPrice));
+    if (maxPrice) result = result.filter(s => s.price <= parseFloat(maxPrice));
 
-    // D) Sortiranje
-    if (sortBy === "price_low") {
-        result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "price_high") {
-        result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "rating") {
-        result.sort((a, b) => b.rating - a.rating);
-    }
+    if (sortBy === "price_low") result.sort((a, b) => a.price - b.price);
+    else if (sortBy === "price_high") result.sort((a, b) => b.price - a.price);
+    else if (sortBy === "rating") result.sort((a, b) => b.rating - a.rating);
 
     setFilteredServices(result);
   }, [services, initialCategory, query, initialQuery, minPrice, maxPrice, sortBy]);
 
-  const handleSearch = () => {
-    router.push(`/services?search=${encodeURIComponent(query)}`)
-  }
+  const handleSearch = () => { router.push(`/services?search=${encodeURIComponent(query)}`) }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-        handleSearch();
-    }
+    if (e.key === 'Enter') { handleSearch(); }
   };
 
   const getRandomGradient = (id: number) => {
@@ -135,27 +105,12 @@ function SearchContent() {
   return (
     <div className="min-h-screen bg-blue-50/50">
       
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-sm border-b border-border"> 
-        <div className="container mx-auto px-4 py-1 flex items-center justify-between"> 
-          <Link href="/" className="flex items-center"><img src="/skillclick_logo.png" alt="SkillClick Logo" width={140} height={30} style={{ objectFit: 'contain' }} className="object-contain" /></Link>
-          <div className="flex items-center gap-3">
-             <Button variant="outline" onClick={() => setLang(lang === "en" ? "sr" : "en")} className={buttonStyle}>{lang === "en" ? "SR" : "EN"}</Button>
-             <Link href="/services"><Button variant="outline" className={`hidden md:flex ${buttonStyle}`}>Explore</Button></Link>
-             <Link href="/auth/register"><Button variant="outline" className={`hidden md:flex ${buttonStyle}`}>Become a Seller</Button></Link>
-             <Button variant="ghost" size="icon" onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-gray-600"><Menu className="h-5 w-5" /></Button>
-             {isLoggedIn ? (
-                <div className="hidden md:flex gap-3 ml-2"><Link href="/messages"><Button variant="ghost" className="h-8 px-2 text-xs text-gray-600 hover:text-blue-600"><MessageSquare className="h-4 w-4 mr-1" />{t.messages[lang]}</Button></Link><Link href="/profile"><Button variant="ghost" className="h-8 px-2 text-xs text-gray-600 hover:text-blue-600"><User className="h-4 w-4 mr-1" />{t.profile[lang]}</Button></Link></div>
-             ) : (
-                <div className="hidden md:flex gap-3 items-center ml-2"><Link href="/auth/login"><Button variant="outline" className={buttonStyle}><LogIn className="h-4 w-4 mr-1" />{t.login[lang]}</Button></Link><Link href="/auth/register"><Button variant="outline" className={buttonStyle}><UserPlus className="h-4 w-4 mr-1" />{t.register[lang]}</Button></Link></div>
-             )}
-          </div>
-        </div>
-      </header>
+      {/* UKLONJEN REDUNDANTNI HEADER IZ OVOG FAJLA */}
 
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-6xl mx-auto">
             
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
                 <div>
                     <Link href="/" className="text-sm text-blue-600 hover:underline mb-2 inline-block flex items-center font-medium"><ArrowLeft className="w-4 h-4 mr-1"/> {t.back[lang]}</Link>
                     <h1 className="text-3xl font-bold text-gray-900">
@@ -163,17 +118,16 @@ function SearchContent() {
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">Found {filteredServices.length} services</p>
                 </div>
-                
                 <div className="flex w-full md:w-auto gap-2">
                     <div className="relative flex-grow md:w-80">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} className="pl-10 bg-white border-blue-200 focus-visible:ring-blue-600" placeholder={lang === "en" ? "Search..." : "Pretraži..."} />
+                        <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyPress} className="pl-10 bg-white border-blue-200 focus-visible:ring-blue-600" placeholder={lang === "en" ? "Search services..." : "Pretraži..."} />
                     </div>
                     <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white">{t.search[lang]}</Button>
                 </div>
             </div>
 
-            {/* FILTERI */}
+            {/* FILTER TRAKA */}
             <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-100 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex items-center gap-2 text-gray-600 text-sm font-medium"><Filter className="h-4 w-4" /> Filters:</div>
@@ -198,18 +152,16 @@ function SearchContent() {
             </div>
 
           {/* REZULTATI */}
-          {loading ? (<div className="text-center py-20 text-gray-500">Loading marketplace...</div>) : filteredServices.length > 0 ? (
+          {filteredServices.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filteredServices.map((gig) => (
                     <div key={gig.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col relative">
-                        
                         <Link href={`/services/${gig.id}`} className="block relative">
                             <div className={`h-40 w-full bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center relative`}>
                                 <div className="transform group-hover:scale-110 transition-transform duration-300 text-white text-5xl">{gig.icon ? gig.icon : (gig.image && gig.image.length < 5 ? gig.image : <Layers className="h-10 w-10 text-white" />)}</div>
                                 <button className="absolute top-3 right-3 p-1.5 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40 text-white transition z-20"><Heart className="h-4 w-4" /></button>
                             </div>
                         </Link>
-                        
                         <div className="p-4 flex flex-col flex-grow">
                             <div className="flex items-center gap-2 mb-2 relative z-20">
                                 <div className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">{gig.author ? gig.author[0].toUpperCase() : 'U'}</div>
