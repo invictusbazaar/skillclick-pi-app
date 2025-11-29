@@ -2,14 +2,11 @@
 
 import { Inter } from "next/font/google";
 import "./globals.css";
-// FIX: Menjamo alias '@/components/Footer' u relativnu putanju '../components/Footer'
-import Footer from "../components/Footer"; 
+import Footer from "@/components/Footer"; 
 import Script from 'next/script'; 
-// FIX: Menjamo alias '@/components/Header' u relativnu putanju
-import Header from "../components/Header";
-// FIX: Menjamo alias za LanguageProvider
-import { LanguageProvider } from "../components/LanguageContext";
+import Header from "@/components/Header";
 import { useState, useEffect } from "react"; 
+import { LanguageProvider } from "@/components/LanguageContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,7 +32,6 @@ export default function RootLayout({
       <body className={inter.className}>
         <LanguageProvider>
             
-            {/* PI SDK */}
             <Script
               src="https://sdk.minepi.com/v2/pi.js"
               strategy="afterInteractive" 
