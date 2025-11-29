@@ -8,11 +8,26 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 
-// MOCK SERVICES (Fallback)
+// MOCK PODACI (Fallback)
 const MOCK_SERVICES = [
   { id: 1, title: "Modern Minimalist Logo Design", author: "pixel_art", price: 50, rating: 5.0, reviews: 124, category: "Design", gradient: "from-pink-500 to-rose-500", icon: <Palette className="text-white h-10 w-10" /> },
-  // ...
+  { id: 2, title: "Full Stack Web Development", author: "dev_guy", price: 300, rating: 4.9, reviews: 85, category: "Programming", gradient: "from-blue-500 to-cyan-500", icon: <Code className="text-white h-10 w-10" /> },
+  { id: 3, title: "SEO Blog Writing & Copy", author: "writer_pro", price: 30, rating: 4.8, reviews: 210, category: "Writing", gradient: "from-emerald-500 to-teal-500", icon: <PenTool className="text-white h-10 w-10" /> },
+  { id: 4, title: "Pro Video Editing & VFX", author: "vid_master", price: 100, rating: 5.0, reviews: 42, category: "Video", gradient: "from-orange-500 to-amber-500", icon: <Video className="text-white h-10 w-10" /> },
 ];
+
+// FUNKCIJA KOJA GENERIŠE ISTI GRADIJENT KAO NA KARTICAMA (KLJUČNO!)
+const getRandomGradient = (id: number) => {
+    const gradients = [
+      "from-pink-500 to-rose-500",
+      "from-blue-500 to-cyan-500",
+      "from-emerald-500 to-teal-500",
+      "from-orange-500 to-amber-500",
+      "from-purple-500 to-indigo-500"
+    ];
+    return gradients[(id - 1) % gradients.length];
+};
+
 
 function SearchContent() {
   const searchParams = useSearchParams()
@@ -29,10 +44,10 @@ function SearchContent() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sortBy, setSortBy] = useState("recommended");
 
-  const [lang, setLang] = useState<"en" | "sr">("en") 
+  const [lang] = useState<"en" | "sr">("en") 
   const [query, setQuery] = useState(initialQuery)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [menuOpen] = useState(false)
+  const [isLoggedIn] = useState(false); 
 
   const t = {
     login: { en: "Login", sr: "Prijavi se" }, 
@@ -50,8 +65,7 @@ function SearchContent() {
         const response = await fetch('/api/services');
         if (response.ok) {
           const realData = await response.json();
-          const combined = [...realData, ...MOCK_SERVICES];
-          const unique = combined.filter((v,i,a)=>a.findIndex(v2=>(v2.id===v.id))===i);
+          const unique = [...realData, ...MOCK_SERVICES].filter((v,i,a)=>a.findIndex(v2=>(v2.id===v.id))===i);
           setServices(unique);
         } else { setServices(MOCK_SERVICES); }
       } catch (error) { setServices(MOCK_SERVICES); } finally { setLoading(false); }
@@ -65,18 +79,13 @@ function SearchContent() {
 
     if (initialCategory) {
         const cat = initialCategory.toLowerCase();
-        result = result.filter(s => s.category.toLowerCase().includes(cat));
+        result = result.filter(s => s.category.toLowerCase().includes(cat) || (cat === "graphics" && s.category.toLowerCase().includes("design")));
     }
     
     const activeQuery = query || initialQuery;
     if (activeQuery) {
         const q = activeQuery.toLowerCase();
-        result = result.filter(s => 
-            s.title.toLowerCase().includes(q) || 
-            (s.description && s.description.toLowerCase().includes(q)) ||
-            s.category.toLowerCase().includes(q) ||
-            (s.author && s.author.toLowerCase().includes(q)) 
-        );
+        result = result.filter(s => s.title.toLowerCase().includes(q) || (s.author && s.author.toLowerCase().includes(q)) );
     }
 
     if (minPrice) result = result.filter(s => s.price >= parseFloat(minPrice));
@@ -95,22 +104,17 @@ function SearchContent() {
     if (e.key === 'Enter') { handleSearch(); }
   };
 
-  const getRandomGradient = (id: number) => {
-    const gradients = ["from-pink-500 to-rose-500", "from-blue-500 to-cyan-500", "from-emerald-500 to-teal-500", "from-orange-500 to-amber-500", "from-purple-500 to-indigo-500"];
-    return gradients[id % gradients.length];
-  };
-
   const buttonStyle = "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md px-4 py-1 h-9 transition-all text-sm font-medium";
 
   return (
     <div className="min-h-screen bg-blue-50/50">
       
-      {/* UKLONJEN REDUNDANTNI HEADER IZ OVOG FAJLA */}
+      {/* UKLONJENA HEADER KOMPONENTA IZ PAGE.TSX */}
 
       <main className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-6xl mx-auto">
             
-            <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div>
                     <Link href="/" className="text-sm text-blue-600 hover:underline mb-2 inline-block flex items-center font-medium"><ArrowLeft className="w-4 h-4 mr-1"/> {t.back[lang]}</Link>
                     <h1 className="text-3xl font-bold text-gray-900">
@@ -121,7 +125,7 @@ function SearchContent() {
                 <div className="flex w-full md:w-auto gap-2">
                     <div className="relative flex-grow md:w-80">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyPress} className="pl-10 bg-white border-blue-200 focus-visible:ring-blue-600" placeholder={lang === "en" ? "Search services..." : "Pretraži..."} />
+                        <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyPress} className="pl-10 bg-white border-blue-200 focus-visible:ring-blue-600" placeholder={lang === "en" ? "Search..." : "Pretraži..."} />
                     </div>
                     <Button onClick={handleSearch} className="bg-blue-600 hover:bg-blue-700 text-white">{t.search[lang]}</Button>
                 </div>
@@ -152,13 +156,14 @@ function SearchContent() {
             </div>
 
           {/* REZULTATI */}
-          {filteredServices.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {loading ? (<div className="text-center py-20 text-gray-500">Loading marketplace...</div>) : filteredServices.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 {filteredServices.map((gig) => (
                     <div key={gig.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col relative">
                         <Link href={`/services/${gig.id}`} className="block relative">
-                            <div className={`h-40 w-full bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center relative`}>
-                                <div className="transform group-hover:scale-110 transition-transform duration-300 text-white text-5xl">{gig.icon ? gig.icon : (gig.image && gig.image.length < 5 ? gig.image : <Layers className="h-10 w-10 text-white" />)}</div>
+                            {/* FIX: KARTICA SADA KORISTI ISTU LOGIKU ZA BOJU KAO I DETAIL PAGE */}
+                            <div className={`h-40 w-full bg-gradient-to-br ${gig.gradient || getRandomGradient(gig.id)} flex items-center justify-center relative`}>
+                                <div className="transform group-hover:scale-110 transition-transform duration-300 text-white text-5xl">{gig.image && gig.image.length < 5 ? gig.image : <Layers className="h-10 w-10 text-white" />}</div>
                                 <button className="absolute top-3 right-3 p-1.5 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40 text-white transition z-20"><Heart className="h-4 w-4" /></button>
                             </div>
                         </Link>
@@ -166,6 +171,7 @@ function SearchContent() {
                             <div className="flex items-center gap-2 mb-2 relative z-20">
                                 <div className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">{gig.author ? gig.author[0].toUpperCase() : 'U'}</div>
                                 <Link href={`/seller/${gig.author}`} className="text-xs font-semibold text-gray-700 truncate hover:text-blue-600 hover:underline">{gig.author || "Unknown"}</Link>
+                                <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full ml-auto">{gig.category}</span>
                             </div>
                             <Link href={`/services/${gig.id}`}><p className="text-gray-900 hover:text-blue-600 font-bold mb-3 line-clamp-2 min-h-[3rem] text-sm relative z-20 cursor-pointer">{gig.title}</p></Link>
                             <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-3">

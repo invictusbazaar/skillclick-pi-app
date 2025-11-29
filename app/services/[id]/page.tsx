@@ -17,18 +17,18 @@ const MOCK_SERVICES = [
     { id: 4, title: "Pro Video Editing", author: "vid_master", price: 100, rating: 5.0, reviews: 42, category: "Video", description: "Video editing...", deliveryTime: "3 Days", gradient: "from-orange-500 to-amber-500", icon: <Video className="text-white h-10 w-10" /> },
 ];
 
-// FUNKCIJA KOJA GENERIŠE ISTI GRADIJENT KAO NA KARTICAMA (OVO JE KLJUČNO ZA BOJU!)
+// FUNKCIJA KOJA GENERIŠE ISTI GRADIJENT KAO NA KARTICAMA (IDENTIČNA HOME PAGE FUNKCIJA)
 const getRandomGradient = (id: number) => {
     const gradients = [
-      "from-pink-500 to-rose-500",
-      "from-blue-500 to-cyan-500",
-      "from-emerald-500 to-teal-500",
-      "from-orange-500 to-amber-500",
-      "from-purple-500 to-indigo-500"
+      "from-pink-500 to-rose-500", // ID 1
+      "from-blue-500 to-cyan-500", // ID 2
+      "from-emerald-500 to-teal-500", // ID 3
+      "from-orange-500 to-amber-500", // ID 4
+      "from-purple-500 to-indigo-500" // ID 5
     ];
-    // Koristimo (id - 1) % length DA BI BOJE UVEK BILE U ISTOM REDOSLEDU
     return gradients[(id - 1) % gradients.length];
 };
+
 
 export default function ServiceDetailsPage() {
   const { t } = useLanguage();
@@ -57,7 +57,7 @@ export default function ServiceDetailsPage() {
                 let found = allServices.find((s: any) => s.id === serviceId);
                 if (!found) found = MOCK_SERVICES.find(s => s.id === serviceId);
                 
-                // Ubacujemo boju u servis objekat
+                // FIX: Ubacujemo boju u servis objekat
                 if(found && !found.gradient) {
                     found.gradient = getRandomGradient(serviceId);
                 }
@@ -81,62 +81,35 @@ export default function ServiceDetailsPage() {
     fetchData();
   }, [serviceId]);
 
-  // --- FUNKCIJA ZA PLAĆANJE (REAL PI SDK CALL) ---
-  const handleOrder = async () => {
-    setOrderClicked(true);
-    const Pi = (window as any).Pi;
-    
-    // Provera da li je Pi SDK inicijalizovan
-    if (typeof window !== 'undefined' && Pi) {
-        try {
-            console.log("Starting Pi Payment process...");
-            const scopes = ['username', 'payments'];
-            const onIncompletePaymentFound = (payment: any) => { console.log("Incomplete payment found", payment); };
-            
-            await Pi.authenticate(scopes, onIncompletePaymentFound);
-
-            const paymentData = {
-                amount: service.price, 
-                memo: `Order: ${service.title} (ID: ${service.id})`, 
-                metadata: { serviceId: service.id, type: "service_order" },
-            };
-
-            const callbacks = {
-                onReadyForServerApproval: (paymentId: string) => {
-                    alert(`Payment ID: ${paymentId} - Waiting for Server Approval`);
-                },
-                onReadyForServerCompletion: (paymentId: string, txid: string) => {
-                    alert("Payment Completed! TXID: " + txid);
-                },
-                onCancel: (paymentId: string) => { 
-                    console.warn("Payment Cancelled");
-                    setOrderClicked(false);
-                },
-                onError: (error: any, payment: any) => { 
-                    console.error("Payment Error", error);
-                    alert("Pi Payment Error: " + error.message);
-                    setOrderClicked(false);
-                },
-            };
-            
-            // POKRENI PLAĆANJE!
-            await Pi.createPayment(paymentData, callbacks);
-
-        } catch (err: any) {
-            alert("Pi Error: " + err.message);
-            setOrderClicked(false);
-        }
-    } else {
-        // Fallback za PC ili neinicijalizovan SDK
-        alert(`⚠️ SIMULACIJA (PC/Keš): Naručujete uslugu za ${service.price} Pi.`);
-        setOrderClicked(false); 
-    }
-  };
-
   const  handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment) return;
-    // ... (Logika za review ostaje ista) ...
+
+    try {
+        const response = await fetch('/api/reviews', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                serviceId, rating: parseInt(rating), comment, author: "Guest User"
+            })
+        });
+
+        if (response.ok) {
+            const newReviewData = await response.json();
+            setReviews([...reviews, newReviewData.review]);
+            setComment(""); 
+        }
+    } catch (error) {
+        alert("Error posting review");
+    }
+  };
+
+  const handleOrder = () => {
+    if (typeof window !== 'undefined' && (window as any).Pi) {
+       alert(`Pi Payment: Requesting ${service.price} Pi...`);
+    } else {
+       alert(`⚠️ SIMULACIJA: Naručujete uslugu za ${service.price} Pi.`);
+    }
   };
 
   const buttonStyle = "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md px-4 py-1 h-9 transition-all text-sm font-medium";
@@ -146,7 +119,7 @@ export default function ServiceDetailsPage() {
   return (
     <div className="min-h-screen bg-blue-50/50">
       
-      {/* HEADER JE UKLONJEN IZ OVOG FAJLA, KORISTIMO GLOBALNI */}
+      {/* HEADER JE UKLONJEN IZ OVOG FAJLA (KORISTIMO GLOBALNI) */}
 
       <div className="container mx-auto px-4 py-8">
         <Link href="/services" className="inline-flex items-center text-sm text-blue-600 hover:underline mb-6 transition-colors font-medium"><ArrowLeft className="w-4 h-4 mr-1" /> {t.back}</Link>

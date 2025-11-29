@@ -139,7 +139,7 @@ export default function HomePage() {
                         </Link>
                         <div className="p-3 md:p-4 flex flex-col flex-grow">
                             <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2 relative z-20">
-                                <div className="w-5 h-5 md:w-6 md:h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-[10px] md:text-xs font-bold">{gig.author ? gig.author[0].toUpperCase() : 'U'}</div>
+                                <div className="w-5 h-5 md:w-6 md:h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">{gig.author ? gig.author[0].toUpperCase() : 'U'}</div>
                                 <Link href={`/seller/${gig.author}`} className="text-[10px] md:text-xs font-semibold text-gray-900 truncate hover:text-blue-600 hover:underline">{gig.author}</Link>
                             </div>
                             <Link href={`/services/${gig.id}`}><p className="text-gray-900 hover:text-blue-600 font-bold mb-2 md:mb-3 line-clamp-2 min-h-[2.5rem] md:min-h-[3rem] text-xs md:text-sm relative z-20 cursor-pointer leading-tight">{gig.title}</p></Link>
