@@ -2,11 +2,14 @@
 
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Footer from "@/components/Footer"; 
+// FIX: Menjamo alias '@/components/Footer' u relativnu putanju '../components/Footer'
+import Footer from "../components/Footer"; 
 import Script from 'next/script'; 
-import Header from "@/components/Header";
+// FIX: Menjamo alias '@/components/Header' u relativnu putanju
+import Header from "../components/Header";
+// FIX: Menjamo alias za LanguageProvider
+import { LanguageProvider } from "../components/LanguageContext";
 import { useState, useEffect } from "react"; 
-import { LanguageProvider } from "@/components/LanguageContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,11 +18,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Stanje za forsirano osvežavanje Headera
   const [sessionKey, setSessionKey] = useState<string | null>(null);
 
   useEffect(() => {
-    // Čita ključ koji se menja pri logovanju/registraciji
     const key = localStorage.getItem('sessionKey');
     setSessionKey(key);
   }, []);
@@ -34,7 +35,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <LanguageProvider>
             
-            {/* PI SDK - Agresivna inicijalizacija za Pi Browser i Wallet */}
+            {/* PI SDK */}
             <Script
               src="https://sdk.minepi.com/v2/pi.js"
               strategy="afterInteractive" 
@@ -44,7 +45,6 @@ export default function RootLayout({
             />
 
             <div className="flex flex-col min-h-screen">
-              {/* Prosleđujemo sessionKey za forsirano osvežavanje Headera */}
               <Header sessionKeyProp={sessionKey} /> 
               <div className="flex-grow">
                 {children}
