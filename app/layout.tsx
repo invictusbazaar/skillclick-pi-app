@@ -2,11 +2,14 @@
 
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Footer from "@/components/Footer"; 
+// FIX: Relativna putanja za Footer
+import Footer from "../components/Footer"; 
 import Script from 'next/script'; 
-import Header from "@/components/Header";
+// FIX: Relativna putanja za Header
+import Header from "../components/Header";
+// FIX: Relativna putanja za LanguageProvider
+import { LanguageProvider } from "../components/LanguageContext";
 import { useState, useEffect } from "react"; 
-import { LanguageProvider } from "@/components/LanguageContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
