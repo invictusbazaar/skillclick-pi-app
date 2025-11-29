@@ -2,14 +2,11 @@
 
 import { Inter } from "next/font/google";
 import "./globals.css";
-// FIX: Relativna putanja za Footer
 import Footer from "../components/Footer"; 
 import Script from 'next/script'; 
-// FIX: Relativna putanja za Header
 import Header from "../components/Header";
-// FIX: Relativna putanja za LanguageProvider
-import { LanguageProvider } from "../components/LanguageContext";
 import { useState, useEffect } from "react"; 
+import { LanguageProvider } from "../components/LanguageContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,11 +32,15 @@ export default function RootLayout({
       <body className={inter.className}>
         <LanguageProvider>
             
+            {/* PI SDK - AGRESIVNA INICIJALIZACIJA (FIX ZA SIMULACIJU) */}
             <Script
               src="https://sdk.minepi.com/v2/pi.js"
               strategy="afterInteractive" 
               onLoad={() => {
-                  try { (window as any).Pi.init({ version: "2.0", sandbox: true }); } catch (e) {}
+                  try { 
+                    // POKREĆEMO SDK
+                    (window as any).Pi.init({ version: "2.0", sandbox: true }); 
+                  } catch (e) {}
               }}
             />
 
