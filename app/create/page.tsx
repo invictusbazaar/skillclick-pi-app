@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Dodajemo useEffect
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,11 +8,30 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Zap, List, FileText, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'; // Uklonjen DollarSign
+import { Zap, DollarSign, List, FileText, ArrowLeft, Loader2, CheckCircle, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CreateServicePage() {
   const router = useRouter();
+
+  // FIX: Koristimo loading stanje da prikažemo spinner dok ne utvrdimo status
+  const [loadingStatus, setLoadingStatus] = useState(true);
+
+  // --- ZAŠTITNI MEHANIZAM ---
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      if (!loggedIn) {
+        // Preusmeri na login ako nije ulogovan, sa povratnim linkom
+        router.replace('/auth/login?redirect=/create'); 
+      } else {
+        // Ako je ulogovan, možemo da renderujemo formular
+        setLoadingStatus(false); 
+      }
+    }
+  }, [router]);
+  // --- KRAJ ZAŠTITE ---
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
@@ -33,7 +52,8 @@ export default function CreateServicePage() {
     "Lifestyle"
   ];
 
-  const loggedInAuthor = 'Invictus Bazaar';
+  // SIMULACIJA KORISNIKA - Uzimamo ime iz memorije
+  const loggedInAuthor = typeof window !== 'undefined' ? (localStorage.getItem('userEmail') || 'Invictus Bazaar').split('@')[0] : 'Invictus Bazaar';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -51,7 +71,7 @@ export default function CreateServicePage() {
     const serviceData = {
       ...formData,
       price: parseFloat(formData.price),
-      author: loggedInAuthor,
+      author: loggedInAuthor, // Koristi ime ulogovanog korisnika
     };
   
     try {
@@ -63,11 +83,12 @@ export default function CreateServicePage() {
   
       if (response.ok) {
         setIsSuccess(true);
+        // Preusmeri na Home stranicu nakon uspešnog postavljanja
         setTimeout(() => {
           router.push('/'); 
         }, 2000);
       } else {
-        alert("Failed to create service.");
+        alert("Failed to publish service.");
       }
     } catch (error) {
       console.error("Error creating service:", error);
@@ -76,6 +97,16 @@ export default function CreateServicePage() {
       setIsLoading(false);
     }
   };
+  
+  // Ako je loadingStatus true (još proveravamo), prikaži loader
+  if (loadingStatus) {
+      return (
+          <div className="min-h-screen flex items-center justify-center bg-blue-50/50">
+              <Loader2 className="animate-spin w-8 h-8 text-blue-600 mr-2" />
+              <p className="text-gray-600">Checking login status...</p>
+          </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-blue-50/50 py-12 px-4">
@@ -95,98 +126,56 @@ export default function CreateServicePage() {
               Publish Your Service
             </CardTitle>
             <p className="text-gray-500 text-sm">
-              Create a new gig and start earning Pi.
+              Logged in as: <span className="font-semibold text-blue-600">{loggedInAuthor}</span>
             </p>
           </CardHeader>
           
           <CardContent>
             {isSuccess ? (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg flex flex-col items-center justify-center mb-6 text-center animate-in fade-in zoom-in">
-                    <CheckCircle className="h-8 w-8 mb-2 text-green-600" />
-                    <span className="font-bold text-lg">Service published successfully!</span>
-                    <span className="text-sm text-green-600">Redirecting to home...</span>
+                <div className="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-lg text-center animate-in fade-in zoom-in">
+                    <CheckCircle className="h-8 w-8 mb-2 text-green-600 mx-auto" />
+                    <span className="font-bold text-lg">Service published successfully! Redirecting...</span>
                 </div>
             ) : (
             <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-              
-              <div className="space-y-2">
-                <Label htmlFor="title" className="font-semibold text-gray-700">Service Title</Label>
-                <div className="relative group">
-                    <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                    <Input
-                    id="title"
-                    name="title"
-                    placeholder="e.g., I will design a modern logo for your brand"
-                    value={formData.title}
-                    onChange={handleChange}
-                    className="pl-10 border-gray-300 focus-visible:ring-blue-600 h-11 transition-all"
-                    required
-                    />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="category" className="font-semibold text-gray-700">Category</Label>
-                  <Select required onValueChange={handleCategoryChange}>
-                    <SelectTrigger id="category" className="border-gray-300 focus:ring-blue-600 h-11">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat} className="cursor-pointer hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-700">
-                            {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 
+                {/* NASLOV */}
                 <div className="space-y-2">
-                  <Label htmlFor="price" className="font-semibold text-gray-700">Price (Pi)</Label>
-                  <div className="relative group">
-                    {/* FIX: Sada je ovde π simbol umesto $ */}
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">π</span>
-                    <Input
-                        id="price"
-                        name="price"
-                        type="number"
-                        placeholder="50"
-                        value={formData.price}
-                        onChange={handleChange}
-                        className="pl-8 border-gray-300 focus-visible:ring-blue-600 h-11 transition-all"
-                        required
-                        min="1"
-                    />
-                  </div>
+                    <Label htmlFor="title">Service Title</Label>
+                    <Input id="title" name="title" type="text" placeholder="e.g. I will design a modern logo" value={formData.title} onChange={handleChange} required className="border-blue-200" />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description" className="font-semibold text-gray-700">Description</Label>
-                <div className="relative group">
-                    <List className="absolute left-3 top-3 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                    <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Describe your service in detail..."
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={6}
-                    className="pl-10 border-gray-300 focus-visible:ring-blue-600 min-h-[120px] transition-all"
-                    required
-                    />
+                {/* OPIS */}
+                <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" name="description" placeholder="Describe your service in detail..." value={formData.description} onChange={handleChange} required rows={5} className="border-blue-200" />
                 </div>
-              </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg h-12 font-bold shadow-lg shadow-blue-200 transition-all"
-                disabled={isLoading}
-              >
-                {isLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Publishing...</> : 'Publish Gig'}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* KATEGORIJA */}
+                    <div className="space-y-2">
+                        <Label htmlFor="category">Category</Label>
+                        <Select value={formData.category} onValueChange={handleCategoryChange}>
+                            <SelectTrigger id="category" className="w-full border-blue-200">
+                                <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* CENA */}
+                    <div className="space-y-2">
+                        <Label htmlFor="price">Price (in Pi)</Label>
+                        <Input id="price" name="price" type="number" placeholder="e.g. 50.00" value={formData.price} onChange={handleChange} required className="border-blue-200" />
+                    </div>
+                </div>
+
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg h-12" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
+                {isLoading ? "Publishing..." : "Publish Gig"}
               </Button>
-
             </form>
             )}
           </CardContent>

@@ -6,23 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("") 
   const [menuOpen, setMenuOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [isLoggedIn] = useState(false); 
   
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const router = useRouter()
 
+  // DEFINICIJA KATEGORIJA
   const categoryLinks = [
     "Graphics & Design",
     "Digital Marketing",
@@ -33,21 +28,11 @@ export default function HomePage() {
     "Lifestyle"
   ];
 
-  const languages = [
-    { code: "en", name: "English", flag: "🇺🇸" },
-    { code: "sr", name: "Srpski", flag: "🇷🇸" },
-    { code: "zh", name: "中文 (Chinese)", flag: "🇨🇳" },
-    { code: "es", name: "Español", flag: "🇪🇸" },
-    { code: "vi", name: "Tiếng Việt", flag: "🇻🇳" },
-    { code: "hi", name: "हिन्दी (Hindi)", flag: "🇮🇳" },
-    { code: "id", name: "Indonesian", flag: "🇮🇩" },
-  ];
-
   const categoryMap: { [key: string]: string } = {
     "Graphics & Design": "design", "Digital Marketing": "marketing", "Writing & Translation": "writing", "Video & Animation": "video", "Programming & Tech": "programming", "Business": "business", "Lifestyle": "lifestyle"
   };
 
-  const [lang, setLang] = useState<string>("en") 
+  const [lang] = useState<string>("en") 
 
   const t: any = {
     searchPlaceholder: { en: "Search for services...", sr: "Pretražite usluge..." },
@@ -93,14 +78,25 @@ export default function HomePage() {
 
   const getRandomGradient = (id: number) => {
     const gradients = ["from-pink-500 to-rose-500", "from-blue-500 to-cyan-500", "from-emerald-500 to-teal-500", "from-orange-500 to-amber-500", "from-purple-500 to-indigo-500"];
-    return gradients[id % gradients.length];
+    return gradients[(id - 1) % gradients.length];
   };
 
   return (
     <div className="min-h-screen bg-blue-50/50">
       
-      {/* UKLONJENA HEADER KOMPONENTA IZ PAGE.TSX */}
-      
+      {/* --- KATEGORIJE TRAKA (SADA UVEK VIDLJIVA + MOBILNI SCROLL) --- */}
+      <div className="border-t border-blue-100 bg-blue-50/50 sticky top-[64px] z-30"> {/* Fiksirano na 64px visine headera */}
+          <div className="mx-auto px-4">
+              <ul className="flex md:justify-between py-2 text-sm font-medium overflow-x-scroll whitespace-nowrap md:overflow-x-visible">
+                  {categoryLinks.map((cat, index) => (
+                      <li key={index} className="flex-shrink-0 mr-5 md:mr-0 last:pr-4 md:last:pr-0">
+                          <Link href={`/services?category=${categoryMap[cat] || 'all'}`} className="cursor-pointer text-black border-b-2 border-transparent hover:text-blue-700 hover:border-blue-700 pb-1 transition-all">{cat}</Link>
+                      </li>
+                  ))}
+              </ul>
+          </div>
+      </div>
+
       <main className="bg-blue-600 text-white py-16 md:py-32 relative overflow-hidden">
          <div className="container mx-auto px-4 relative z-10 text-center md:text-left">
             <h1 className="text-5xl md:text-7xl font-bold mb-4 tracking-tight">SkillClick</h1>
@@ -132,7 +128,7 @@ export default function HomePage() {
                 {services.map((gig) => (
                     <div key={gig.id} className="group bg-white rounded-xl border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden h-full flex flex-col relative">
                         <Link href={`/services/${gig.id}`} className="block relative">
-                            <div className={`h-28 md:h-40 w-full bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center`}>
+                            <div className={`h-28 md:h-40 w-full bg-gradient-to-br ${gig.gradient || getRandomGradient(gig.id)} flex items-center justify-center`}>
                                 <div className="transform group-hover:scale-110 transition-transform duration-300 text-3xl md:text-4xl">{gig.icon ? gig.icon : (gig.image && gig.image.length < 5 ? gig.image : <Layers className="h-8 w-8 md:h-10 md:w-10 text-white" />)}</div>
                                 <div className="absolute top-2 right-2 p-1.5 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40 text-white transition z-20 cursor-pointer"><Heart className="h-3 w-3 md:h-4 md:w-4" /></div>
                             </div>
