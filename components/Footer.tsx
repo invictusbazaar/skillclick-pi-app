@@ -1,87 +1,93 @@
+"use client"
+
+import React from 'react';
 import Link from 'next/link';
-import { Mail, Heart, Github, Twitter, Linkedin } from 'lucide-react'; 
+import { Mail, MapPin, Heart, Twitter, Facebook, Instagram, Linkedin, Globe } from 'lucide-react';
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
-  const companyName = "Invictus Bazaar"; 
-  const contactEmail = "invictusbazaar@gmail.com"; 
-
-  // Stil za linkove 
-  const linkStyle = "text-gray-600 border-b-2 border-transparent hover:text-blue-600 hover:border-blue-600 pb-0.5 transition-all inline-block cursor-pointer";
-  // Stil za ikonice
-  const iconStyle = "text-gray-500 hover:text-blue-600 transition-colors cursor-pointer";
-
   return (
-    <footer className="bg-blue-50/50 border-t border-blue-100 mt-auto"> 
-      <div className="container mx-auto px-4 py-12">
+    <footer className="bg-gray-900 text-gray-300 border-t border-gray-800 font-sans">
+      <div className="container mx-auto px-6 py-8 md:py-16">
         
-        {/* --- GLAVNI DEO (4 KOLONE) --- */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8"> 
+        {/* --- GLAVNI DEO --- */}
+        {/* MOBILNI: grid-cols-1 (jedna ispod druge)
+            TABLET: md:grid-cols-2 (po dve u redu)
+            PC: lg:grid-cols-4 (četiri u redu) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
           
-          {/* KOLONA 1: BRENDING (LEVO) */}
-          <div className="col-span-1 md:col-span-1">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              {companyName} 
+          {/* KOLONA 1: O NAMA */}
+          <div className="space-y-4 text-center md:text-left">
+            <h3 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-2">
+              <Globe className="w-6 h-6 text-purple-500" /> SkillClick
             </h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              The premier marketplace for digital skills. Connecting talent with opportunities in the Pi Network ecosystem.
+            <p className="text-sm leading-relaxed text-gray-400">
+              The premier decentralized freelance marketplace built on the Pi Network ecosystem. 
+              We bridge the gap between global talent and digital currency.
             </p>
+            <div className="flex gap-4 pt-2 justify-center md:justify-start">
+              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Twitter className="w-5 h-5" /></a>
+              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Facebook className="w-5 h-5" /></a>
+              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Instagram className="w-5 h-5" /></a>
+              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Linkedin className="w-5 h-5" /></a>
+            </div>
           </div>
 
-          {/* KOLONA 2: PLATFORMA */}
-          <div>
-            <h4 className="font-bold text-gray-900 mb-4">Platform</h4>
+          {/* Ostale kolone (tekst centriran na mobilnom radi lepšeg izgleda) */}
+          <div className="text-center md:text-left">
+            <h4 className="text-white font-bold mb-4">Categories</h4>
             <ul className="space-y-2 text-sm">
-              {/* OVO JE POPRAVLJENO: Linkovi sada vode na prave stranice */}
-              <li><Link href="/services" className={linkStyle}>Browse Services</Link></li>
-              <li><Link href="/create" className={linkStyle}>Post a Service</Link></li>
-              <li><Link href="/profile" className={linkStyle}>My Profile</Link></li>
+              <li><Link href="/services?cat=design" className="hover:text-purple-400 active:text-purple-400 transition-colors">Graphics & Design</Link></li>
+              <li><Link href="/services?cat=marketing" className="hover:text-purple-400 active:text-purple-400 transition-colors">Digital Marketing</Link></li>
+              <li><Link href="/services?cat=writing" className="hover:text-purple-400 active:text-purple-400 transition-colors">Writing & Translation</Link></li>
+              <li><Link href="/services?cat=video" className="hover:text-purple-400 active:text-purple-400 transition-colors">Video & Animation</Link></li>
+              <li><Link href="/services?cat=tech" className="hover:text-purple-400 active:text-purple-400 transition-colors">Programming & Tech</Link></li>
             </ul>
           </div>
 
-          {/* KOLONA 3: PODRŠKA */}
-          <div>
-            <h4 className="font-bold text-gray-900 mb-4">Support</h4>
+          <div className="text-center md:text-left">
+            <h4 className="text-white font-bold mb-4">Support & Legal</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/faq" className={linkStyle}>FAQ</Link></li>
-              <li><Link href="/terms" className={linkStyle}>Terms of Service</Link></li>
-              <li><Link href="/privacy" className={linkStyle}>Privacy Policy</Link></li>
+              <li><Link href="/help" className="hover:text-purple-400 active:text-purple-400 transition-colors">Help & Support</Link></li>
+              <li><Link href="/trust" className="hover:text-purple-400 active:text-purple-400 transition-colors">Trust & Safety</Link></li>
+              <li><Link href="/selling" className="hover:text-purple-400 active:text-purple-400 transition-colors">Selling on SkillClick</Link></li>
+              <li><Link href="/privacy" className="hover:text-purple-400 active:text-purple-400 transition-colors text-gray-400">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-purple-400 active:text-purple-400 transition-colors text-gray-400">Terms of Service</Link></li>
             </ul>
           </div>
 
-          {/* KOLONA 4: PRATITE NAS */}
-          <div>
-            <h4 className="font-bold text-gray-900 mb-4">Follow Us</h4>
-            <div className="flex gap-4">
-              <Link href="#" className={iconStyle}><Github className="h-6 w-6" /></Link>
-              <Link href="#" className={iconStyle}><Twitter className="h-6 w-6" /></Link>
-              <Link href="#" className={iconStyle}><Linkedin className="h-6 w-6" /></Link>
-            </div>
+          <div className="text-center md:text-left">
+            <h4 className="text-white font-bold mb-4">Contact Us</h4>
+            <ul className="space-y-4 text-sm flex flex-col items-center md:items-start">
+              <li className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
+                <span>
+                  Invictus Bazaar Team<br />
+                  Global Pi Network Community
+                </span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-purple-500 shrink-0" />
+                <a href="mailto:invictusbazaar@gmail.com" className="hover:text-white active:text-white transition-colors text-purple-200">
+                  invictusbazaar@gmail.com
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
+      </div>
 
-        {/* --- COPYRIGHT I KONTAKT --- */}
-        <div className="border-t border-gray-200 pt-8 text-sm text-gray-500 flex flex-col md:flex-row justify-between items-center">
-            
-            <div className="flex items-center mb-4 md:mb-0">
-                <Mail className="w-4 h-4 mr-2 text-gray-900" />
-                <p className="text-gray-900 font-medium">
-                    Support: 
-                    <a 
-                    href={`mailto:${contactEmail}`} 
-                    className="text-gray-900 hover:text-blue-600 hover:underline transition-colors ml-1 font-bold"
-                    >
-                    {contactEmail}
-                    </a>
-                </p>
-            </div>
-
-            <p className="text-center md:text-right">
-                <span className="text-gray-900 font-bold mr-1">&copy; {currentYear} {companyName}.</span> 
-                Made with <Heart className="w-3 h-3 text-red-500 fill-red-500 inline-block mx-1" /> in Novi Sad.
-            </p>
+      {/* --- DONJI DEO --- */}
+      <div className="border-t border-gray-800 bg-gray-950">
+        <div className="container mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
+          <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+            <p>&copy; {new Date().getFullYear()} SkillClick. All rights reserved.</p>
+          </div>
+          <div className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
+            <span>From Novi Sad with</span>
+            <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-pulse" />
+            <span>to the World.</span>
+          </div>
         </div>
-
       </div>
     </footer>
   );

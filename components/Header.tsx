@@ -1,178 +1,222 @@
-"use client"
+"use client";
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Menu, LogIn, UserPlus, LogOut, User, MessageSquare, Briefcase, Globe, Plus, ChevronRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useLanguage } from './LanguageContext'; 
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-  } from "@/components/ui/dropdown-menu"
+import Image from 'next/image'; 
+import { useLanguage } from './LanguageContext';
+import { usePathname, useRouter } from 'next/navigation'; // <--- NOVI IMPORTI ZA NAVIGACIJU
+import { Menu, X, ChevronDown, LogOut, User, ArrowLeft } from 'lucide-react'; // <--- Dodao ArrowLeft
 
-const buttonStyle = "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md px-4 py-1 h-9 transition-all text-sm font-medium";
+const languagesList = [
+  { code: 'sr', label: '🇷🇸 SR', name: 'Srpski' },
+  { code: 'en', label: '🇬🇧 EN', name: 'English' },
+  { code: 'zh', label: '🇨🇳 ZH', name: '中文' },
+  { code: 'hi', label: '🇮🇳 HI', name: 'Hindi' },
+  { code: 'th', label: '🇹🇭 TH', name: 'ไทย' },
+  { code: 'vi', label: '🇻🇳 VI', name: 'Tiếng Việt' },
+];
 
-export default function Header({ sessionKeyProp }: { sessionKeyProp: string | null | undefined }) {
-    const { lang, changeLanguage, languagesList, t } = useLanguage(); 
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [username, setUsername] = useState('User');
-    const [menuOpen, setMenuOpen] = useState(false);
-    const router = useRouter();
+export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | null }) {
+  const { t, changeLanguage, lang } = useLanguage();
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const checkLoginStatus = () => {
-        if (typeof window !== 'undefined') {
-            const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            const userEmail = localStorage.getItem('userEmail');
+  // Stanje za podatke o korisniku
+  const [username, setUsername] = useState<string>("Korisnik");
+  const [email, setEmail] = useState<string>("user@example.com");
+
+  // --- NOVO: Navigacija ---
+  const pathname = usePathname(); // Gde se trenutno nalazimo?
+  const router = useRouter();     // Kontrola rutera
+  const isHome = pathname === '/'; // Da li smo na početnoj?
+
+  const currentLang = languagesList.find(l => l.code === lang) || languagesList[1];
+
+  useEffect(() => {
+    if (sessionKeyProp) {
+      const storedName = localStorage.getItem('user_name');
+      const storedEmail = localStorage.getItem('user_email');
+      
+      if (storedName) setUsername(storedName);
+      if (storedEmail) setEmail(storedEmail);
+    }
+  }, [sessionKeyProp]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('sessionKey');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_email');
+    window.location.href = '/'; 
+  };
+
+  return (
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm transition-all">
+      <div className="container mx-auto px-4 h-20 md:h-24 flex items-center justify-between relative">
+        
+        {/* --- LEVA STRANA: LOGO + NAZAD DUGME --- */}
+        <div className="flex items-center gap-2 md:gap-4 z-50">
+          
+          {/* DUGME NAZAD - Prikazuje se samo ako NISMO na Home stranici */}
+          {!isHome && (
+            <button 
+              onClick={() => router.back()} 
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-700 transition-all active:scale-95 shadow-sm"
+              title={t('backBtn')} // Tooltip na hover
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+
+          <Link href="/" className="flex items-center group relative">
+            <div className="w-10 md:w-10 h-1" />
             
-            if (loggedIn) {
-                setIsLoggedIn(true);
-                if (userEmail) {
-                    setUsername(userEmail.split('@')[0]);
-                } else {
-                    setUsername('Profile'); 
-                }
-            } else {
-                setIsLoggedIn(false);
-                setUsername('User');
-            }
-        }
-    };
-
-    useEffect(() => {
-        checkLoginStatus(); 
-    }, [sessionKeyProp]); 
-
-    const handleLogout = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('userEmail');
-            localStorage.removeItem('sessionKey'); 
-        }
-        setIsLoggedIn(false);
-        setMenuOpen(false);
-        router.push('/auth/login');
-    };
-
-    // --- POPRAVLJENI MOBILE MENU ZA RENDER ---
-    const MobileMenu = () => (
-        <div className="absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl z-50 h-[calc(100vh-60px)] overflow-y-auto">
-            <div className="p-4 space-y-4">
-                
-                {/* 1. LOGIN/LOGOUT & STATUS DUGMAD (FIXED) */}
-                <div className="flex flex-col gap-3 border-b border-gray-100 pb-4">
-                    {isLoggedIn ? (
-                        <>
-                            {/* PRIKAZ ULOGOVANOG KORISNIKA */}
-                            <Link href="/profile" onClick={() => setMenuOpen(false)}>
-                                <div className="flex items-center gap-3 p-2 hover:bg-blue-50 rounded-md">
-                                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">{username[0].toUpperCase()}</div>
-                                    <span className="font-bold text-gray-800">{username} ({t.profile})</span>
-                                </div>
-                            </Link>
-                            
-                            <Link href="/messages" onClick={() => setMenuOpen(false)}><Button variant="ghost" className="w-full justify-start"><MessageSquare className="h-4 w-4 mr-2" /> {t.messages}</Button></Link>
-                            <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4 mr-2" /> {t.logout}</Button>
-                            <Link href="/create" onClick={() => setMenuOpen(false)}><Button className="w-full bg-blue-600 mt-2">{t.postService}</Button></Link>
-                        </>
-                    ) : (
-                        // PRIKAZ KADA NIJE ULOGOVAN
-                        <>
-                            <Link href="/auth/login" onClick={() => setMenuOpen(false)}><Button className="w-full bg-blue-600 mb-2">{t.login}</Button></Link>
-                            <Link href="/auth/register" onClick={() => setMenuOpen(false)}><Button variant="outline" className="w-full">{t.register}</Button></Link>
-                        </>
-                    )}
-                </div>
-
-                {/* 2. GLAVNI LINKOVI & KATEGORIJE (FIXED) */}
-                <div className="space-y-2">
-                    <h4 className="text-gray-900 font-bold text-sm">Navigation</h4>
-                    
-                    <Link href="/services" onClick={() => setMenuOpen(false)} className="block py-2 text-gray-700 hover:text-blue-600 flex items-center"><Briefcase className="w-4 h-4 mr-2 inline" /> {t.explore}</Link>
-                    
-                    {/* FIX: DODATO "BECOME A SELLER" DUGME U MOBILNI MENI */}
-                    <Link href="/auth/register" onClick={() => setMenuOpen(false)} className="block py-2 text-blue-600 hover:text-blue-700 flex items-center">
-                        <UserPlus className="w-4 h-4 mr-2 inline" /> {t.becomeSeller}
-                    </Link>
-
-                    <Link href="/create" onClick={() => setMenuOpen(false)} className="block py-2 text-blue-600 hover:text-blue-700 flex items-center"><Plus className="w-4 h-4 mr-2 inline" /> {t.postService}</Link>
-                </div>
+            {/* Logo slika */}
+            <div className={`absolute left-0 top-1/2 -translate-y-1/2 transition-transform group-hover:scale-105 duration-300 pointer-events-none
+                ${!isHome ? '-ml-20 md:-ml-52' : '-ml-24 md:-ml-56'} /* Malo pomeramo logo ako postoji dugme nazad */
+                h-48 w-[28rem] md:h-80 md:w-[50rem]`}>
+               <Image 
+                 src="/skillclick_logo.png" 
+                 alt="SkillClick Logo"
+                 fill
+                 className="object-contain object-left" 
+                 priority 
+               />
             </div>
+          </Link>
         </div>
-    );
 
-    return (
-        <header className="border-b border-blue-100 bg-blue-50/50 sticky top-0 z-50">
-            <div className="container mx-auto px-4 py-3 flex items-center justify-between relative">
-                <Link href="/"><img src="/skillclick_logo.png" alt="SkillClick" width={140} height={30} className="object-contain" /></Link>
-                
-                <nav className="flex items-center gap-4">
-                    
-                    {/* JEZIK (Dropdown) */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" onClick={() => {}} className={buttonStyle + " flex items-center gap-1"}>
-                                <Globe className="h-4 w-4" /> {lang.toUpperCase()}
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-white border border-blue-200 shadow-lg">
-                            {languagesList.map((l: any) => (
-                                <DropdownMenuItem 
-                                    key={l.code} 
-                                    onClick={() => changeLanguage(l.code)}
-                                    className="cursor-pointer hover:bg-blue-50 text-gray-700 hover:text-blue-700 font-medium focus:bg-blue-50 focus:text-blue-700" 
-                                >
-                                    <span className="mr-2">{l.flag}</span> {l.name}
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+        {/* --- DESNA STRANA --- */}
+        <div className="flex items-center gap-2 md:gap-5 z-[60] relative">
+          
+          {/* JEZIK */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="flex items-center gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition-colors border border-gray-200 bg-gray-50/50"
+            >
+              <span className="text-lg leading-none">{currentLang.label.split(' ')[0]}</span>
+              <span className="font-semibold text-xs md:text-sm text-gray-700 hidden md:block">{currentLang.code.toUpperCase()}</span>
+              <ChevronDown className={`w-3 h-3 md:w-4 md:h-4 text-gray-500 transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-                    {/* DESKTOP DUGMAD */}
-                    <Link href="/services" className="hidden md:block">
-                        <Button variant="outline" className={buttonStyle}>Explore</Button>
-                    </Link>
-                    
-                    <Link href="/auth/register" className="hidden md:block">
-                        <Button variant="outline" className={buttonStyle}>Become a Seller</Button>
-                    </Link>
-                    
-                    {/* DUGME HAMBURGER */}
-                    <Button variant="ghost" size="icon" onClick={() => setMenuOpen(prev => !prev)} className="md:hidden text-gray-600">
-                        <Menu className="h-5 w-5" />
-                    </Button>
+            {isLangOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsLangOpen(false)} />
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in slide-in-from-top-2">
+                  {languagesList.map((l: any) => (
+                    <button
+                      key={l.code}
+                      onClick={() => { changeLanguage(l.code); setIsLangOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-purple-50 transition-colors ${lang === l.code ? 'bg-purple-50 text-purple-700 font-bold' : 'text-gray-700'}`}
+                    >
+                      <span className="text-lg">{l.label.split(' ')[0]}</span>
+                      <span>{l.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
-                    {isLoggedIn ? (
-                        // PRIKAZ KADA JE ULOGOVAN (Desktop)
-                        <div className="hidden md:flex items-center gap-3">
-                            <Link href="/messages">
-                                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-blue-600 hover:bg-blue-100 p-0">
-                                    <MessageSquare className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                            
-                            <Link href="/profile">
-                                <Button variant="outline" className={`${buttonStyle} flex items-center gap-1 bg-blue-50`}>
-                                    <User className="h-4 w-4" /> {username}
-                                </Button>
-                            </Link>
-                            <Button onClick={handleLogout} variant="outline" className={buttonStyle}>
-                                <LogOut className="h-4 w-4" /> Log Out
-                            </Button>
-                        </div>
-                    ) : (
-                        // PRIKAZ KADA NIJE ULOGOVAN (Desktop)
-                        <div className="hidden md:flex gap-3 items-center ml-2">
-                            <Link href="/auth/login"><Button variant="outline" className={buttonStyle}><LogIn className="h-4 w-4 mr-1" /> Login</Button></Link>
-                            <Link href="/auth/register"><Button variant="outline" className={buttonStyle}><UserPlus className="h-4 w-4 mr-1" /> Register</Button></Link>
-                        </div>
-                    )}
-                    
-                </nav>
+          {/* KORISNIK / AUTH (Desktop) */}
+          {!sessionKeyProp ? (
+            <div className="hidden md:flex items-center gap-3">
+              <Link href="/login">
+                <button className="text-sm font-semibold text-gray-600 hover:text-purple-600 px-4 py-2 transition-colors">
+                  {t('login')}
+                </button>
+              </Link>
+              <Link href="/register">
+                <button className="text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                  {t('register')}
+                </button>
+              </Link>
             </div>
-            {menuOpen && <MobileMenu />}
-        </header>
-    );
+          ) : (
+             <div className="hidden md:flex relative">
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold border border-purple-200 shadow-sm hover:ring-2 hover:ring-purple-300 transition-all"
+                >
+                  {username.charAt(0).toUpperCase()}
+                </button>
+
+                {isUserMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsUserMenuOpen(false)} />
+                    <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in slide-in-from-top-2">
+                        <div className="px-4 py-3 border-b border-gray-50 mb-1">
+                            <p className="text-sm font-bold text-gray-900">{username}</p>
+                            <p className="text-xs text-gray-500 truncate">{email}</p>
+                        </div>
+                        <Link href="/profile" onClick={() => setIsUserMenuOpen(false)} className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-gray-700 hover:bg-purple-50 transition-colors">
+                            <User className="w-4 h-4" /> Profil
+                        </Link>
+                        <button 
+                            onClick={handleLogout}
+                            className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors font-medium"
+                        >
+                            <LogOut className="w-4 h-4" /> Odjavi se
+                        </button>
+                    </div>
+                  </>
+                )}
+             </div>
+          )}
+
+          {/* MOBILNI MENI DUGME */}
+          <button 
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg active:scale-95 transition-transform"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* MOBILNI MENI (Sadržaj) */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-100 bg-white p-4 absolute w-full shadow-xl z-40 animate-in slide-in-from-top-5">
+           <nav className="flex flex-col gap-2">
+             {/* I u meniju dodajemo Home za svaki slučaj */}
+             <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-purple-50 rounded-xl font-medium text-gray-700 flex items-center gap-3">
+               🏠 <span className="text-gray-900">Home</span>
+             </Link>
+             <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-purple-50 rounded-xl font-medium text-gray-700 flex items-center gap-3">
+               🔍 <span className="text-gray-900">{t('adsTitle')}</span>
+             </Link>
+             
+             {!sessionKeyProp ? (
+               <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100">
+                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <button className="w-full py-3 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors">
+                      {t('login')}
+                    </button>
+                 </Link>
+                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <button className="w-full py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors shadow-md">
+                      {t('register')}
+                    </button>
+                 </Link>
+               </div>
+             ) : (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="px-3 py-2 bg-gray-50 rounded-lg mb-2">
+                        <p className="font-bold text-gray-900">{username}</p>
+                        <p className="text-xs text-gray-500">{email}</p>
+                    </div>
+                    <button 
+                        onClick={handleLogout}
+                        className="w-full py-3 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <LogOut className="w-5 h-5" /> Odjavi se
+                    </button>
+                </div>
+             )}
+           </nav>
+        </div>
+      )}
+    </header>
+  );
 }
