@@ -1,56 +1,35 @@
-"use client"
-
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Footer from "../components/Footer"; 
-import Script from 'next/script'; 
-import Header from "../components/Header";
-import { useState, useEffect } from "react"; 
-import { LanguageProvider } from "../components/LanguageContext";
+
+import { LanguageProvider } from "@/components/LanguageContext"; 
+import { AuthProvider } from "@/components/AuthContext";
+import Navbar from "@/components/Navbar";
+// ✅ 1. MORAŠ GA UVESTI OVDE
+import Footer from "@/components/Footer"; 
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Pi Freelance Market",
+  description: "Best freelance services on Pi Network",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [sessionKey, setSessionKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    const key = localStorage.getItem('sessionKey');
-    setSessionKey(key);
-  }, []);
-
   return (
     <html lang="en">
-      <head>
-        <title>SkillClick - Freelance Market</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-      </head>
-      
       <body className={inter.className}>
         <LanguageProvider>
-            
-            {/* PI SDK - AGRESIVNA INICIJALIZACIJA (FIX ZA SIMULACIJU) */}
-            <Script
-              src="https://sdk.minepi.com/v2/pi.js"
-              strategy="afterInteractive" 
-              onLoad={() => {
-                  try { 
-                    // POKREĆEMO SDK
-                    (window as any).Pi.init({ version: "2.0", sandbox: true }); 
-                  } catch (e) {}
-              }}
-            />
-
-            <div className="flex flex-col min-h-screen">
-              <Header sessionKeyProp={sessionKey} /> 
-              <div className="flex-grow">
-                {children}
-              </div>
-              <Footer />
-            </div>
+          <AuthProvider> 
+             <Navbar /> 
+             {children}
+             {/* ✅ 2. MORAŠ GA PRIKAZATI OVDE (ISPOD CHILDREN) */}
+             <Footer />
+          </AuthProvider>
         </LanguageProvider>
       </body>
     </html>

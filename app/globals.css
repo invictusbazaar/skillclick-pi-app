@@ -38,6 +38,9 @@
   --sidebar-border: oklch(0.9 0.01 106);
   --sidebar-ring: oklch(0.55 0.18 195);
   --featured: oklch(0.97 0.03 85);
+  
+  /* Povezujemo CSS varijablu sa fontom iz layout.tsx */
+  --font-montserrat: 'Montserrat', sans-serif;
 }
 
 .dark {
@@ -79,6 +82,9 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Dodajemo Montserrat u temu */
+  --font-montserrat: var(--font-montserrat);
+  
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -124,5 +130,9 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* Forsiramo font na naslovima */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-montserrat), ui-sans-serif, system-ui;
   }
 }

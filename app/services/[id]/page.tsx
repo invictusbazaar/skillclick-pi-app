@@ -1,215 +1,177 @@
 "use client"
 
-import { useParams } from 'next/navigation';
-import { Star, CheckCircle, ArrowLeft, MessageSquare, User, Menu, LogIn, UserPlus, Heart, Share2, Clock, Shield, Layers, Palette, Code, PenTool, Video, Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useLanguage } from '@/components/LanguageContext';
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft, Star, Heart, Clock, CheckCircle, Share2, ShieldCheck, MessageCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-// MOCK PODACI (Potrebni za fallback)
-const MOCK_SERVICES = [
-    { id: 1, title: "Modern Minimalist Logo Design", author: "pixel_art", price: 50, rating: 5.0, reviews: 124, category: "Design", description: "I will design a professional logo...", deliveryTime: "2 Days", gradient: "from-pink-500 to-rose-500", icon: <Palette className="text-white h-10 w-10" /> },
-    { id: 2, title: "Full Stack Web Development", author: "dev_guy", price: 300, rating: 4.9, reviews: 85, category: "Programming", description: "Complete website...", deliveryTime: "7 Days", gradient: "from-blue-500 to-cyan-500", icon: <Code className="text-white h-10 w-10" /> },
-    { id: 3, title: "SEO Blog Writing", author: "writer_pro", price: 30, rating: 4.8, reviews: 210, category: "Writing", description: "SEO content...", deliveryTime: "1 Day", gradient: "from-emerald-500 to-teal-500", icon: <PenTool className="text-white h-10 w-10" /> },
-    { id: 4, title: "Pro Video Editing", author: "vid_master", price: 100, rating: 5.0, reviews: 42, category: "Video", description: "Video editing...", deliveryTime: "3 Days", gradient: "from-orange-500 to-amber-500", icon: <Video className="text-white h-10 w-10" /> },
-];
-
-// FUNKCIJA KOJA GENERIŠE ISTI GRADIJENT KAO NA KARTICAMA (IDENTIČNA HOME PAGE FUNKCIJA)
-const getRandomGradient = (id: number) => {
-    const gradients = [
-      "from-pink-500 to-rose-500", // ID 1
-      "from-blue-500 to-cyan-500", // ID 2
-      "from-emerald-500 to-teal-500", // ID 3
-      "from-orange-500 to-amber-500", // ID 4
-      "from-purple-500 to-indigo-500" // ID 5
-    ];
-    return gradients[(id - 1) % gradients.length];
-};
-
+// ✅ ISPRAVLJEN IMPORT: Koristimo alias @ koji uvek radi
+import { SERVICES_DATA } from "@/lib/data"
 
 export default function ServiceDetailsPage() {
-  const { t } = useLanguage();
-  const params = useParams();
-  const serviceId = params.id ? parseInt(params.id as string) : null;
+  const params = useParams()
+  const router = useRouter()
+  // ID iz URL-a je uvek string, pa ga konvertujemo u broj za poređenje
+  const id = Number(params?.id)
   
-  const [service, setService] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [orderClicked, setOrderClicked] = useState(false);
-  
-  const [rating, setRating] = useState("5");
-  const [comment, setComment] = useState("");
-  
-  const [menuOpen, setMenuOpen] = useState(false); 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [service, setService] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!serviceId) return;
-
-    const fetchData = async () => {
-        try {
-            const resService = await fetch('/api/services');
-            if (resService.ok) {
-                const allServices = await resService.json();
-                let found = allServices.find((s: any) => s.id === serviceId);
-                if (!found) found = MOCK_SERVICES.find(s => s.id === serviceId);
-                
-                // FIX: Ubacujemo boju u servis objekat
-                if(found && !found.gradient) {
-                    found.gradient = getRandomGradient(serviceId);
-                }
-                
-                setService(found || MOCK_SERVICES[0]); 
-            } else {
-                setService(MOCK_SERVICES.find(s => s.id === serviceId) || MOCK_SERVICES[0]);
-            }
-
-            const resReviews = await fetch(`/api/reviews?serviceId=${serviceId}`);
-            if (resReviews.ok) {
-                const data = await resReviews.json();
-                setReviews(data);
-            }
-        } catch (error) {
-            setService(MOCK_SERVICES[0]);
-        } finally {
-            setLoading(false);
-        }
-    };
-    fetchData();
-  }, [serviceId]);
-
-  const  handleSubmitReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!comment) return;
-
-    try {
-        const response = await fetch('/api/reviews', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                serviceId, rating: parseInt(rating), comment, author: "Guest User"
-            })
-        });
-
-        if (response.ok) {
-            const newReviewData = await response.json();
-            setReviews([...reviews, newReviewData.review]);
-            setComment(""); 
-        }
-    } catch (error) {
-        alert("Error posting review");
+    // Simuliramo učitavanje da ne "blinkne" odmah
+    if (id) {
+        const foundService = SERVICES_DATA.find(s => s.id === id)
+        setService(foundService || null)
+        setLoading(false)
     }
+  }, [id])
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>
+  }
+
+  if (!service) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-50">
+            <h1 className="text-2xl font-bold text-gray-800">Ups! Oglas nije pronađen.</h1>
+            <p className="text-gray-500">Možda je oglas obrisan ili link nije ispravan.</p>
+            <Button onClick={() => router.push('/services')} className="bg-purple-600 hover:bg-purple-700">Nazad na pretragu</Button>
+        </div>
+    )
+  }
+
+  // Funkcija za gradijent (ista kao tvoja logika)
+  const getGradient = (id: number) => {
+    const gradients = [
+      "from-fuchsia-500 to-pink-600",
+      "from-violet-500 to-purple-600",
+      "from-blue-500 to-indigo-600",
+      "from-emerald-400 to-teal-500"
+    ];
+    return gradients[(id - 1) % gradients.length];
   };
-
-  const handleOrder = () => {
-    if (typeof window !== 'undefined' && (window as any).Pi) {
-       alert(`Pi Payment: Requesting ${service.price} Pi...`);
-    } else {
-       alert(`⚠️ SIMULACIJA: Naručujete uslugu za ${service.price} Pi.`);
-    }
-  };
-
-  const buttonStyle = "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-md px-4 py-1 h-9 transition-all text-sm font-medium";
-
-  if (loading || !service) return <div className="min-h-screen flex items-center justify-center text-blue-600 font-medium bg-blue-50/50">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-blue-50/50">
+    <div className="min-h-screen bg-gray-50 font-sans pb-20">
       
-      {/* HEADER JE UKLONJEN IZ OVOG FAJLA (KORISTIMO GLOBALNI) */}
-
-      <div className="container mx-auto px-4 py-8">
-        <Link href="/services" className="inline-flex items-center text-sm text-blue-600 hover:underline mb-6 transition-colors font-medium"><ArrowLeft className="w-4 h-4 mr-1" /> {t.back}</Link>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          
-          <div className="lg:col-span-2 space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-3 leading-tight">{service.title}</h1>
-                <div className="flex items-center gap-4 text-sm">
-                    <span className="font-semibold text-gray-900">{service.author}</span>
-                    <span className="text-gray-300">|</span>
-                    <div className="flex items-center text-yellow-500 font-bold"><Star className="h-4 w-4 fill-current mr-1" /> {service.rating || 5.0}</div>
-                </div>
-            </div>
-
-            {/* FIX: DINAMIČNI GRADIENT BOJA */}
-            <div className={`rounded-xl h-64 md:h-96 flex items-center justify-center text-white text-8xl shadow-sm bg-gradient-to-br ${service.gradient || getRandomGradient(serviceId)}`}>
-                {service.icon || <Layers className="h-20 w-20" />}
-            </div>
-
-            <Card className="border-gray-200 shadow-sm bg-white"><CardContent className="p-6"><h3 className="text-lg font-bold text-gray-900 mb-4">{t.aboutGig}</h3><p className="text-gray-600 leading-relaxed">{service.description}</p></CardContent></Card>
-
-            <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-gray-900">{t.reviews} ({reviews.length})</h3>
-                
-                <Card className="bg-white border border-blue-100 shadow-sm">
-                    <CardContent className="p-4">
-                        <h4 className="text-sm font-bold text-gray-700 mb-3">{t.leaveReview}</h4>
-                        <form onSubmit={handleSubmitReview} className="space-y-3">
-                            <div className="flex items-center gap-2">
-                                <label className="text-sm text-gray-500">{t.rating}:</label>
-                                <select value={rating} onChange={(e) => setRating(e.target.value)} className="border rounded p-1 text-sm bg-white font-medium text-gray-700 border-blue-200">
-                                    <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-                                    <option value="4">⭐⭐⭐⭐ (4)</option>
-                                    <option value="3">⭐⭐⭐ (3)</option>
-                                    <option value="2">⭐⭐ (2)</option>
-                                    <option value="1">⭐ (1)</option>
-                                </select>
-                            </div>
-                            <Textarea 
-                                placeholder={t.writeFeedback}
-                                value={comment}
-                                onChange={(e) => setComment(e.target.value)}
-                                required
-                                className="min-h-[80px] border-blue-200"
-                            />
-                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto font-bold">
-                                <Send className="w-4 h-4 mr-2" /> {t.postReview}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-                <div className="space-y-3">
-                    {reviews.map((r: any) => (
-                        <Card key={r.id} className="bg-white border border-blue-50 shadow-sm">
-                            <CardContent className="p-4">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-800">{r.author[0]}</div>
-                                        <span className="text-sm font-bold text-gray-900">{r.author}</span>
-                                    </div>
-                                    <div className="flex text-yellow-500 text-xs"><Star className="w-3 h-3 fill-current mr-1"/> {r.rating}</div>
-                                </div>
-                                <p className="text-sm text-gray-700 mt-2 leading-relaxed">{r.comment}</p>
-                                <p className="text-xs text-gray-400 mt-2">{r.date}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                    {reviews.length === 0 && <p className="text-gray-500 text-sm italic bg-white p-4 rounded-lg border border-blue-50 text-center">No reviews yet. Be the first!</p>}
-                </div>
-            </div>
-
-          </div>
-
-          {/* DESNO: CENA I DUGMAD */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-24 shadow-lg border-blue-100 overflow-hidden bg-white">
-              <div className="bg-blue-50 p-4 border-b border-blue-100 flex justify-between items-center"><span className="font-bold text-blue-800 text-sm uppercase tracking-wide">{t.standard}</span><span className="text-3xl font-extrabold text-blue-900">{service.price} π</span></div>
-              <CardContent className="p-6 space-y-4">
-                  <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg h-12 shadow-md" onClick={handleOrder} disabled={orderClicked}>Order Now</Button>
-                  
-                  <Link href="/messages">
-                    <Button variant="outline" className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 font-bold text-lg h-12">{t.contactSeller}</Button>
-                  </Link>
-              </CardContent>
-            </Card>
-          </div>
-
+      {/* HEADER NAVIGACIJA */}
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+             <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 hover:text-purple-600 transition-colors font-medium">
+                <ArrowLeft className="w-5 h-5" /> Nazad
+             </button>
+             <div className="flex gap-3">
+                 <button className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"><Share2 className="w-5 h-5" /></button>
+                 <button className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"><Heart className="w-5 h-5" /></button>
+             </div>
         </div>
       </div>
+
+      <main className="container mx-auto px-4 py-8">
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+             
+             {/* LEVA STRANA - GLAVNI SADRŽAJ */}
+             <div className="lg:col-span-2 space-y-8">
+                 
+                 {/* HERO SLIKA SERVISA */}
+                 <div className={`w-full h-64 md:h-96 rounded-3xl bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center shadow-lg relative overflow-hidden group`}>
+                     <div className="transform transition-transform duration-700 hover:scale-110">
+                        {service.icon ? (
+                            // Kloniramo element da bismo mu povećali dimenzije za detaljni prikaz
+                            <div className="scale-[2.0] text-white/90 drop-shadow-2xl">
+                                {service.icon}
+                            </div>
+                        ) : null}
+                     </div>
+                 </div>
+
+                 {/* NASLOV I INFO */}
+                 <div>
+                     <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">
+                         {service.title}
+                     </h1>
+                     
+                     <div className="flex flex-wrap items-center gap-4 md:gap-6 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-200">
+                        <div className="flex items-center gap-2">
+                             <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-xs">
+                                {service.author[0].toUpperCase()}
+                             </div>
+                             <span className="font-semibold text-gray-900">@{service.author}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-amber-500 font-bold">
+                             <Star className="w-4 h-4 fill-current" />
+                             <span>{service.rating}</span>
+                             <span className="text-gray-400 font-normal">({service.reviews} recenzija)</span>
+                        </div>
+                        <div className="hidden md:flex items-center gap-1">
+                             <ShieldCheck className="w-4 h-4 text-green-500" />
+                             <span className="text-green-600 font-medium">Verifikovan prodavac</span>
+                        </div>
+                     </div>
+
+                     <h3 className="text-xl font-bold text-gray-900 mb-3">O ovom servisu</h3>
+                     <div className="prose prose-purple max-w-none text-gray-600 leading-relaxed">
+                         <p className="text-lg">{service.description}</p>
+                         <p className="mt-4">
+                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+                            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                         </p>
+                     </div>
+                 </div>
+                 
+                 {/* DODATNE INFORMACIJE */}
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <Clock className="w-8 h-8 text-purple-500 bg-purple-50 p-1.5 rounded-lg" />
+                        <div>
+                            <p className="text-xs text-gray-400 font-semibold uppercase">Isporuka za</p>
+                            <p className="font-bold text-gray-900">{service.deliveryTime}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <CheckCircle className="w-8 h-8 text-green-500 bg-green-50 p-1.5 rounded-lg" />
+                        <div>
+                            <p className="text-xs text-gray-400 font-semibold uppercase">Revizije</p>
+                            <p className="font-bold text-gray-900">Neograničeno</p>
+                        </div>
+                    </div>
+                 </div>
+
+             </div>
+
+             {/* DESNA STRANA - PORUČIVANJE (STICKY) */}
+             <div className="lg:col-span-1">
+                 <div className="sticky top-24 bg-white rounded-2xl shadow-xl shadow-purple-900/5 border border-gray-100 p-6">
+                     <div className="flex justify-between items-center mb-6">
+                        <span className="text-gray-500 font-medium">Cena usluge</span>
+                        <span className="text-3xl font-extrabold text-gray-900">{service.price} π</span>
+                     </div>
+
+                     <div className="space-y-3 mb-8">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CheckCircle className="w-4 h-4 text-green-500" /> <span>Sigurno Pi plaćanje</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CheckCircle className="w-4 h-4 text-green-500" /> <span>Garancija zadovoljstva</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CheckCircle className="w-4 h-4 text-green-500" /> <span>Podrška 24/7</span>
+                        </div>
+                     </div>
+
+                     <Button className="w-full py-6 text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 mb-3 rounded-xl">
+                        Poruči odmah
+                     </Button>
+                     
+                     <Button variant="outline" className="w-full py-6 text-gray-700 border-gray-200 hover:bg-gray-50 rounded-xl font-semibold flex items-center gap-2">
+                        <MessageCircle className="w-5 h-5" /> Kontaktiraj prodavca
+                     </Button>
+                 </div>
+             </div>
+
+         </div>
+      </main>
     </div>
-  );
+  )
 }
