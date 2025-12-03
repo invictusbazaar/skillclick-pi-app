@@ -3,70 +3,110 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, User, Mail, Lock, UserPlus } from 'lucide-react';
-// Prilagodi putanju ako je potrebno
-import { useLanguage } from '../../components/LanguageContext'; 
+import Image from 'next/image';
+import { ArrowLeft, User, Mail, Lock, UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
+// ✅ Uvozimo AuthContext
+import { useAuth } from '@/components/AuthContext';
 
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState(''); // <--- OVDE KORISNIK UPISUJE IME
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // ✅ NOVO: Polje za potvrdu lozinke
+  const [confirmPassword, setConfirmPassword] = useState('');
+  // ✅ NOVO: Prikaz greške
+  const [error, setError] = useState('');
+  
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   
-  // Ako useLanguage pravi problem sa putanjom, zakomentariši
-  const { t } = useLanguage(); 
+  const { login } = useAuth();
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(''); // Resetuj grešku pre nove provjere
+
+    // ✅ VALIDACIJA: Provjera da li su lozinke iste
+    if (password !== confirmPassword) {
+        setError('Lozinke se ne poklapaju. Molimo pokušajte ponovo.');
+        return; 
+    }
+
+    if (password.length < 6) {
+        setError('Lozinka mora imati najmanje 6 karaktera.');
+        return;
+    }
+
     setIsLoading(true);
 
     // --- SIMULACIJA REGISTRACIJE ---
     setTimeout(() => {
-      // 1. Čuvamo podatke u "Lažnu Bazu" (localStorage)
-      // Ovo omogućava da Login stranica kasnije prepozna ovog korisnika
+      // 1. (Opciono) Čuvamo podatke u "localStorage" da bi Login stranica znala za ovog korisnika
       localStorage.setItem('db_user_email', email);
       localStorage.setItem('db_user_name', fullName);
-      localStorage.setItem('db_user_password', password); // U praksi se ovo nikad ne radi ovako, ali za demo je ok
-
-      // 2. Automatski logujemo korisnika odmah nakon registracije
-      const fakeSessionKey = 'session_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('sessionKey', fakeSessionKey);
-      localStorage.setItem('user_name', fullName); // <--- Šaljemo uneto ime u Header
-      localStorage.setItem('user_email', email);
-
-      // 3. Preusmeravanje na početnu
-      window.location.href = '/'; 
       
-    }, 1500); 
+      // 2. Automatski logujemo korisnika u aplikaciju
+      login(fullName, email);
+
+      // 3. Preusmjeravanje na početnu
+      router.push('/'); 
+      
+    }, 1200); 
   };
 
+  // Stilovi (identični kao na Login stranici)
+  const inputContainerClass = "relative group";
+  const iconClass = "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors w-5 h-5";
+  const inputClass = "w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-gray-700 placeholder-gray-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all outline-none text-sm font-medium shadow-sm";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-500">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 font-sans py-10">
+      
+      {/* Dugme za povratak */}
+      <Link href="/" className="absolute top-6 left-6 flex items-center gap-2 text-gray-500 hover:text-purple-600 transition-colors font-bold text-sm z-10">
+        <ArrowLeft className="w-5 h-5" /> Nazad na početnu
+      </Link>
+
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl shadow-purple-900/10 border border-white overflow-hidden animate-in fade-in zoom-in duration-300">
         
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-8 text-center relative">
-          <Link href="/" className="absolute top-6 left-6 text-purple-100 hover:text-white transition-colors">
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <h2 className="text-3xl font-bold text-white mb-2">Registracija</h2>
-          <p className="text-purple-100 opacity-90">Postani deo SkillClick zajednice</p>
+        {/* ZAGLAVLJE: Logo i Naslov */}
+        <div className="pt-8 pb-4 text-center px-8">
+          <div className="flex justify-center mb-4">
+             <Image 
+                src="/skillclick_logo.png" 
+                alt="SkillClick Logo" 
+                width={200} 
+                height={60} 
+                className="h-10 w-auto object-contain"
+                priority
+             />
+          </div>
+          <h2 className="text-2xl font-extrabold text-gray-900">Kreiraj nalog</h2>
+          <p className="text-gray-500 text-sm mt-1">Postani dio SkillClick zajednice</p>
         </div>
 
-        {/* Forma */}
-        <div className="p-8">
+        {/* FORMA */}
+        <div className="p-8 pt-2">
+          
+          {/* ✅ PRIKAZ GREŠKE (Crveni okvir) */}
+          {error && (
+            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 mb-4 animate-in slide-in-from-top-2 border border-red-100">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                {error}
+            </div>
+          )}
+
           <form onSubmit={handleRegister} className="space-y-4">
             
-            {/* NOVO: Ime i Prezime */}
+            {/* Ime i Prezime */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ime i Prezime (ili Username)</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5 ml-1">Ime i Prezime</label>
+              <div className={inputContainerClass}>
+                <User className={iconClass} />
                 <input 
                   type="text" 
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+                  className={inputClass}
                   placeholder="Npr. Petar Petrović"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -76,13 +116,13 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email adresa</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5 ml-1">Email adresa</label>
+              <div className={inputContainerClass}>
+                <Mail className={iconClass} />
                 <input 
                   type="email" 
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+                  className={inputClass}
                   placeholder="ime@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -90,18 +130,34 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Lozinka */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lozinka</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5 ml-1">Lozinka</label>
+              <div className={inputContainerClass}>
+                <Lock className={iconClass} />
                 <input 
                   type="password" 
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none"
+                  className={inputClass}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* ✅ NOVO: Potvrdi Lozinku */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5 ml-1">Potvrdi lozinku</label>
+              <div className={inputContainerClass}>
+                <CheckCircle className={iconClass} />
+                <input 
+                  type="password" 
+                  required
+                  className={inputClass}
+                  placeholder="Ponovite vašu lozinku"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
             </div>
@@ -110,10 +166,13 @@ export default function RegisterPage() {
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-600/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <span>Kreiranje naloga...</span>
+                <div className="flex items-center gap-2">
+                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                   <span>Kreiranje...</span>
+                </div>
               ) : (
                 <>
                   <UserPlus className="w-5 h-5" /> Registruj se
@@ -122,11 +181,11 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          {/* Footer */}
-          <div className="mt-6 text-center text-sm text-gray-500">
+          {/* Podnožje */}
+          <div className="mt-6 text-center text-sm text-gray-500 border-t border-gray-100 pt-6">
             Već imaš nalog?{' '}
-            <Link href="/login" className="text-purple-600 font-semibold hover:underline">
-              Prijavi se
+            <Link href="/login" className="text-purple-600 font-bold hover:text-purple-800 transition-colors">
+              Prijavi se ovdje
             </Link>
           </div>
         </div>
