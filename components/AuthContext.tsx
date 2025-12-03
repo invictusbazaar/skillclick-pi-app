@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react"
 
-// Tip podataka za korisnika (za sad samo ime i email)
+// Tip podataka za korisnika
 type User = {
   username: string;
   email: string;
@@ -10,7 +10,8 @@ type User = {
 
 type AuthContextType = {
   user: User;
-  login: (username: string) => void;
+  // ✅ IZMJENA: login funkcija sada prihvata i opcioni email
+  login: (username: string, email?: string) => void;
   logout: () => void;
 };
 
@@ -19,7 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
 
-  // Proveravamo da li već postoji ulogovan korisnik (u localStorage) čim se sajt učita
+  // Provjera sesije pri učitavanju
   useEffect(() => {
     const savedUser = localStorage.getItem("user_session");
     if (savedUser) {
@@ -27,14 +28,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Funkcija za logovanje (ovo pozivaš kad neko klikne Login)
-  const login = (username: string) => {
-    const newUser = { username, email: `${username}@example.com` };
+  // ✅ Login funkcija koja čuva podatke
+  const login = (username: string, email?: string) => {
+    // Ako nema emaila (npr. guest login), generiši lažni
+    const userEmail = email || `${username.toLowerCase().replace(/\s+/g, '')}@example.com`;
+    
+    const newUser = { 
+        username, 
+        email: userEmail 
+    };
+    
     setUser(newUser);
-    localStorage.setItem("user_session", JSON.stringify(newUser)); // Čuvamo sesiju
+    localStorage.setItem("user_session", JSON.stringify(newUser));
   };
 
-  // Funkcija za odjavu
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user_session");
@@ -47,11 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Ovo je "kuka" koju ćemo koristiti u komponentama
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth mora biti korišten unutar AuthProvider-a");
   }
   return context;
 };

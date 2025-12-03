@@ -43,14 +43,11 @@ export default function Navbar() {
 
   const clickEffect = "active:scale-90 transition-transform duration-200 ease-in-out inline-block";
 
-  // ✅ DODATE SENKE (shadow-sm) I IVICE (border)
-  // Sada svaka stavka izgleda kao malo polje/dugme
   const dropdownItemClass = `
     w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 
     transition-all duration-500 ease-out rounded-md outline-none
-    border border-gray-50 shadow-sm mb-1
-    hover:bg-purple-100 hover:text-purple-700 hover:shadow-md hover:border-purple-200
-    focus:bg-purple-100 focus:text-purple-700 focus:shadow-md focus:border-purple-200
+    hover:bg-purple-100 hover:text-purple-700
+    focus:bg-purple-100 focus:text-purple-700
     active:bg-purple-100 active:text-purple-700 active:scale-90
     data-[highlighted]:bg-purple-100 data-[highlighted]:text-purple-700
   `;
@@ -111,7 +108,7 @@ export default function Navbar() {
                 <ChevronDown className="w-4 h-4 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white border-gray-100 shadow-xl p-2 z-[200]">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-gray-100 shadow-lg p-1 z-[200]">
               {Object.entries(languages).map(([key, { label, flag }]) => (
                 <DropdownMenuItem 
                     key={key} 
@@ -126,9 +123,12 @@ export default function Navbar() {
 
           {/* 2. BECOME A SELLER */}
           {!user && (
-            <Button variant="ghost" className={`text-gray-600 font-bold text-sm hover:text-purple-600 hover:bg-purple-50 h-10 px-6 ${clickEffect} ${noFocusRing}`}>
-              Become a Seller
-            </Button>
+            // ✅ SADA JE LINK! Vodi na stranicu za registraciju (/register ili /seller/register, ako je ista)
+            <Link href="/register">
+                <Button variant="ghost" className={`text-gray-600 font-bold text-sm hover:text-purple-600 hover:bg-purple-50 h-10 px-6 ${clickEffect} ${noFocusRing}`}>
+                Become a Seller
+                </Button>
+            </Link>
           )}
 
           {/* 3. AUTH */}
@@ -153,19 +153,24 @@ export default function Navbar() {
             </div>
           ) : (
              <div className="flex items-center gap-3">
-                <Button 
-                    variant="ghost" 
-                    onClick={() => login("GuestUser")} 
-                    className={`font-bold text-sm text-gray-600 hover:text-purple-700 hover:bg-purple-50 h-10 px-6 ${clickEffect} ${noFocusRing}`}
-                >
-                    Login
-                </Button>
-                <Button 
-                    onClick={() => login("GuestUser")} 
-                    className={`bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 ${clickEffect} ${noFocusRing}`}
-                >
-                    Join
-                </Button>
+                {/* ✅ Login dugme sada vodi na /login */}
+                <Link href="/login">
+                    <Button 
+                        variant="ghost" 
+                        className={`font-bold text-sm text-gray-600 hover:text-purple-700 hover:bg-purple-50 h-10 px-6 ${clickEffect} ${noFocusRing}`}
+                    >
+                        Login
+                    </Button>
+                </Link>
+                
+                {/* ✅ Join dugme sada vodi na /register */}
+                <Link href="/register">
+                    <Button 
+                        className={`bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 ${clickEffect} ${noFocusRing}`}
+                    >
+                        Join
+                    </Button>
+                </Link>
              </div>
           )}
         </div>
@@ -180,7 +185,7 @@ export default function Navbar() {
                 <span className="text-xl leading-none">{languages[language]?.flag}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white border-gray-100 shadow-xl mr-2 p-2 z-[200]">
+            <DropdownMenuContent align="end" className="w-48 bg-white border-gray-100 shadow-xl mr-2 p-1 z-[200]">
               {Object.entries(languages).map(([key, { label, flag }]) => (
                 <DropdownMenuItem 
                     key={key} 
@@ -218,15 +223,27 @@ export default function Navbar() {
                     </>
                 ) : (
                     <>
-                        <DropdownMenuItem onSelect={(e) => handleWithDelay(e, () => login("GuestUser"), setIsMobileOpen)} className={dropdownItemClass}>
+                        {/* ✅ Login u meniju vodi na /login */}
+                        <DropdownMenuItem 
+                            onSelect={(e) => handleWithDelay(e, () => router.push('/login'), setIsMobileOpen)} 
+                            className={dropdownItemClass}
+                        >
                             <LogIn className="w-4 h-4" /> Login
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={(e) => handleWithDelay(e, () => login("GuestUser"), setIsMobileOpen)} className={dropdownItemClass}>
+                        
+                        {/* ✅ Join u meniju vodi na /register */}
+                        <DropdownMenuItem 
+                            onSelect={(e) => handleWithDelay(e, () => router.push('/register'), setIsMobileOpen)} 
+                            className={dropdownItemClass}
+                        >
                             <PlusCircle className="w-4 h-4" /> Join
                         </DropdownMenuItem>
+                        
                         <DropdownMenuSeparator className="bg-gray-100 my-2" />
+                        
+                        {/* Become a Seller u meniju - VODI NA REGISTER */}
                         <DropdownMenuItem asChild>
-                           <Link href="/seller/register" className={`${dropdownItemClass} shadow-md border-purple-100`}>
+                           <Link href="/register" className={`${dropdownItemClass} shadow-md border-purple-100`}>
                              <PlusCircle className="w-4 h-4 text-green-500" /> Become a Seller
                            </Link>
                         </DropdownMenuItem>
