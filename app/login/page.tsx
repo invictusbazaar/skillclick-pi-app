@@ -4,15 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, User, Lock, LogIn, AlertCircle } from 'lucide-react'; // Zamenili smo Mail sa User ikonicom
+import { ArrowLeft, User, Lock, LogIn, AlertCircle } from 'lucide-react'; 
 import { useAuth } from '@/components/AuthContext';
 
 export default function LoginPage() {
-  // Sada koristimo "username" umesto "email"
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(''); // Dodali smo i prikaz greške
+  const [error, setError] = useState('');
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,22 +23,20 @@ export default function LoginPage() {
     setError('');
 
     setTimeout(() => {
-      // 1. Uzimamo sačuvane podatke iz registracije
-      const storedName = localStorage.getItem('db_user_name');   // Ime (npr. Zoran)
-      const storedEmail = localStorage.getItem('db_user_email'); // Email (da imamo za svaki slučaj)
+      // 1. Čitamo sačuvane podatke iz registracije
+      const storedName = localStorage.getItem('db_user_name');
+      const storedEmail = localStorage.getItem('db_user_email');
       
-      // 2. PROVERA: Da li uneto ime odgovara sačuvanom imenu?
-      // (Dodao sam da radi i ako neko ipak ukuca email, za svaki slučaj)
+      // 2. Provera: Da li uneto ime odgovara sačuvanom imenu (ili emailu)?
       if (username === storedName || username === storedEmail) {
           
-          // Uspešna prijava!
-          // Ako imamo sačuvano ime, koristimo ga. Ako ne, koristimo uneto.
           const displayName = storedName || username;
           const displayEmail = storedEmail || "user@example.com";
 
+          // Logujemo korisnika
           login(displayName, displayEmail);
 
-          // 3. PAMETNO PREUSMERAVANJE
+          // 3. Pametno preusmeravanje (ako je došao sa "Post a Service")
           const redirectUrl = searchParams.get('redirect');
           if (redirectUrl) {
             router.push(redirectUrl);
@@ -48,9 +45,8 @@ export default function LoginPage() {
           }
 
       } else {
-          // Neuspešna prijava
           setIsLoading(false);
-          setError('Pogrešno korisničko ime ili lozinka.');
+          setError('Pogrešno korisničko ime ili nepostojeći nalog.');
       }
       
     }, 1000); 
@@ -79,12 +75,11 @@ export default function LoginPage() {
              />
           </div>
           <h2 className="text-2xl font-extrabold text-gray-900">Dobrodošli nazad!</h2>
-          <p className="text-gray-500 text-sm mt-2">Prijavi se na svoj nalog</p>
+          <p className="text-gray-500 text-sm mt-2">Unesite korisničko ime za pristup</p>
         </div>
 
         <div className="p-8 pt-0">
           
-          {/* Prikaz greške ako podaci nisu tačni */}
           {error && (
             <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 mb-4 border border-red-100">
                 <AlertCircle className="w-5 h-5 shrink-0" />
@@ -94,11 +89,10 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             
-            {/* POLJE ZA KORISNIČKO IME */}
+            {/* UNOS IMENA (NE EMAILA) */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-2 ml-1">Korisničko ime</label>
               <div className="relative group">
-                {/* Ikonica čovečuljka (User) umesto pisma */}
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors w-5 h-5" />
                 <input 
                   type="text" 
@@ -111,7 +105,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* POLJE ZA LOZINKU */}
+            {/* UNOS LOZINKE */}
             <div>
               <div className="flex justify-between items-center mb-2 ml-1">
                 <label className="block text-xs font-bold text-gray-700 uppercase">Lozinka</label>
@@ -150,7 +144,6 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center text-sm text-gray-500 border-t border-gray-100 pt-6">
             Nemaš nalog?{' '}
-            {/* Prosleđujemo redirect ako postoji */}
             <Link 
               href={searchParams.get('redirect') ? `/register?redirect=${searchParams.get('redirect')}` : "/register"} 
               className="text-purple-600 font-bold hover:text-purple-800 transition-colors"
