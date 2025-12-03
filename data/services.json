@@ -17,5 +17,14 @@
     "author": "Invictus Bazaar",
     "id": 2,
     "rating": 5
+  },
+  {
+    "title": "servis  automobila",
+    "description": "servis",
+    "category": "Lifestyle",
+    "price": 200,
+    "author": "zoran",
+    "id": 3,
+    "rating": 5
   }
 ]
