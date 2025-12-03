@@ -89,13 +89,13 @@ function NavbarContent() {
   };
 
   return (
-    // UKLONJENO: border-b border-purple-600 (Sada nema fiksne linije na dnu navigacije)
-    <nav className="bg-white sticky top-0 z-[100] shadow-sm shadow-purple-100 flex flex-col font-sans">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-[100] shadow-sm flex flex-col font-sans">
       
       {/* GORNJI DEO */}
       <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[101]">
         
         {/* LOGO */}
+        {/* pointer-events-none ostaje za svaki slučaj, ali Z-index na kategorijama rešava stvar */}
         <div className={`flex-shrink-0 absolute left-0 top-1/2 -translate-y-1/2 z-[40] -ml-[156px] md:-ml-[220px] mt-2 md:mt-[11px] pointer-events-none`}>
            <Link href="/" className="pointer-events-auto block"> 
               <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[450px] md:w-[600px] h-auto object-contain object-left" priority />
@@ -234,32 +234,28 @@ function NavbarContent() {
       </div>
 
       {/* --- KATEGORIJE TRAKA --- */}
-      <div className="block border-t border-purple-100 relative z-[102]">
+      {/* FIX: Z-INDEX 102 DA BUDE IZNAD LOGA (101) */}
+      <div className="block border-t border-gray-100 relative z-[102]">
          <div className="container mx-auto px-4">
-            <div className="overflow-x-auto purple-scrollbar">
-                {/* OVDE OSTAJE LINIJA KOJA SE POMERA:
-                   min-w-max i border-b-2 border-purple-600 
-                */}
-                <div className="flex items-center gap-6 md:gap-0 py-3 md:justify-between min-w-max border-b-2 border-purple-600 px-2">
-                    {categories.map((cat) => {
-                    const isActive = activeCategory === cat.name;
-                    return (
-                        <Link 
-                        key={cat.slug} 
-                        href={`/?category=${encodeURIComponent(cat.name)}`}
-                        className={`
-                            whitespace-nowrap flex-shrink-0 rounded-md px-2 font-bold text-[13px] md:text-[14px] transition-all pb-1 ${clickEffect}
-                            ${isActive 
-                            ? "text-purple-600 bg-purple-50" 
-                            : "text-gray-500 hover:text-purple-600"
-                            }
-                        `}
-                        >
-                        {cat.name}
-                        </Link>
-                    );
-                    })}
-                </div>
+            <div className="flex items-center gap-6 md:gap-0 overflow-x-auto purple-scrollbar py-3 md:justify-between">
+                {categories.map((cat) => {
+                  const isActive = activeCategory === cat.name;
+                  return (
+                    <Link 
+                      key={cat.slug} 
+                      href={`/?category=${encodeURIComponent(cat.name)}`}
+                      className={`
+                        whitespace-nowrap flex-shrink-0 rounded-md px-2 font-bold text-[13px] md:text-[14px] border-b-2 transition-all pb-1 ${clickEffect}
+                        ${isActive 
+                           ? "text-purple-600 border-purple-600 bg-purple-50/50" 
+                           : "text-gray-500 border-transparent hover:text-purple-600 hover:border-purple-600"
+                        }
+                      `}
+                    >
+                      {cat.name}
+                    </Link>
+                  );
+                })}
             </div>
          </div>
       </div>
