@@ -12,12 +12,12 @@ export default function Footer() {
         {/* --- GLAVNI DEO --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10">
           
-          {/* KOLONA 1: O NAMA - LEVO PORAVNANJE (lg:col-span-4) */}
+          {/* KOLONA 1: O NAMA - ISPRAVLJENO (Centrirano na mob, levo na desktop) */}
           <div className="space-y-4 text-center lg:text-left lg:col-span-4">
             <h3 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center lg:justify-start gap-2">
               <Globe className="w-6 h-6 text-purple-500" /> SkillClick
             </h3>
-            <p className="text-sm leading-relaxed text-gray-400 max-w-xs text-left mx-auto lg:mx-0">
+            <p className="text-sm leading-relaxed text-gray-400 max-w-xs text-center lg:text-left mx-auto lg:mx-0">
               The premier decentralized freelance marketplace built on the Pi Network ecosystem. 
               We bridge the gap between global talent and digital currency.
             </p>
