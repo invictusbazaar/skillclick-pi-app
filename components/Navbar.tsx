@@ -237,7 +237,7 @@ function NavbarContent() {
       {/* FIX: Z-INDEX 102 DA BUDE IZNAD LOGA (101) */}
       <div className="block border-t border-gray-100 relative z-[102]">
          <div className="container mx-auto px-4">
-            <div className="flex items-center gap-6 md:gap-0 overflow-x-auto purple-scrollbar py-3 md:justify-between">
+            <div className="flex items-center gap-6 md:gap-0 overflow-x-auto py-3 md:justify-between [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-400/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {categories.map((cat) => {
                   const isActive = activeCategory === cat.name;
                   return (

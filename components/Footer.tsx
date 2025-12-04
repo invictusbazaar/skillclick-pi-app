@@ -10,43 +10,23 @@ export default function Footer() {
       <div className="container mx-auto px-6 py-8 md:py-16">
         
         {/* --- GLAVNI DEO --- */}
-        {/* MOBILNI: grid-cols-1 (jedna ispod druge)
-            TABLET: md:grid-cols-2 (po dve u redu)
-            PC: lg:grid-cols-4 (četiri u redu) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10">
           
-          {/* KOLONA 1: O NAMA */}
-          <div className="space-y-4 text-center md:text-left">
-            <h3 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-2">
+          {/* KOLONA 1: O NAMA - LEVO PORAVNANJE (lg:col-span-4) */}
+          <div className="space-y-4 text-center lg:text-left lg:col-span-4">
+            <h3 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center lg:justify-start gap-2">
               <Globe className="w-6 h-6 text-purple-500" /> SkillClick
             </h3>
-            <p className="text-sm leading-relaxed text-gray-400">
+            <p className="text-sm leading-relaxed text-gray-400 max-w-xs text-left mx-auto lg:mx-0">
               The premier decentralized freelance marketplace built on the Pi Network ecosystem. 
               We bridge the gap between global talent and digital currency.
             </p>
-            <div className="flex gap-4 pt-2 justify-center md:justify-start">
-              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Twitter className="w-5 h-5" /></a>
-              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Facebook className="w-5 h-5" /></a>
-              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Instagram className="w-5 h-5" /></a>
-              <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Linkedin className="w-5 h-5" /></a>
-            </div>
           </div>
-
-          {/* Ostale kolone (tekst centriran na mobilnom radi lepšeg izgleda) */}
-          <div className="text-center md:text-left">
-            <h4 className="text-white font-bold mb-4">Categories</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/services?cat=design" className="hover:text-purple-400 active:text-purple-400 transition-colors">Graphics & Design</Link></li>
-              <li><Link href="/services?cat=marketing" className="hover:text-purple-400 active:text-purple-400 transition-colors">Digital Marketing</Link></li>
-              <li><Link href="/services?cat=writing" className="hover:text-purple-400 active:text-purple-400 transition-colors">Writing & Translation</Link></li>
-              <li><Link href="/services?cat=video" className="hover:text-purple-400 active:text-purple-400 transition-colors">Video & Animation</Link></li>
-              <li><Link href="/services?cat=tech" className="hover:text-purple-400 active:text-purple-400 transition-colors">Programming & Tech</Link></li>
-            </ul>
-          </div>
-
-          <div className="text-center md:text-left">
+          
+          {/* KOLONA 2: SUPPORT & LEGAL - CENTRIRANO (lg:col-span-3) */}
+          <div className="text-center lg:col-span-3">
             <h4 className="text-white font-bold mb-4">Support & Legal</h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-sm flex flex-col items-center">
               <li><Link href="/help" className="hover:text-purple-400 active:text-purple-400 transition-colors">Help & Support</Link></li>
               <li><Link href="/trust" className="hover:text-purple-400 active:text-purple-400 transition-colors">Trust & Safety</Link></li>
               <li><Link href="/selling" className="hover:text-purple-400 active:text-purple-400 transition-colors">Selling on SkillClick</Link></li>
@@ -55,23 +35,37 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div className="text-center md:text-left">
-            <h4 className="text-white font-bold mb-4">Contact Us</h4>
-            <ul className="space-y-4 text-sm flex flex-col items-center md:items-start">
-              <li className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
-                <span>
-                  Invictus Bazaar Team<br />
-                  Global Pi Network Community
-                </span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-purple-500 shrink-0" />
-                <a href="mailto:invictusbazaar@gmail.com" className="hover:text-white active:text-white transition-colors text-purple-200">
-                  invictusbazaar@gmail.com
-                </a>
-              </li>
-            </ul>
+          {/* KOLONA 3: CONTACT US - IZMENJENO */}
+          {/* lg:items-end gura ceo blok desno, a unutrašnji div drži tekst levo */}
+          <div className="text-center lg:col-span-5 flex flex-col lg:items-end">
+            
+            {/* Ovaj unutrašnji div drži sadržaj na okupu i poravnava tekst ulevo */}
+            <div className="text-left inline-block"> 
+              <h4 className="text-white font-bold mb-4 text-center lg:text-left">Contact Us</h4>
+              <ul className="space-y-4 text-sm flex flex-col items-center lg:items-start">
+                <li className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
+                  <span>
+                    Invictus Bazaar Team<br />
+                    Global Pi Network Community
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-purple-500 shrink-0" />
+                  <a href="mailto:invictusbazaar@gmail.com" className="hover:text-white active:text-white transition-colors text-purple-200">
+                    invictusbazaar@gmail.com
+                  </a>
+                </li>
+              </ul>
+              
+              <div className="flex gap-4 pt-4 justify-center lg:justify-start">
+                <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Twitter className="w-5 h-5" /></a>
+                <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Facebook className="w-5 h-5" /></a>
+                <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Instagram className="w-5 h-5" /></a>
+                <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Linkedin className="w-5 h-5" /></a>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
