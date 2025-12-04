@@ -95,10 +95,10 @@ function NavbarContent() {
       <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[101]">
         
         {/* LOGO */}
-        {/* pointer-events-none ostaje za svaki slučaj, ali Z-index na kategorijama rešava stvar */}
-        <div className={`flex-shrink-0 absolute left-0 top-1/2 -translate-y-1/2 z-[40] -ml-[156px] md:-ml-[220px] mt-2 md:mt-[11px] pointer-events-none`}>
+        {/* IZMENA: left-0 (mobilni) i md:left-[90px] (PC - pomereno za ukupno 90px) */}
+        <div className={`flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[40] -ml-[156px] md:-ml-[220px] mt-2 md:mt-[11px] pointer-events-none`}>
            <Link href="/" className="pointer-events-auto block"> 
-              <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[450px] md:w-[600px] h-auto object-contain object-left" priority />
+              <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[450px] md:w-[400px] h-auto object-contain object-left" priority />
            </Link>
         </div>
 

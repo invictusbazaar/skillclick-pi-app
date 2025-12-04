@@ -1,272 +1,222 @@
-"use client"
+"use client";
 
-import { useState, Suspense } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useSearchParams, useRouter } from "next/navigation" 
-import { useAuth } from "@/components/AuthContext"
-import { useLanguage } from "@/components/LanguageContext"
-import { Button } from "@/components/ui/button"
-import { 
-  LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle
-} from "lucide-react"
-import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
-} from "@/components/ui/dropdown-menu"
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image'; 
+import { useLanguage } from './LanguageContext';
+import { usePathname, useRouter } from 'next/navigation'; // <--- NOVI IMPORTI ZA NAVIGACIJU
+import { Menu, X, ChevronDown, LogOut, User, ArrowLeft } from 'lucide-react'; // <--- Dodao ArrowLeft
 
-function NavbarContent() {
-  const { user, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
-  const router = useRouter(); 
-  
-  const [isMobileLangOpen, setIsMobileLangOpen] = useState(false);
+const languagesList = [
+  { code: 'sr', label: '🇷🇸 SR', name: 'Srpski' },
+  { code: 'en', label: '🇬🇧 EN', name: 'English' },
+  { code: 'zh', label: '🇨🇳 ZH', name: '中文' },
+  { code: 'hi', label: '🇮🇳 HI', name: 'Hindi' },
+  { code: 'th', label: '🇹🇭 TH', name: 'ไทย' },
+  { code: 'vi', label: '🇻🇳 VI', name: 'Tiếng Việt' },
+];
+
+export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | null }) {
+  const { t, changeLanguage, lang } = useLanguage();
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const searchParams = useSearchParams();
-  const activeCategory = searchParams.get('category');
+  // Stanje za podatke o korisniku
+  const [username, setUsername] = useState<string>("Korisnik");
+  const [email, setEmail] = useState<string>("user@example.com");
 
-  const languages: Record<string, { label: string; flag: string }> = {
-    en: { label: "English", flag: "🇺🇸" },
-    sr: { label: "Srpski", flag: "🇷🇸" },
-    hi: { label: "Hindi", flag: "🇮🇳" },
-    zh: { label: "Chinese", flag: "🇨🇳" },
-    tw: { label: "Chinese (Trad)", flag: "🇹🇼" },
-    id: { label: "Indonesia", flag: "🇮🇩" }
-  };
+  // --- NOVO: Navigacija ---
+  const pathname = usePathname(); // Gde se trenutno nalazimo?
+  const router = useRouter();     // Kontrola rutera
+  const isHome = pathname === '/'; // Da li smo na početnoj?
 
-  const categories = [
-    { name: "Graphics & Design", slug: "design" },
-    { name: "Digital Marketing", slug: "marketing" },
-    { name: "Writing & Translation", slug: "writing" },
-    { name: "Video & Animation", slug: "video" },
-    { name: "Programming & Tech", slug: "tech" },
-    { name: "Business", slug: "business" },
-    { name: "Lifestyle", slug: "lifestyle" }
-  ];
+  const currentLang = languagesList.find(l => l.code === lang) || languagesList[1];
 
-  const clickEffect = "active:scale-90 transition-transform duration-200 ease-in-out inline-block";
-  const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
-  
-  const mobileItemClass = `
-    py-3 px-3 mb-1 font-bold cursor-pointer rounded-xl border-2 border-transparent transition-all duration-300
-    text-gray-700 flex items-center gap-3 w-full
-    
-    data-[highlighted]:bg-purple-100 
-    data-[highlighted]:text-purple-700
-    data-[highlighted]:border-purple-200
+  useEffect(() => {
+    if (sessionKeyProp) {
+      const storedName = localStorage.getItem('user_name');
+      const storedEmail = localStorage.getItem('user_email');
+      
+      if (storedName) setUsername(storedName);
+      if (storedEmail) setEmail(storedEmail);
+    }
+  }, [sessionKeyProp]);
 
-    focus:bg-purple-100 
-    focus:text-purple-700
-    focus:border-purple-200
-    
-    active:scale-95
-  `;
-
-  const noFocusRing = "outline-none ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none border-none";
-
-  const handleMobileLanguageChange = (e: any, key: string) => {
-    e.preventDefault(); 
-    setTimeout(() => {
-        setLanguage(key);           
-        setIsMobileLangOpen(false); 
-    }, 400); 
-  };
-
-  const handleMobileNav = (e: any, path: string) => {
-    e.preventDefault();
-    setTimeout(() => {
-        router.push(path);
-        setIsMobileMenuOpen(false);
-    }, 400);
-  };
-
-  const handleMobileLogout = (e: any) => {
-    e.preventDefault();
-    setTimeout(() => {
-        logout();
-        setIsMobileMenuOpen(false);
-    }, 400);
+  const handleLogout = () => {
+    localStorage.removeItem('sessionKey');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_email');
+    window.location.href = '/'; 
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-[100] shadow-sm flex flex-col font-sans">
-      
-      {/* GORNJI DEO */}
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[101]">
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm transition-all">
+      <div className="container mx-auto px-4 h-20 md:h-24 flex items-center justify-between relative">
         
-        {/* LOGO */}
-        {/* IZMENA: left-0 (mobilni) i md:left-[90px] (PC - pomereno za ukupno 90px) */}
-        <div className={`flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[40] -ml-[156px] md:-ml-[220px] mt-2 md:mt-[11px] pointer-events-none`}>
-           <Link href="/" className="pointer-events-auto block"> 
-              <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[450px] md:w-[400px] h-auto object-contain object-left" priority />
-           </Link>
+        {/* --- LEVA STRANA: LOGO + NAZAD DUGME --- */}
+        <div className="flex items-center gap-2 md:gap-4 z-50">
+          
+          {/* DUGME NAZAD - Prikazuje se samo ako NISMO na Home stranici */}
+          {!isHome && (
+            <button 
+              onClick={() => router.back()} 
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-700 transition-all active:scale-95 shadow-sm"
+              title={t('backBtn')} // Tooltip na hover
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+
+          <Link href="/" className="flex items-center group relative">
+            <div className="w-10 md:w-10 h-1" />
+            
+            {/* Logo slika */}
+            <div className={`absolute left-0 top-1/2 -translate-y-1/2 transition-transform group-hover:scale-105 duration-300 pointer-events-none
+                ${!isHome ? '-ml-20 md:-ml-52' : '-ml-24 md:-ml-56'} /* Malo pomeramo logo ako postoji dugme nazad */
+                h-48 w-[28rem] md:h-80 md:w-[50rem]`}>
+               <Image 
+                 src="/skillclick_logo.png" 
+                 alt="SkillClick Logo"
+                 fill
+                 className="object-contain object-left" 
+                 priority 
+               />
+            </div>
+          </Link>
         </div>
 
-        {/* --- DESKTOP MENI --- */}
-        <div className="hidden md:flex items-center gap-4 ml-auto z-[80]">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className={`flex items-center gap-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-full px-3 py-2 ${clickEffect} ${noFocusRing}`}>
-                <span className="font-bold text-xs">{languages[language]?.flag} {languages[language]?.label.split(' ')[0]}</span>
-                <ChevronDown className="w-4 h-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white border-gray-100 shadow-lg p-1 z-[200]">
-              {Object.entries(languages).map(([key, { label, flag }]) => (
-                <DropdownMenuItem key={key} onClick={() => setLanguage(key)} className={desktopItemClass}>
-                  <span className="mr-3 text-xl">{flag}</span> {label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        {/* --- DESNA STRANA --- */}
+        <div className="flex items-center gap-2 md:gap-5 z-[60] relative">
+          
+          {/* JEZIK */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="flex items-center gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition-colors border border-gray-200 bg-gray-50/50"
+            >
+              <span className="text-lg leading-none">{currentLang.label.split(' ')[0]}</span>
+              <span className="font-semibold text-xs md:text-sm text-gray-700 hidden md:block">{currentLang.code.toUpperCase()}</span>
+              <ChevronDown className={`w-3 h-3 md:w-4 md:h-4 text-gray-500 transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-          <Link href={user ? "/create" : "/register?redirect=/create"}>
-            <Button variant="ghost" className={`text-gray-600 font-bold text-sm h-10 px-4 hover:text-purple-600 hover:bg-purple-50 ${clickEffect} ${noFocusRing}`}>
-                Post a Service
-            </Button>
-          </Link>
+            {isLangOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsLangOpen(false)} />
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in slide-in-from-top-2">
+                  {languagesList.map((l: any) => (
+                    <button
+                      key={l.code}
+                      onClick={() => { changeLanguage(l.code); setIsLangOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-purple-50 transition-colors ${lang === l.code ? 'bg-purple-50 text-purple-700 font-bold' : 'text-gray-700'}`}
+                    >
+                      <span className="text-lg">{l.label.split(' ')[0]}</span>
+                      <span>{l.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
-          {user ? (
-            <div className="flex items-center gap-4 border-l border-gray-200 pl-4">
-                <Link href="/profile" className={`flex items-center gap-3 cursor-pointer group ${clickEffect}`}>
-                  <div className="w-10 h-10 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm group-hover:border-purple-200 transition-colors">{user.username[0].toUpperCase()}</div>
-                  <span className="text-sm font-bold text-gray-700 group-hover:text-purple-700 truncate max-w-[120px]">{user.username}</span>
-                </Link>
-                <Button onClick={logout} variant="ghost" className={`text-gray-500 hover:text-purple-700 hover:bg-purple-50 p-2 h-10 w-10 rounded-full ${clickEffect} ${noFocusRing}`}><LogOut className="w-5 h-5" /></Button>
+          {/* KORISNIK / AUTH (Desktop) */}
+          {!sessionKeyProp ? (
+            <div className="hidden md:flex items-center gap-3">
+              <Link href="/login">
+                <button className="text-sm font-semibold text-gray-600 hover:text-purple-600 px-4 py-2 transition-colors">
+                  {t('login')}
+                </button>
+              </Link>
+              <Link href="/register">
+                <button className="text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                  {t('register')}
+                </button>
+              </Link>
             </div>
           ) : (
-             <div className="flex items-center gap-3">
-                <Link href="/login"><Button variant="ghost" className={`font-bold text-sm text-gray-600 hover:text-purple-700 hover:bg-purple-50 h-10 px-6 ${clickEffect} ${noFocusRing}`}>Login</Button></Link>
-                <Link href="/register"><Button className={`bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 ${clickEffect} ${noFocusRing}`}>Join</Button></Link>
+             <div className="hidden md:flex relative">
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold border border-purple-200 shadow-sm hover:ring-2 hover:ring-purple-300 transition-all"
+                >
+                  {username.charAt(0).toUpperCase()}
+                </button>
+
+                {isUserMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsUserMenuOpen(false)} />
+                    <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in slide-in-from-top-2">
+                        <div className="px-4 py-3 border-b border-gray-50 mb-1">
+                            <p className="text-sm font-bold text-gray-900">{username}</p>
+                            <p className="text-xs text-gray-500 truncate">{email}</p>
+                        </div>
+                        <Link href="/profile" onClick={() => setIsUserMenuOpen(false)} className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-gray-700 hover:bg-purple-50 transition-colors">
+                            <User className="w-4 h-4" /> Profil
+                        </Link>
+                        <button 
+                            onClick={handleLogout}
+                            className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors font-medium"
+                        >
+                            <LogOut className="w-4 h-4" /> Odjavi se
+                        </button>
+                    </div>
+                  </>
+                )}
              </div>
           )}
+
+          {/* MOBILNI MENI DUGME */}
+          <button 
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg active:scale-95 transition-transform"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
-
-        {/* --- MOBILNI MENI --- */}
-        <div className="flex md:hidden items-center gap-2 ml-auto z-[102]">
-            
-            {/* JEZIK */}
-            <DropdownMenu open={isMobileLangOpen} onOpenChange={setIsMobileLangOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full w-9 h-9">
-                    <span className="text-xl">{languages[language]?.flag}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 z-[9999] p-2 bg-white border border-gray-100 shadow-xl rounded-xl">
-                  {Object.entries(languages).map(([key, { label, flag }]) => (
-                    <DropdownMenuItem 
-                        key={key} 
-                        onSelect={(e) => handleMobileLanguageChange(e, key)}
-                        className={mobileItemClass}
-                    >
-                      <span className="mr-3 text-xl">{flag}</span> {label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* HAMBURGER */}
-            <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-gray-700">
-                        <Menu className="w-7 h-7" />
-                    </Button>
-                </DropdownMenuTrigger>
-                
-                <DropdownMenuContent align="end" className="w-64 p-2 font-sans bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl">
-                    {user && (
-                        <>
-                            <DropdownMenuLabel className="px-2 py-3 bg-purple-50 rounded-lg mb-2 flex items-center gap-3 mx-1">
-                                <div className="w-8 h-8 bg-purple-200 text-purple-800 rounded-full flex items-center justify-center font-bold text-sm">
-                                    {user.username[0].toUpperCase()}
-                                </div>
-                                <span className="font-bold text-gray-800 truncate">{user.username}</span>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-gray-100 my-1" />
-                        </>
-                    )}
-
-                    <DropdownMenuItem 
-                        onSelect={(e) => handleMobileNav(e, user ? "/create" : "/register?redirect=/create")}
-                        className={`${mobileItemClass} text-purple-700 border-purple-100 bg-purple-50/50`}
-                    >
-                        <PlusCircle className="w-4 h-4" /> Post a Service
-                    </DropdownMenuItem>
-                    
-                    <DropdownMenuSeparator className="bg-gray-100 my-1" />
-
-                    {user ? (
-                        <>
-                            <DropdownMenuItem 
-                                onSelect={(e) => handleMobileNav(e, "/profile")}
-                                className={mobileItemClass}
-                            >
-                                <UserIcon className="w-4 h-4" /> Moj Profil
-                            </DropdownMenuItem>
-                            
-                            <DropdownMenuItem 
-                                onSelect={handleMobileLogout}
-                                className={mobileItemClass}
-                            >
-                                <LogOut className="w-4 h-4" /> Odjavi se
-                            </DropdownMenuItem>
-                        </>
-                    ) : (
-                        <>
-                           <DropdownMenuItem 
-                                onSelect={(e) => handleMobileNav(e, "/login")}
-                                className={mobileItemClass}
-                           >
-                                Login
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                                onSelect={(e) => handleMobileNav(e, "/register")}
-                                className={`${mobileItemClass} bg-purple-600 text-white hover:bg-purple-700 hover:text-white data-[highlighted]:bg-purple-700 data-[highlighted]:text-white`}
-                            >
-                                Registruj se
-                            </DropdownMenuItem>
-                        </>
-                    )}
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-
       </div>
 
-      {/* --- KATEGORIJE TRAKA --- */}
-      {/* FIX: Z-INDEX 102 DA BUDE IZNAD LOGA (101) */}
-      <div className="block border-t border-gray-100 relative z-[102]">
-         <div className="container mx-auto px-4">
-            <div className="flex items-center gap-6 md:gap-0 overflow-x-auto py-3 md:justify-between [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-400/60 [&::-webkit-scrollbar-thumb]:rounded-full">
-                {categories.map((cat) => {
-                  const isActive = activeCategory === cat.name;
-                  return (
-                    <Link 
-                      key={cat.slug} 
-                      href={`/?category=${encodeURIComponent(cat.name)}`}
-                      className={`
-                        whitespace-nowrap flex-shrink-0 rounded-md px-2 font-bold text-[13px] md:text-[14px] border-b-2 transition-all pb-1 ${clickEffect}
-                        ${isActive 
-                           ? "text-purple-600 border-purple-600 bg-purple-50/50" 
-                           : "text-gray-500 border-transparent hover:text-purple-600 hover:border-purple-600"
-                        }
-                      `}
+      {/* MOBILNI MENI (Sadržaj) */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-100 bg-white p-4 absolute w-full shadow-xl z-40 animate-in slide-in-from-top-5">
+           <nav className="flex flex-col gap-2">
+             {/* I u meniju dodajemo Home za svaki slučaj */}
+             <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-purple-50 rounded-xl font-medium text-gray-700 flex items-center gap-3">
+               🏠 <span className="text-gray-900">Home</span>
+             </Link>
+             <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-purple-50 rounded-xl font-medium text-gray-700 flex items-center gap-3">
+               🔍 <span className="text-gray-900">{t('adsTitle')}</span>
+             </Link>
+             
+             {!sessionKeyProp ? (
+               <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100">
+                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <button className="w-full py-3 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors">
+                      {t('login')}
+                    </button>
+                 </Link>
+                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <button className="w-full py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors shadow-md">
+                      {t('register')}
+                    </button>
+                 </Link>
+               </div>
+             ) : (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="px-3 py-2 bg-gray-50 rounded-lg mb-2">
+                        <p className="font-bold text-gray-900">{username}</p>
+                        <p className="text-xs text-gray-500">{email}</p>
+                    </div>
+                    <button 
+                        onClick={handleLogout}
+                        className="w-full py-3 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                     >
-                      {cat.name}
-                    </Link>
-                  );
-                })}
-            </div>
-         </div>
-      </div>
-    </nav>
-  )
-}
-
-export default function Navbar() {
-  return (
-    <Suspense fallback={<div className="h-20 bg-white"></div>}>
-      <NavbarContent />
-    </Suspense>
-  )
+                        <LogOut className="w-5 h-5" /> Odjavi se
+                    </button>
+                </div>
+             )}
+           </nav>
+        </div>
+      )}
+    </header>
+  );
 }
