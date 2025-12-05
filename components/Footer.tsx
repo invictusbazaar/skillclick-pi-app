@@ -1,10 +1,59 @@
 "use client"
 
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // <--- DODATO useEffect
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation'; // <--- DODATO usePathname
 import { Mail, MapPin, Heart, Twitter, Facebook, Instagram, Linkedin, Globe } from 'lucide-react';
 
 export default function Footer() {
+  const router = useRouter();
+  const pathname = usePathname(); // <--- Trenutna adresa stranice
+  
+  // State koji pamti kliknuti link za animaciju
+  const [clickedLink, setClickedLink] = useState<string | null>(null);
+
+  // KADA SE PROMENI STRANICA (PATHNAME), RESETUJ KLIKNUTI LINK
+  // Ovo rešava problem da boja ostane "zaglavljena" kad se vratiš na Home
+  useEffect(() => {
+    setClickedLink(null);
+  }, [pathname]);
+
+  // Funkcija za "delay" efekat na mobilnom
+  const handleSupportClick = (e: React.MouseEvent, href: string) => {
+    e.preventDefault(); 
+    setClickedLink(href); // Aktiviraj boju odmah
+
+    setTimeout(() => {
+      router.push(href);
+    }, 500);
+  };
+
+  // Pomoćna funkcija koja određuje da li link treba da bude ljubičast
+  // Link je ljubičast ako je: 1. Upravo kliknut (animacija) ILI 2. Korisnik je trenutno na toj stranici
+  const getLinkClass = (href: string) => {
+    const isActive = pathname === href || clickedLink === href;
+    
+    return `transition-colors duration-200 ${
+      isActive ? 'text-purple-500 font-medium' : 'text-gray-400 hover:text-purple-400 active:text-purple-400'
+    }`;
+  };
+
+  // --- NOVA FUNKCIJA: OTVARA GMAIL POP-UP ---
+  const handleEmailClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const gmailUrl = "https://mail.google.com/mail/?view=cm&fs=1&to=invictusbazaar@gmail.com&su=SkillClick%20Contact";
+    const width = 800;
+    const height = 600;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+
+    window.open(
+      gmailUrl, 
+      'GmailCompose', 
+      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+    );
+  };
+
   return (
     <footer className="bg-gray-900 text-gray-300 border-t border-gray-800 font-sans">
       <div className="container mx-auto px-6 py-8 md:py-16">
@@ -12,7 +61,7 @@ export default function Footer() {
         {/* --- GLAVNI DEO --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10">
           
-          {/* KOLONA 1: O NAMA - ISPRAVLJENO (Centrirano na mob, levo na desktop) */}
+          {/* KOLONA 1: O NAMA */}
           <div className="space-y-4 text-center lg:text-left lg:col-span-4">
             <h3 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center lg:justify-start gap-2">
               <Globe className="w-6 h-6 text-purple-500" /> SkillClick
@@ -23,23 +72,57 @@ export default function Footer() {
             </p>
           </div>
           
-          {/* KOLONA 2: SUPPORT & LEGAL - CENTRIRANO (lg:col-span-3) */}
+          {/* KOLONA 2: SUPPORT & LEGAL */}
           <div className="text-center lg:col-span-3">
             <h4 className="text-white font-bold mb-4">Support & Legal</h4>
             <ul className="space-y-2 text-sm flex flex-col items-center">
-              <li><Link href="/help" className="hover:text-purple-400 active:text-purple-400 transition-colors">Help & Support</Link></li>
-              <li><Link href="/trust" className="hover:text-purple-400 active:text-purple-400 transition-colors">Trust & Safety</Link></li>
-              <li><Link href="/selling" className="hover:text-purple-400 active:text-purple-400 transition-colors">Selling on SkillClick</Link></li>
-              <li><Link href="/privacy" className="hover:text-purple-400 active:text-purple-400 transition-colors text-gray-400">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="hover:text-purple-400 active:text-purple-400 transition-colors text-gray-400">Terms of Service</Link></li>
+              
+              <li>
+                <Link 
+                  href="/help" 
+                  onClick={(e) => handleSupportClick(e, '/help')}
+                  className={getLinkClass('/help')}
+                >
+                  Help & Support
+                </Link>
+              </li>
+              
+              <li>
+                <Link 
+                  href="/trust" 
+                  onClick={(e) => handleSupportClick(e, '/trust')}
+                  className={getLinkClass('/trust')}
+                >
+                  Trust & Safety
+                </Link>
+              </li>
+              
+              <li>
+                <Link 
+                  href="/privacy" 
+                  onClick={(e) => handleSupportClick(e, '/privacy')}
+                  className={getLinkClass('/privacy')}
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              
+              <li>
+                <Link 
+                  href="/terms" 
+                  onClick={(e) => handleSupportClick(e, '/terms')}
+                  className={getLinkClass('/terms')}
+                >
+                  Terms of Service
+                </Link>
+              </li>
+              
             </ul>
           </div>
 
-          {/* KOLONA 3: CONTACT US - IZMENJENO */}
-          {/* lg:items-end gura ceo blok desno, a unutrašnji div drži tekst levo */}
+          {/* KOLONA 3: CONTACT US */}
           <div className="text-center lg:col-span-5 flex flex-col lg:items-end">
             
-            {/* Ovaj unutrašnji div drži sadržaj na okupu i poravnava tekst ulevo */}
             <div className="text-left inline-block"> 
               <h4 className="text-white font-bold mb-4 text-center lg:text-left">Contact Us</h4>
               <ul className="space-y-4 text-sm flex flex-col items-center lg:items-start">
@@ -52,7 +135,11 @@ export default function Footer() {
                 </li>
                 <li className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-purple-500 shrink-0" />
-                  <a href="mailto:invictusbazaar@gmail.com" className="hover:text-white active:text-white transition-colors text-purple-200">
+                  <a 
+                    href="#" 
+                    onClick={handleEmailClick}
+                    className="hover:text-white active:text-white transition-colors text-purple-200 cursor-pointer"
+                  >
                     invictusbazaar@gmail.com
                   </a>
                 </li>

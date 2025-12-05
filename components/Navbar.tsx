@@ -92,11 +92,11 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[100] shadow-sm flex flex-col font-sans">
       
       {/* GORNJI DEO */}
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[101]">
+      <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[110]">
         
         {/* LOGO */}
-        {/* IZMENA: left-0 (mobilni) i md:left-[90px] (PC - pomereno za ukupno 90px) */}
-        <div className={`flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[40] -ml-[156px] md:-ml-[220px] mt-2 md:mt-[11px] pointer-events-none`}>
+        {/* IZMENA: z-[120] (visoko, ali ispod kategorija koje su 130) */}
+        <div className={`flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[120] -ml-[156px] md:-ml-[220px] mt-2 md:mt-[11px] pointer-events-none`}>
            <Link href="/" className="pointer-events-auto block"> 
               <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[450px] md:w-[400px] h-auto object-contain object-left" priority />
            </Link>
@@ -234,8 +234,8 @@ function NavbarContent() {
       </div>
 
       {/* --- KATEGORIJE TRAKA --- */}
-      {/* FIX: Z-INDEX 102 DA BUDE IZNAD LOGA (101) */}
-      <div className="block border-t border-gray-100 relative z-[102]">
+      {/* IZMENA: z-[130] da bude IZNAD loga. Promenjen border u transparent. */}
+      <div className="block border-t border-transparent relative z-[130]">
          <div className="container mx-auto px-4">
             <div className="flex items-center gap-6 md:gap-0 overflow-x-auto py-3 md:justify-between [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-400/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {categories.map((cat) => {
