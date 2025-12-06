@@ -1,57 +1,64 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'; // <--- DODATO useEffect
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation'; // <--- DODATO usePathname
+import { useRouter, usePathname } from 'next/navigation';
 import { Mail, MapPin, Heart, Twitter, Facebook, Instagram, Linkedin, Globe } from 'lucide-react';
 
 export default function Footer() {
   const router = useRouter();
-  const pathname = usePathname(); // <--- Trenutna adresa stranice
+  const pathname = usePathname();
   
-  // State koji pamti kliknuti link za animaciju
   const [clickedLink, setClickedLink] = useState<string | null>(null);
 
-  // KADA SE PROMENI STRANICA (PATHNAME), RESETUJ KLIKNUTI LINK
-  // Ovo rešava problem da boja ostane "zaglavljena" kad se vratiš na Home
   useEffect(() => {
     setClickedLink(null);
   }, [pathname]);
 
-  // Funkcija za "delay" efekat na mobilnom
   const handleSupportClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault(); 
-    setClickedLink(href); // Aktiviraj boju odmah
+    setClickedLink(href);
 
     setTimeout(() => {
       router.push(href);
     }, 500);
   };
 
-  // Pomoćna funkcija koja određuje da li link treba da bude ljubičast
-  // Link je ljubičast ako je: 1. Upravo kliknut (animacija) ILI 2. Korisnik je trenutno na toj stranici
   const getLinkClass = (href: string) => {
     const isActive = pathname === href || clickedLink === href;
-    
     return `transition-colors duration-200 ${
       isActive ? 'text-purple-500 font-medium' : 'text-gray-400 hover:text-purple-400 active:text-purple-400'
     }`;
   };
 
-  // --- NOVA FUNKCIJA: OTVARA GMAIL POP-UP ---
+  // --- PAMETNA FUNKCIJA ZA EMAIL ---
   const handleEmailClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    const gmailUrl = "https://mail.google.com/mail/?view=cm&fs=1&to=invictusbazaar@gmail.com&su=SkillClick%20Contact";
-    const width = 800;
-    const height = 600;
-    const left = (window.screen.width / 2) - (width / 2);
-    const top = (window.screen.height / 2) - (height / 2);
+    
+    const email = "invictusbazaar@gmail.com";
+    const subject = "SkillClick Contact";
 
-    window.open(
-      gmailUrl, 
-      'GmailCompose', 
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
-    );
+    // Proveravamo da li je korisnik na mobilnom uređaju
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // AKO JE MOBILNI: Koristi "mailto"
+      // Ovo otvara tvoju podrazumevanu aplikaciju (Gmail app) gde si već ulogovan.
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+    } else {
+      // AKO JE KOMPJUTER: Otvori onaj fini Gmail pop-up prozor
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}`;
+      const width = 600;
+      const height = 600;
+      const left = (window.screen.width / 2) - (width / 2);
+      const top = (window.screen.height / 2) - (height / 2);
+
+      window.open(
+        gmailUrl, 
+        'GmailCompose', 
+        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+      );
+    }
   };
 
   return (
@@ -61,7 +68,7 @@ export default function Footer() {
         {/* --- GLAVNI DEO --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10">
           
-          {/* KOLONA 1: O NAMA */}
+          {/* KOLONA 1 */}
           <div className="space-y-4 text-center lg:text-left lg:col-span-4">
             <h3 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center lg:justify-start gap-2">
               <Globe className="w-6 h-6 text-purple-500" /> SkillClick
@@ -72,69 +79,30 @@ export default function Footer() {
             </p>
           </div>
           
-          {/* KOLONA 2: SUPPORT & LEGAL */}
+          {/* KOLONA 2 */}
           <div className="text-center lg:col-span-3">
             <h4 className="text-white font-bold mb-4">Support & Legal</h4>
             <ul className="space-y-2 text-sm flex flex-col items-center">
-              
-              <li>
-                <Link 
-                  href="/help" 
-                  onClick={(e) => handleSupportClick(e, '/help')}
-                  className={getLinkClass('/help')}
-                >
-                  Help & Support
-                </Link>
-              </li>
-              
-              <li>
-                <Link 
-                  href="/trust" 
-                  onClick={(e) => handleSupportClick(e, '/trust')}
-                  className={getLinkClass('/trust')}
-                >
-                  Trust & Safety
-                </Link>
-              </li>
-              
-              <li>
-                <Link 
-                  href="/privacy" 
-                  onClick={(e) => handleSupportClick(e, '/privacy')}
-                  className={getLinkClass('/privacy')}
-                >
-                  Privacy Policy
-                </Link>
-              </li>
-              
-              <li>
-                <Link 
-                  href="/terms" 
-                  onClick={(e) => handleSupportClick(e, '/terms')}
-                  className={getLinkClass('/terms')}
-                >
-                  Terms of Service
-                </Link>
-              </li>
-              
+              <li><Link href="/help" onClick={(e) => handleSupportClick(e, '/help')} className={getLinkClass('/help')}>Help & Support</Link></li>
+              <li><Link href="/trust" onClick={(e) => handleSupportClick(e, '/trust')} className={getLinkClass('/trust')}>Trust & Safety</Link></li>
+              <li><Link href="/privacy" onClick={(e) => handleSupportClick(e, '/privacy')} className={getLinkClass('/privacy')}>Privacy Policy</Link></li>
+              <li><Link href="/terms" onClick={(e) => handleSupportClick(e, '/terms')} className={getLinkClass('/terms')}>Terms of Service</Link></li>
             </ul>
           </div>
 
           {/* KOLONA 3: CONTACT US */}
           <div className="text-center lg:col-span-5 flex flex-col lg:items-end">
-            
             <div className="text-left inline-block"> 
               <h4 className="text-white font-bold mb-4 text-center lg:text-left">Contact Us</h4>
               <ul className="space-y-4 text-sm flex flex-col items-center lg:items-start">
                 <li className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
-                  <span>
-                    Invictus Bazaar Team<br />
-                    Global Pi Network Community
-                  </span>
+                  <span>Invictus Bazaar Team<br />Global Pi Network Community</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-purple-500 shrink-0" />
+                  
+                  {/* --- LINK KOJI POZIVA PAMETNU FUNKCIJU --- */}
                   <a 
                     href="#" 
                     onClick={handleEmailClick}
@@ -142,6 +110,7 @@ export default function Footer() {
                   >
                     invictusbazaar@gmail.com
                   </a>
+                  
                 </li>
               </ul>
               
@@ -152,7 +121,6 @@ export default function Footer() {
                 <a href="#" className="hover:text-purple-400 active:text-purple-400 transition-colors"><Linkedin className="w-5 h-5" /></a>
               </div>
             </div>
-
           </div>
         </div>
       </div>
