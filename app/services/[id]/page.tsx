@@ -5,7 +5,9 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { 
   ArrowLeft, Star, Heart, Clock, CheckCircle, Share2, ShieldCheck, MessageCircle,
-  PenTool, Monitor, Briefcase, Video, Code, Music, Database, Coffee, Layers 
+  PenTool, Monitor, Briefcase, Video, Code, Music, Database, Coffee, Layers,
+  Bike, Wrench, Car, Smartphone, Globe, Megaphone, Bot, PawPrint, Palette, 
+  GraduationCap, Camera, Home, Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -18,6 +20,9 @@ export default function ServiceDetailsPage() {
   
   const [service, setService] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Stanje za animaciju dugmeta
+  const [isContactActive, setIsContactActive] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -39,17 +44,66 @@ export default function ServiceDetailsPage() {
     }
   }, [id])
 
-  const getCategoryIcon = (categoryName: string) => {
-    const iconClass = "w-24 h-24 text-white/90 drop-shadow-lg"; 
-    switch (categoryName) {
-      case "Graphics & Design": return <PenTool className={iconClass} />;
+  // Funkcija za kontakt - Šalje podatke na Messages stranicu
+  const handleContactClick = (e: any) => {
+    e.preventDefault() 
+    setIsContactActive(true)
+    
+    setTimeout(() => {
+        setIsContactActive(false)
+        
+        // Uzimamo podatke
+        const sellerName = service?.author || "Korisnik"
+        const serviceName = service?.title || "Usluga"
+        
+        // Šaljemo ih na stranicu za poruke
+        router.push(`/messages?seller=${encodeURIComponent(sellerName)}&service=${encodeURIComponent(serviceName)}`)
+    }, 500) 
+  }
+
+  // PAMETNA FUNKCIJA ZA IKONE
+  const getSmartIcon = (service: any) => {
+    const iconClass = "w-24 h-24 text-white/90 drop-shadow-lg transform transition-transform duration-700 group-hover:scale-110"; 
+    
+    const titleLower = (service.title || "").toLowerCase();
+    const category = service.category || "";
+
+    if (titleLower.includes('bicikl') || titleLower.includes('bike') || titleLower.includes('cycling')) 
+        return <Bike className={iconClass} />;
+    if (titleLower.includes('auto') || titleLower.includes('opel') || titleLower.includes('alfa') || titleLower.includes('bmw') || titleLower.includes('vozil') || titleLower.includes('car')) 
+      return <Car className={iconClass} />;
+    if (titleLower.includes('popravka') || titleLower.includes('majstor') || titleLower.includes('servis') || titleLower.includes('mehaničar') || titleLower.includes('fix') || titleLower.includes('repair')) 
+      return <Wrench className={iconClass} />;
+    if (titleLower.includes('cnc') || titleLower.includes('laser') || titleLower.includes('mašina') || titleLower.includes('3d')) 
+      return <Bot className={iconClass} />;
+    if (titleLower.includes('pas') || titleLower.includes('mačka') || titleLower.includes('ljubimac') || titleLower.includes('šetnja')) 
+      return <PawPrint className={iconClass} />;
+    if (titleLower.includes('sajt') || titleLower.includes('web') || titleLower.includes('kod') || titleLower.includes('app') || titleLower.includes('mobile')) 
+      return <Code className={iconClass} />;
+    if (titleLower.includes('logo') || titleLower.includes('dizajn') || titleLower.includes('slika')) 
+      return <Palette className={iconClass} />;
+    if (titleLower.includes('časovi') || titleLower.includes('matematika') || titleLower.includes('škola')) 
+      return <GraduationCap className={iconClass} />;
+    if (titleLower.includes('foto') || titleLower.includes('slikanje') || titleLower.includes('video')) 
+      return <Camera className={iconClass} />;
+    if (titleLower.includes('kuća') || titleLower.includes('stan') || titleLower.includes('čišćenje')) 
+      return <Home className={iconClass} />;
+    if (titleLower.includes('translat') || titleLower.includes('prevod')) 
+        return <Globe className={iconClass} />;
+    if (titleLower.includes('seo') || titleLower.includes('marketing') || titleLower.includes('reklam')) 
+        return <Megaphone className={iconClass} />;
+    if (titleLower.includes('hrana') || titleLower.includes('torta') || titleLower.includes('catering') || titleLower.includes('kafa')) 
+      return <Coffee className={iconClass} />;
+
+    switch (category) {
+      case "Graphics & Design": return <Palette className={iconClass} />;
       case "Digital Marketing": return <Monitor className={iconClass} />;
-      case "Writing & Translation": return <Briefcase className={iconClass} />;
+      case "Writing & Translation": return <PenTool className={iconClass} />;
       case "Video & Animation": return <Video className={iconClass} />;
       case "Programming & Tech": return <Code className={iconClass} />;
       case "Music & Audio": return <Music className={iconClass} />;
-      case "Business": return <Database className={iconClass} />;
-      case "Lifestyle": return <Coffee className={iconClass} />;
+      case "Business": return <Briefcase className={iconClass} />;
+      case "Lifestyle": return <Heart className={iconClass} />;
       default: return <Layers className={iconClass} />;
     }
   };
@@ -61,7 +115,8 @@ export default function ServiceDetailsPage() {
       "from-blue-500 to-indigo-600",
       "from-emerald-400 to-teal-500"
     ];
-    return gradients[(id - 1) % gradients.length];
+    const numId = typeof id === 'number' ? id : 1;
+    return gradients[(numId - 1) % gradients.length];
   };
 
   if (loading) {
@@ -95,9 +150,7 @@ export default function ServiceDetailsPage() {
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
              <div className="lg:col-span-2 space-y-8">
                  <div className={`w-full h-64 md:h-96 rounded-3xl bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center shadow-lg relative overflow-hidden group`}>
-                     <div className="transform transition-transform duration-700 hover:scale-110">
-                        {getCategoryIcon(service.category)}
-                     </div>
+                     {getSmartIcon(service)}
                  </div>
 
                  <div>
@@ -107,9 +160,10 @@ export default function ServiceDetailsPage() {
                      <div className="flex flex-wrap items-center gap-4 md:gap-6 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-200">
                         <div className="flex items-center gap-2">
                              <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-xs">
-                                {service.author ? service.author[0].toUpperCase() : 'U'}
+                                {(service.author && service.author[0]) ? service.author[0].toUpperCase() : 'U'}
                              </div>
-                             <span className="font-semibold text-gray-900">@{service.author}</span>
+                             {/* 👇 OVDE JE UKLONJEN @ ZNAK */}
+                             <span className="font-semibold text-gray-900">{service.author}</span>
                         </div>
                         <div className="flex items-center gap-1 text-amber-500 font-bold">
                              <Star className="w-4 h-4 fill-current" />
@@ -128,7 +182,6 @@ export default function ServiceDetailsPage() {
                      </div>
                  </div>
                  
-                 {/* DINAMIČKE VREDNOSTI ZA ISPORUKU I REVIZIJE */}
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
                         <Clock className="w-8 h-8 text-purple-500 bg-purple-50 p-1.5 rounded-lg" />
@@ -167,12 +220,25 @@ export default function ServiceDetailsPage() {
                         </div>
                      </div>
 
-                     <Button className="w-full py-6 text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 mb-3 rounded-xl">
-                        Poruči odmah
+                     <Button className="w-full py-6 text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 mb-3 rounded-xl active:scale-[0.98] transition-all">
+                        Angažuj prodavca
                      </Button>
                      
-                     <Button variant="outline" className="w-full py-6 text-gray-700 border-gray-200 hover:bg-gray-50 rounded-xl font-semibold flex items-center gap-2">
-                        <MessageCircle className="w-5 h-5" /> Kontaktiraj prodavca
+                     <Button 
+                        variant="outline" 
+                        onClick={handleContactClick}
+                        className={`w-full py-6 border-gray-200 
+                                   hover:bg-purple-100 hover:text-purple-900 hover:border-purple-300 
+                                   active:scale-[0.98] 
+                                   transition-all duration-300 rounded-xl font-bold flex items-center gap-2 group
+                                   ${isContactActive 
+                                     ? "bg-purple-100 text-purple-900 border-purple-300" 
+                                     : "bg-white text-gray-700"}
+                                   `}
+                     >
+                        <MessageCircle className={`w-5 h-5 transition-colors duration-300 
+                            ${isContactActive ? "text-purple-900" : "group-hover:text-purple-900"}
+                        `} /> Kontaktiraj prodavca
                      </Button>
                  </div>
              </div>

@@ -1,8 +1,13 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-// 👇 Dodao sam ChevronLeft i ChevronRight za dugmiće paginacije
-import { Search, Layers, Heart, Star, PenTool, Monitor, Briefcase, Video, Code, Music, Coffee, Database, ChevronLeft, ChevronRight } from "lucide-react"
+// 👇 DODATE SVE IKONICE IZ KREATORA (Bot, PawPrint, GraduationCap, itd.)
+import { 
+  Search, Layers, Heart, Star, PenTool, Monitor, Briefcase, Video, Code, Music, 
+  Coffee, Database, ChevronLeft, ChevronRight, 
+  Bike, Wrench, Car, Smartphone, Globe, Megaphone,
+  Bot, PawPrint, Palette, GraduationCap, Camera, Home, Zap
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
@@ -16,9 +21,8 @@ function HomeContent() {
   const [title, setTitle] = useState("Popular Services");
   const [loading, setLoading] = useState(true);
   
-  // 👇 NOVO: State za paginaciju
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; // 12 oglasa po strani
+  const itemsPerPage = 12;
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,19 +31,81 @@ function HomeContent() {
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
 
-  const getCategoryIcon = (categoryName: string) => {
-    const iconClass = "h-10 w-10 md:h-12 md:w-12 text-white/90";
+  // 👇 NOVA PAMETNA FUNKCIJA (ISTI MOZAK KAO U KREATORU OGLASA)
+  const getSmartIcon = (service: any) => {
+    const iconClass = "h-10 w-10 md:h-12 md:w-12 text-white/90 drop-shadow-md";
+    
+    // Uzimamo naslov i pretvaramo u mala slova radi provere
+    const titleLower = (service.title || "").toLowerCase();
+    const category = service.category || "";
 
-    switch (categoryName) {
-      case "Graphics & Design": return <PenTool className={iconClass} />;
-      case "Digital Marketing": return <Monitor className={iconClass} />;
-      case "Writing & Translation": return <Briefcase className={iconClass} />;
-      case "Video & Animation": return <Video className={iconClass} />;
-      case "Programming & Tech": return <Code className={iconClass} />;
-      case "Music & Audio": return <Music className={iconClass} />;
-      case "Business": return <Database className={iconClass} />;
-      case "Lifestyle": return <Coffee className={iconClass} />;
-      default: return <Layers className={iconClass} />;
+    // --- 1. PROVERA KLJUČNIH REČI (IDENTIČNO KAO KOD KREIRANJA) ---
+    
+    // Automobili
+    if (titleLower.includes('auto') || titleLower.includes('opel') || titleLower.includes('alfa') || titleLower.includes('fiat') || titleLower.includes('bmw') || titleLower.includes('vozil')) 
+      return <Car className={iconClass} />;
+    
+    // Majstori / Popravke
+    if (titleLower.includes('popravka') || titleLower.includes('majstor') || titleLower.includes('servis') || titleLower.includes('mehaničar') || titleLower.includes('fix')) 
+      return <Wrench className={iconClass} />;
+
+    // Mašine / CNC
+    if (titleLower.includes('cnc') || titleLower.includes('laser') || titleLower.includes('mašina') || titleLower.includes('3d')) 
+      return <Bot className={iconClass} />;
+
+    // Ljubimci
+    if (titleLower.includes('pas') || titleLower.includes('mačka') || titleLower.includes('ljubimac') || titleLower.includes('šetnja')) 
+      return <PawPrint className={iconClass} />;
+
+    // Programiranje / Web
+    if (titleLower.includes('sajt') || titleLower.includes('web') || titleLower.includes('kod') || titleLower.includes('app')) 
+      return <Code className={iconClass} />;
+
+    // Dizajn
+    if (titleLower.includes('logo') || titleLower.includes('dizajn') || titleLower.includes('slika')) 
+      return <Palette className={iconClass} />;
+
+    // Edukacija
+    if (titleLower.includes('časovi') || titleLower.includes('matematika') || titleLower.includes('škola')) 
+      return <GraduationCap className={iconClass} />;
+
+    // Hrana / Lifestyle
+    if (titleLower.includes('hrana') || titleLower.includes('torta') || titleLower.includes('catering') || titleLower.includes('kafa')) 
+      return <Coffee className={iconClass} />;
+
+    // Foto / Video
+    if (titleLower.includes('foto') || titleLower.includes('slikanje') || titleLower.includes('video')) 
+      return <Camera className={iconClass} />;
+
+    // Kuća
+    if (titleLower.includes('kuća') || titleLower.includes('stan') || titleLower.includes('čišćenje')) 
+      return <Home className={iconClass} />;
+
+    // Bicikli (Dodato jer si tražio)
+    if (titleLower.includes('bicikl') || titleLower.includes('bike')) 
+       return <Bike className={iconClass} />;
+
+
+    // --- 2. FALLBACK PO KATEGORIJAMA (AKO NEMA KLJUČNE REČI) ---
+    switch(category) {
+        case "Lifestyle": return <Heart className={iconClass} />;
+        
+        // 👇 IZMENJENO OVDE: Graphics sada koristi Palette 🎨
+        case "Graphics & Design": return <Palette className={iconClass} />;
+        
+        case "Programming & Tech": return <Code className={iconClass} />;
+        case "Digital Marketing": return <Monitor className={iconClass} />;
+        
+        // 👇 IZMENJENO OVDE: Writing sada koristi PenTool ✒️
+        case "Writing & Translation": return <PenTool className={iconClass} />;
+        
+        case "Video & Animation": return <Video className={iconClass} />;
+        
+        // 👇 IZMENJENO OVDE: Business sada koristi Briefcase 💼
+        case "Business": return <Briefcase className={iconClass} />;
+        
+        case "Music & Audio": return <Music className={iconClass} />;
+        default: return <Layers className={iconClass} />;
     }
   };
 
@@ -53,6 +119,7 @@ function HomeContent() {
         if (localServicesStr) {
             try {
                 const localServices = JSON.parse(localServicesStr);
+                // Dodajemo lokalne oglase na početak
                 allServices = [...localServices, ...allServices];
             } catch (e) {
                 console.error("Greška pri učitavanju sačuvanih oglasa:", e);
@@ -76,7 +143,7 @@ function HomeContent() {
     }
 
     setFilteredServices(data);
-    setCurrentPage(1); // Uvek vrati na prvu stranu kad se promeni filter
+    setCurrentPage(1); 
     setLoading(false);
   }, [selectedCategory, searchTerm]);
 
@@ -84,16 +151,13 @@ function HomeContent() {
     if (searchQuery.trim()) { router.push(`/?search=${encodeURIComponent(searchQuery)}`) }
   }
 
-  // 👇 LOGIKA ZA PAGINACIJU
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentServices = filteredServices.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
 
-  // Funkcija za promenu strane i skrol na vrh liste
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
-    // Glatki skrol na početak sekcije sa oglasima
     const section = document.getElementById('services-section');
     if (section) {
       section.scrollIntoView({ behavior: 'smooth' });
@@ -102,7 +166,8 @@ function HomeContent() {
 
   const getRandomGradient = (id: number) => {
     const gradients = ["from-fuchsia-500 to-pink-600", "from-violet-500 to-purple-600", "from-blue-500 to-indigo-600", "from-emerald-400 to-teal-500"];
-    return gradients[(id - 1) % gradients.length];
+    const numId = typeof id === 'number' ? id : 1;
+    return gradients[(numId - 1) % gradients.length];
   };
 
   return (
@@ -126,7 +191,6 @@ function HomeContent() {
       </main>
 
       {/* --- OGLASI --- */}
-      {/* Dodao sam ID 'services-section' za auto-scroll */}
       <section id="services-section" className="container mx-auto px-2 md:px-4 py-6 md:py-16 flex-grow bg-gray-50">
         <div className="flex justify-between items-end mb-4 md:mb-10">
             <div>
@@ -157,7 +221,8 @@ function HomeContent() {
                             <Link href={`/services/${gig.id}`} className="block relative overflow-hidden h-28 md:h-48">
                                 <div className={`absolute inset-0 bg-gradient-to-br ${gig.gradient || getRandomGradient(gig.id)} flex items-center justify-center`}>
                                     <div className="transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 ease-out scale-75 md:scale-100">
-                                      {getCategoryIcon(gig.category)}
+                                      {/* 👇 POZIV NOVE FUNKCIJE */}
+                                      {getSmartIcon(gig)}
                                     </div>
                                 </div>
                                 <div className="absolute top-2 right-2 md:top-3 md:right-3 p-1.5 md:p-2 bg-white/30 backdrop-blur-md rounded-full hover:bg-white text-white hover:text-red-500 transition-all z-20 shadow-sm">
@@ -169,7 +234,7 @@ function HomeContent() {
                                 <div className="absolute -top-5 left-3 md:-top-6 md:left-5">
                                     <div className="w-9 h-9 md:w-12 md:h-12 bg-white p-0.5 md:p-1 rounded-full shadow-md">
                                       <div className="w-full h-full bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold border border-purple-200 text-xs md:text-sm">
-                                        {gig.author ? gig.author[0].toUpperCase() : 'U'}
+                                        {(gig.author && gig.author[0]) ? gig.author[0].toUpperCase() : 'U'}
                                       </div>
                                     </div>
                                 </div>
@@ -196,7 +261,7 @@ function HomeContent() {
                   )}
               </div>
 
-              {/* 👇 PAGINACIJA KONTROLE */}
+              {/* PAGINACIJA */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center mt-10 gap-2">
                   <Button

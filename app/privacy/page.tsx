@@ -7,49 +7,58 @@ import Link from 'next/link';
 
 export default function PrivacyPage() {
   const router = useRouter();
-  // State za praćenje klika (da li je aktivan ljubičasti efekat)
   const [isBackActive, setIsBackActive] = useState(false);
 
-  // Funkcija koja odlaže navigaciju za 500ms
+  // Funkcija za odlaganje navigacije (Ljubičasti efekat)
   const handleBackClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsBackActive(true); // Odmah oboji u ljubičasto
+    setIsBackActive(true);
 
     setTimeout(() => {
-      router.push('/'); // Prebaci na početnu posle 0.5s
+      router.push('/'); 
     }, 500);
   };
 
-  // --- NOVA FUNKCIJA: OTVARA GMAIL POP-UP ---
+  // --- PAMETNA FUNKCIJA ZA EMAIL (UPDATED) ---
   const handleEmailClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Sprečava običan link
+    e.preventDefault();
     
-    // Link ka Gmail-u sa odgovarajućim naslovom (Subject: Privacy Policy Question)
-    const gmailUrl = "https://mail.google.com/mail/?view=cm&fs=1&to=invictusbazaar@gmail.com&su=Privacy%20Policy%20Question";
-    
-    // Centriranje prozora
-    const width = 800;
-    const height = 600;
-    const left = (window.screen.width / 2) - (width / 2);
-    const top = (window.screen.height / 2) - (height / 2);
+    const email = "invictusbazaar@gmail.com";
+    const subject = "Privacy Policy Question"; // Specifičan naslov za ovu stranicu
 
-    window.open(
-      gmailUrl, 
-      'GmailCompose', 
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
-    );
+    // Proveravamo da li je korisnik na mobilnom uređaju
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // MOBILNI: Otvara podrazumevanu aplikaciju
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+    } else {
+      // KOMPJUTER: Otvara Gmail Pop-up
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}`;
+      
+      const width = 600;
+      const height = 600;
+      const left = (window.screen.width / 2) - (width / 2);
+      const top = (window.screen.height / 2) - (height / 2);
+
+      window.open(
+        gmailUrl, 
+        'GmailCompose', 
+        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+      );
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 font-sans">
       <div className="max-w-4xl mx-auto bg-white shadow-xl shadow-purple-900/5 rounded-3xl overflow-hidden border border-gray-100">
         
-        {/* --- HEADER --- */}
+        {/* --- HEADER (Ubačen traženi gradijent i boje) --- */}
         <div className="bg-gradient-to-br from-[#0f0518] to-[#2d1b4e] px-8 py-10 text-white relative overflow-hidden">
-            {/* Dekoracija u pozadini */}
+            {/* Dekoracija */}
             <div className="absolute top-0 right-0 -mt-10 -mr-10 bg-white opacity-5 rounded-full w-64 h-64 blur-3xl"></div>
             
-            {/* Back to Home dugme - SA EFEKTOM KAŠNJENJA */}
+            {/* Back dugme */}
             <Link 
                 href="/" 
                 onClick={handleBackClick}
@@ -74,7 +83,7 @@ export default function PrivacyPage() {
             </div>
         </div>
 
-        {/* --- SADRŽAJ --- */}
+        {/* --- SADRŽAJ (Tekst je netaknut) --- */}
         <div className="p-8 md:p-12 space-y-10 text-gray-600 leading-relaxed">
             
             {/* Sekcija 1 */}
@@ -163,11 +172,10 @@ export default function PrivacyPage() {
                     </p>
                     <p className="text-sm text-purple-700 mt-1">
                         Questions? Contact us at{' '}
-                        {/* Ažurirani link koji otvara Gmail pop-up */}
                         <a 
                             href="#" 
                             onClick={handleEmailClick} 
-                            className="underline font-bold hover:text-purple-900"
+                            className="underline font-bold hover:text-purple-900 cursor-pointer"
                         >
                             invictusbazaar@gmail.com
                         </a>

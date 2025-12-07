@@ -24,21 +24,34 @@ export default function HelpPage() {
     }, 500);
   };
 
-  // Funkcija koja otvara Gmail u MANJEM POP-UP PROZORU
-  const openGmailPopup = () => {
-    const gmailUrl = "https://mail.google.com/mail/?view=cm&fs=1&to=invictusbazaar@gmail.com&su=SkillClick%20Support";
+  // --- PAMETNA FUNKCIJA ZA PODRŠKU (UPDATED) ---
+  const handleContactSupport = (e: React.MouseEvent) => {
+    e.preventDefault();
     
-    // Definišemo veličinu prozora i poziciju (da bude na sredini ekrana)
-    const width = 800;
-    const height = 600;
-    const left = (window.screen.width / 2) - (width / 2);
-    const top = (window.screen.height / 2) - (height / 2);
+    const email = "invictusbazaar@gmail.com";
+    const subject = "SkillClick Support";
 
-    window.open(
-      gmailUrl, 
-      'GmailCompose', 
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
-    );
+    // Proveravamo da li je korisnik na mobilnom uređaju
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // MOBILNI: Otvara podrazumevanu aplikaciju
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+    } else {
+      // KOMPJUTER: Otvara Gmail Pop-up
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}`;
+      
+      const width = 600;
+      const height = 600;
+      const left = (window.screen.width / 2) - (width / 2);
+      const top = (window.screen.height / 2) - (height / 2);
+
+      window.open(
+        gmailUrl, 
+        'GmailCompose', 
+        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+      );
+    }
   };
 
   return (
@@ -145,9 +158,9 @@ export default function HelpPage() {
                  Our support team is here to help you with any questions or issues.
                </p>
                
-               {/* DUGME: Otvara POP-UP prozor */}
+               {/* DUGME: Sada koristi pametnu funkciju */}
                <Button 
-                 onClick={openGmailPopup}
+                 onClick={handleContactSupport}
                  className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto px-10 py-6 rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all mb-6"
                >
                   <Mail className="w-5 h-5 mr-2" /> Contact Support Team

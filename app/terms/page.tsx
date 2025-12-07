@@ -24,17 +24,22 @@ export default function TermsPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4 font-sans">
       <div className="max-w-4xl mx-auto bg-white shadow-xl shadow-purple-900/5 rounded-3xl overflow-hidden border border-gray-100">
         
-        {/* --- HEADER (Usaglašen sa Privacy Policy stranicom) --- */}
-        <div className="bg-gradient-to-br from-[#0f0518] to-[#2d1b4e] px-8 py-10 text-white relative overflow-hidden">
-             {/* Dekoracija u pozadini */}
-             <div className="absolute top-0 right-0 -mt-10 -mr-10 bg-white opacity-5 rounded-full w-64 h-64 blur-3xl"></div>
+        {/* --- HEADER (DEEP TECH STIL) --- */}
+        {/* Primenjena boja #2A1A3A i tvoji specifični blur efekti */}
+        <div className="bg-[#2A1A3A] px-8 py-10 text-white relative overflow-hidden">
+             
+             {/* 1. Ljubičasti sjaj gore desno */}
+             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+             
+             {/* 2. Plavi sjaj dole levo */}
+             <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl -ml-16 -mb-16 pointer-events-none"></div>
 
-            {/* Back to Home dugme - SA EFEKTOM KAŠNJENJA */}
+            {/* Back to Home dugme */}
             <Link 
                 href="/" 
                 onClick={handleBackClick}
-                className={`inline-flex items-center mb-6 font-medium transition-colors duration-300 ${
-                    isBackActive ? 'text-purple-400' : 'text-gray-300 hover:text-purple-400'
+                className={`inline-flex items-center mb-6 font-medium transition-colors duration-300 relative z-10 ${
+                    isBackActive ? 'text-purple-400' : 'text-purple-200 hover:text-white'
                 }`}
             >
                 <ArrowLeft className={`w-4 h-4 mr-2 transition-colors duration-300 ${
@@ -44,17 +49,17 @@ export default function TermsPage() {
             </Link>
 
             <div className="flex items-center gap-6 relative z-10">
-                <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
-                    <Scale className="w-10 h-10 text-white" />
+                <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg">
+                    <Scale className="w-10 h-10 text-purple-200" />
                 </div>
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Terms of Service</h1>
-                    <p className="text-purple-200 mt-2 opacity-80">Last updated: December 2025</p>
+                    <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Terms of Service</h1>
+                    <p className="text-purple-300 mt-2 opacity-90 font-medium">Last updated: December 2025</p>
                 </div>
             </div>
         </div>
 
-        {/* --- SADRŽAJ --- */}
+        {/* --- SADRŽAJ (Ostao isti, čist i pregledan) --- */}
         <div className="p-8 md:p-12 space-y-10 text-gray-600 leading-relaxed">
             
             {/* Sekcija 1 */}
