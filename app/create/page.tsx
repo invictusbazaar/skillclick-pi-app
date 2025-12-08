@@ -11,12 +11,17 @@ import {
   Zap, ArrowLeft, Loader2, CheckCircle, 
   Car, Wrench, Bot, PawPrint, Heart, Palette, Code, 
   PenTool, Coffee, Camera, Home, GraduationCap, Tag, 
-  Clock, Repeat // Dodali smo ikonice za vreme i revizije
+  Clock, Repeat 
 } from 'lucide-react';
 import Link from 'next/link';
+// 👇 1. UVOZIMO PREVODILAC
+import { useLanguage } from '@/components/LanguageContext';
 
 export default function CreateServicePage() {
   const router = useRouter();
+  // 👇 2. AKTIVIRAMO JEZIK
+  const { t } = useLanguage();
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
@@ -25,18 +30,20 @@ export default function CreateServicePage() {
     description: "",
     category: "",
     price: "",
-    deliveryTime: "", // Novo polje
-    revisions: ""     // Novo polje
+    deliveryTime: "",
+    revisions: ""
   });
 
+  // 👇 3. KATEGORIJE POVEZANE SA PREVODIMA
+  // 'val' koristimo za logiku i bazu (engleski), 'key' za prikaz (prevod)
   const categories = [
-    "Graphics & Design",
-    "Digital Marketing",
-    "Writing & Translation",
-    "Video & Animation",
-    "Programming & Tech",
-    "Business",
-    "Lifestyle"
+    { key: "catDesign", val: "Graphics & Design" },
+    { key: "catMarketing", val: "Digital Marketing" },
+    { key: "catWriting", val: "Writing & Translation" },
+    { key: "catVideo", val: "Video & Animation" },
+    { key: "catTech", val: "Programming & Tech" },
+    { key: "catBusiness", val: "Business" },
+    { key: "catLifestyle", val: "Lifestyle" }
   ];
 
   const [loggedInAuthor, setLoggedInAuthor] = useState('Invictus Bazaar');
@@ -62,7 +69,7 @@ export default function CreateServicePage() {
       setFormData(prev => ({ ...prev, category: value }));
   }
 
-  // --- LOGIKA ZA PAMETNE IKONICE ---
+  // --- LOGIKA ZA PAMETNE IKONICE (Ostaje ista) ---
   const getDynamicVisuals = () => {
     const titleLower = formData.title.toLowerCase();
     let Icon = Zap; 
@@ -114,9 +121,8 @@ export default function CreateServicePage() {
       description: formData.description,
       category: formData.category,
       price: parseFloat(formData.price),
-      // Čuvamo unete vrednosti, ili podrazumevane ako korisnik ostavi prazno
-      deliveryTime: formData.deliveryTime ? `${formData.deliveryTime} dana` : "3 dana",
-      revisions: formData.revisions ? formData.revisions : "Neograničeno",
+      deliveryTime: formData.deliveryTime || "3", // Čuvamo samo broj ili string, prikaz dodaje "dana"
+      revisions: formData.revisions ? formData.revisions : "Unlimited",
       author: loggedInAuthor,
       authorAvatar: "/placeholder-avatar.jpg",
       image: "/placeholder-service.jpg",
@@ -146,7 +152,6 @@ export default function CreateServicePage() {
     }, 1000);
   };
 
-  // STILOVI
   const inputClass = "rounded-xl border-gray-200 focus:!border-purple-500 focus:!ring-purple-500 focus:ring-2 outline-none transition-all h-12";
   const labelClass = "text-xs font-bold text-gray-700 uppercase ml-1 mb-1.5 block";
 
@@ -154,7 +159,8 @@ export default function CreateServicePage() {
     <div className="min-h-screen bg-gray-50 py-10 px-4 font-sans">
       <div className="max-w-2xl mx-auto">
         <Link href="/" className="inline-flex items-center text-gray-500 hover:text-purple-600 mb-6 font-bold text-sm transition-colors">
-            <ArrowLeft className="w-5 h-5 mr-2" /> Nazad na početnu
+            {/* 👇 PREVOD: Nazad na početnu */}
+            <ArrowLeft className="w-5 h-5 mr-2" /> {t('backHome')}
         </Link>
 
         <div className="bg-white rounded-3xl shadow-2xl shadow-purple-900/10 border border-white overflow-hidden animate-in fade-in zoom-in duration-300">
@@ -162,9 +168,11 @@ export default function CreateServicePage() {
             <div className="mx-auto w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mb-4 text-purple-600 shadow-sm">
                 <Zap className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Postavi novi oglas</h1>
+            {/* 👇 PREVOD: Objavi novu uslugu */}
+            <h1 className="text-2xl font-extrabold text-gray-900">{t('createTitle')}</h1>
             <p className="text-gray-500 text-sm mt-1">
-              Prijavljen kao: <span className="font-semibold text-purple-600">{loggedInAuthor}</span>
+              {/* 👇 PREVOD: Dobrodošli nazad (umesto Prijavljen kao) */}
+              {t('welcomeBack')}: <span className="font-semibold text-purple-600">{loggedInAuthor}</span>
             </p>
           </div>
           
@@ -174,15 +182,17 @@ export default function CreateServicePage() {
                     <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="h-8 w-8" />
                     </div>
-                    <h3 className="font-bold text-xl mb-2">Uspešno postavljeno!</h3>
-                    <p>Tvoj oglas je sada aktivan. Preusmeravam...</p>
+                    {/* 👇 PREVOD: Uspešno (koristimo generički 'active' ili 'successMessage') */}
+                    <h3 className="font-bold text-xl mb-2">{t('successMessage')}</h3>
+                    <p>{t('loading')}...</p>
                 </div>
             ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* 1. NASLOV */}
                 <div>
-                    <Label htmlFor="title" className={labelClass}>Naslov usluge</Label>
+                    {/* 👇 PREVOD: Naslov usluge */}
+                    <Label htmlFor="title" className={labelClass}>{t('labelTitle')}</Label>
                     <div className="relative group">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
                             <Tag className="w-5 h-5" />
@@ -191,7 +201,8 @@ export default function CreateServicePage() {
                             id="title" 
                             name="title" 
                             type="text" 
-                            placeholder="Npr. Popravka Opel vozila..." 
+                            // 👇 PREVOD: Placeholder
+                            placeholder={t('placeholderTitle')}
                             value={formData.title} 
                             onChange={handleChange} 
                             required 
@@ -203,7 +214,8 @@ export default function CreateServicePage() {
                 {/* 2. RED: KATEGORIJA I CENA */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <Label htmlFor="category" className={labelClass}>Kategorija</Label>
+                        {/* 👇 PREVOD: Kategorija */}
+                        <Label htmlFor="category" className={labelClass}>{t('labelCategory')}</Label>
                         <Select value={formData.category} onValueChange={handleCategoryChange}>
                             <SelectTrigger 
                                 id="category" 
@@ -214,12 +226,14 @@ export default function CreateServicePage() {
                                     focus:ring-offset-0 focus:outline-none ring-offset-0
                                 `}
                             >
-                                <SelectValue placeholder="Izaberi kategoriju" />
+                                {/* 👇 PREVOD: Izaberi kategoriju */}
+                                <SelectValue placeholder={t('selectCategory') || "Select Category"} />
                             </SelectTrigger>
                             <SelectContent className="bg-white border-gray-100">
                                 {categories.map(cat => (
-                                    <SelectItem key={cat} value={cat} className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer">
-                                        {cat}
+                                    // Prikazujemo prevedeni naziv (t(cat.key)), a čuvamo engleski (cat.val) u bazi
+                                    <SelectItem key={cat.key} value={cat.val} className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer">
+                                        {t(cat.key)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -227,7 +241,8 @@ export default function CreateServicePage() {
                     </div>
 
                     <div>
-                        <Label htmlFor="price" className={labelClass}>Cena (Pi)</Label>
+                        {/* 👇 PREVOD: Cena */}
+                        <Label htmlFor="price" className={labelClass}>{t('labelPrice')}</Label>
                         <div className="relative group">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors font-bold text-lg font-serif">
                                 π
@@ -246,10 +261,11 @@ export default function CreateServicePage() {
                     </div>
                 </div>
 
-                {/* 3. RED: ROK ISPORUKE I REVIZIJE (NOVO!) */}
+                {/* 3. RED: ROK ISPORUKE I REVIZIJE */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <Label htmlFor="deliveryTime" className={labelClass}>Rok isporuke (Dani)</Label>
+                        {/* 👇 PREVOD: Rok isporuke */}
+                        <Label htmlFor="deliveryTime" className={labelClass}>{t('labelDelivery')}</Label>
                         <div className="relative group">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
                                 <Clock className="w-5 h-5" />
@@ -258,7 +274,7 @@ export default function CreateServicePage() {
                                 id="deliveryTime" 
                                 name="deliveryTime" 
                                 type="number" 
-                                placeholder="Npr. 3" 
+                                placeholder="3" 
                                 value={formData.deliveryTime} 
                                 onChange={handleChange} 
                                 required 
@@ -268,7 +284,8 @@ export default function CreateServicePage() {
                     </div>
 
                     <div>
-                        <Label htmlFor="revisions" className={labelClass}>Broj revizija</Label>
+                        {/* 👇 PREVOD: Revizije */}
+                        <Label htmlFor="revisions" className={labelClass}>{t('revisions')}</Label>
                         <div className="relative group">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
                                 <Repeat className="w-5 h-5" />
@@ -277,7 +294,7 @@ export default function CreateServicePage() {
                                 id="revisions" 
                                 name="revisions" 
                                 type="text" 
-                                placeholder="Npr. 2 ili Neograničeno" 
+                                placeholder="Unlimited" 
                                 value={formData.revisions} 
                                 onChange={handleChange} 
                                 required 
@@ -289,12 +306,14 @@ export default function CreateServicePage() {
 
                 {/* 4. OPIS */}
                 <div>
-                    <Label htmlFor="description" className={labelClass}>Opis usluge</Label>
+                    {/* 👇 PREVOD: Opis */}
+                    <Label htmlFor="description" className={labelClass}>{t('aboutService')}</Label>
                     <div className="relative">
                         <Textarea 
                             id="description" 
                             name="description" 
-                            placeholder="Opiši detaljno šta nudiš..." 
+                            // 👇 PREVOD: Placeholder
+                            placeholder={t('placeholderDesc')}
                             value={formData.description} 
                             onChange={handleChange} 
                             required 
@@ -305,18 +324,20 @@ export default function CreateServicePage() {
                 </div>
 
                 <div className="mt-6 p-5 border border-dashed border-gray-300 rounded-2xl bg-gray-50/50">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-3 text-center">Kako će izgledati tvoj oglas</p>
+                    {/* 👇 PREVOD: Preview (Pogledaj) */}
+                    <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-3 text-center">{t('view')} {t('services')}</p>
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-all">
                         <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center ${colorClass} transition-all duration-300`}>
                             <DynamicIcon className="w-7 h-7" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 truncate text-base">
-                                {formData.title || "Tvoj naslov ovde..."}
+                                {formData.title || "..."}
                             </h4>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                                    {formData.category || "Kategorija"}
+                                    {/* Prikaz kategorije ovde ostaje kakav jeste dok korisnik ne izabere */}
+                                    {formData.category || t('labelCategory')}
                                 </span>
                                 <span className="text-xs text-purple-600 font-bold flex items-center gap-1">
                                     {formData.price ? `${formData.price} π` : "0 π"}
@@ -328,7 +349,8 @@ export default function CreateServicePage() {
 
               <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg h-14 rounded-xl shadow-lg shadow-purple-600/20 active:scale-95 transition-all mt-4" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
-                {isLoading ? "Objavljujem..." : "Objavi Oglas"}
+                {/* 👇 PREVOD: Dugme Objavi */}
+                {isLoading ? `${t('loading')}` : t('submitReview')} 
               </Button>
             </form>
             )}

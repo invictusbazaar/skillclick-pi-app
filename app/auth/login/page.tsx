@@ -1,133 +1,159 @@
 "use client"
 
-import { useState } from 'react';
-import { Mail, Lock, User, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ShieldCheck, ArrowLeft, Loader2, Smartphone } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import Image from 'next/image'
+import { useLanguage } from "@/components/LanguageContext"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { t } = useLanguage();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const [isLoading, setIsLoading] = useState(false)
+  const [status, setStatus] = useState("")
+  // 👇 PROVERA: Da li smo u modu za razvijanje (na tvom kompu)?
+  const [isDev, setIsDev] = useState(false);
 
-    if (!email || !password) {
-      setError('Email and password are required.');
-      setLoading(false);
-      return;
+  useEffect(() => {
+    // Ovo osigurava da proveru radimo samo na klijentu
+    if (process.env.NODE_ENV === 'development') {
+        setIsDev(true);
     }
+  }, []);
+
+  const handlePiLogin = async () => {
+    setIsLoading(true);
+    setStatus(t('piConnecting')); 
 
     try {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
+        if (typeof window !== 'undefined' && (window as any).Pi) {
+            const Pi = (window as any).Pi;
+            Pi.init({ version: "2.0", sandbox: true });
 
-        const data = await response.json();
+            const scopes = ['username', 'payments'];
+            const onIncompletePaymentFound = (payment: any) => { console.log(payment); };
 
-        if (response.ok) {
-            // USPEŠNO LOGOVANJE: Postavljamo NOVI KLJUČ za forsiranje osvežavanja
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('userEmail', data.user.email);
-                // KLJUČNO: Dodajemo token/timestamp za forsirano ažuriranje!
-                localStorage.setItem('sessionKey', Date.now().toString()); 
-            }
+            const authResults = await Pi.authenticate(scopes, onIncompletePaymentFound);
             
-            alert(`Welcome back, ${data.user.username}! (Session simulated)`);
+            setStatus(`${t('piWelcomeUser')}, ${authResults.user.username}!`);
+
+            const piUser = {
+                username: authResults.user.username,
+                uid: authResults.user.uid,
+                role: "user",
+                piBalance: "0.00",
+                accessToken: authResults.accessToken
+            };
+
+            localStorage.setItem("user", JSON.stringify(piUser));
             
             setTimeout(() => {
-                window.location.href = '/'; // Preusmerava na Home
-            }, 500);
+                const redirectUrl = searchParams.get('redirect') || "/profile";
+                router.push(redirectUrl);
+            }, 1000);
 
         } else {
-            setError(data.message || "Login failed. Check your credentials.");
+            alert(t('piBrowserError')); 
+            setIsLoading(false);
+            setStatus(t('piBrowserError'));
         }
-
-    } catch (err) {
-        setError("Connection error. Server may be offline.");
-    } finally {
-        setLoading(false);
+    } catch (error) {
+        console.error("Pi Auth Error:", error);
+        setStatus(t('piAuthFailed')); 
+        setIsLoading(false);
     }
-  };
+  }
 
-  // ... (Ostatak koda ostaje isti) ...
+  const handleDemoLogin = () => {
+      const demoUser = {
+          username: "ilijabrdar",
+          role: "admin",
+          piBalance: "1250.00"
+      };
+      localStorage.setItem("user", JSON.stringify(demoUser));
+      router.push("/profile");
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-blue-50/50">
-      <Card className="w-full max-w-md shadow-xl border-t-4 border-blue-600">
-        <CardHeader className="text-center pb-2">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-8 h-8 text-blue-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            Welcome Back
-          </CardTitle>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your SkillClick account</p>
-        </CardHeader>
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc] font-sans relative overflow-hidden">
+      
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-purple-900 to-[#f8f9fc] -z-10" />
+      <div className="absolute -top-20 -left-20 w-96 h-96 bg-purple-600/30 rounded-full blur-3xl" />
+      
+      <div className="w-full max-w-md px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
         
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="name@example.com" 
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
+        <Link href="/" className="inline-flex items-center text-sm font-bold text-white/80 hover:text-white mb-6 transition-colors">
+            <ArrowLeft className="w-4 h-4 mr-2" /> {t('backHome')}
+        </Link>
+
+        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-900/20 border border-white/50 overflow-hidden text-center p-8">
+          
+            <div className="flex justify-center mb-6">
+                 <Image 
+                    src="/skillclick_logo.png" 
+                    alt="Logo" 
+                    width={220} 
+                    height={70} 
+                    className="h-14 w-auto object-contain"
                 />
-              </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="text-xs text-blue-600 hover:underline">Forgot password?</Link>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="••••••••" 
-                    className="pl-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-              </div>
-            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-2">{t('welcomeBack')}</h1>
             
-            {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-md border border-red-200 text-center">{error}</p>}
+            <p className="text-gray-500 text-sm mb-8">
+                {t('piLoginDesc')}
+            </p>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
-              {loading ? "Verifying..." : "Sign In"}
+            {status && (
+                <div className="mb-6 p-3 bg-purple-50 text-purple-700 text-sm font-bold rounded-xl border border-purple-100">
+                    {status}
+                </div>
+            )}
+
+            <Button 
+                onClick={handlePiLogin}
+                className="w-full bg-[#6d28d9] hover:bg-[#5b21b6] text-white font-bold py-7 rounded-2xl shadow-lg shadow-purple-500/30 transition-all active:scale-[0.98] text-lg relative overflow-hidden group"
+                disabled={isLoading}
+            >
+                {isLoading ? (
+                    <div className="flex items-center gap-2">
+                        <Loader2 className="animate-spin w-6 h-6" />
+                        <span>{t('piVerifying')}</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center gap-3">
+                        <Smartphone className="w-6 h-6" /> 
+                        <span>{t('piLoginBtn')}</span>
+                    </div>
+                )}
             </Button>
-          </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
-              Sign up
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-gray-400 mt-6 max-w-xs mx-auto">
+                {t('piLoginDisclaimer')}
+            </p>
+
+            {/* 👇 OVO JE PAMETNO DUGME: Prikazuje se SAMO u 'development' modu */}
+            {isDev && (
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                    <button 
+                        onClick={handleDemoLogin} 
+                        className="text-xs text-gray-300 hover:text-purple-500 font-mono transition-colors"
+                    >
+                        [Developer Mode: PC Login]
+                    </button>
+                </div>
+            )}
+
+            <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-4">
+                <ShieldCheck className="w-3 h-3" /> {t('securedBy')}
+            </div>
+
+        </div>
+      </div>
     </div>
-  );
+  )
 }

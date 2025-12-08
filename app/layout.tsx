@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// 👇 1. UVOZIMO OUTFIT FONT
+import { Outfit } from "next/font/google";
 import "./globals.css";
 
 import { LanguageProvider } from "@/components/LanguageContext"; 
 import { AuthProvider } from "@/components/AuthContext";
 import Navbar from "@/components/Navbar";
-// ✅ 1. MORAŠ GA UVESTI OVDE
 import Footer from "@/components/Footer"; 
 
-const inter = Inter({ subsets: ["latin"] });
+// 👇 2. KONFIGURIŠEMO GA (Učitavamo razne debljine za lepši dizajn)
+const outfit = Outfit({ 
+  subsets: ["latin"],
+  weight: ['300', '400', '500', '600', '700', '800'] 
+});
 
 export const metadata: Metadata = {
-  title: "Pi Freelance Market",
-  description: "Best freelance services on Pi Network",
+  title: "SkillClick - Invictus Bazaar",
+  description: "Global marketplace for Pi Network community",
 };
 
 export default function RootLayout({
@@ -22,12 +26,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      {/* 👇 3. PRIMENJUJEMO GA NA CELO TELO APLIKACIJE */}
+      <body className={outfit.className}>
         <LanguageProvider>
           <AuthProvider> 
              <Navbar /> 
              {children}
-             {/* ✅ 2. MORAŠ GA PRIKAZATI OVDE (ISPOD CHILDREN) */}
              <Footer />
           </AuthProvider>
         </LanguageProvider>
