@@ -21,6 +21,8 @@ function NavbarContent() {
   
   const [isMobileLangOpen, setIsMobileLangOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  const [clickedLang, setClickedLang] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
@@ -54,7 +56,6 @@ function NavbarContent() {
     id: { label: "Indonesia", flag: "🇮🇩" }
   };
 
-  // 👇 OVDE JE BILA GREŠKA - SADA JE ISPRAVLJENO (koristimo 'key' umesto 'name')
   const categories = [
     { key: "catDesign", slug: "design" },
     { key: "catMarketing", slug: "marketing" },
@@ -68,18 +69,12 @@ function NavbarContent() {
   const clickEffect = "active:scale-90 transition-transform duration-200 ease-in-out inline-block";
   const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
   
+  // 👇 IZMENJENO: Dodati uzvičnici (!) da se pregazi narandžasta boja
   const mobileItemClass = `
     py-3 px-3 mb-1 font-bold cursor-pointer rounded-xl border-2 border-transparent transition-all duration-300
-    text-gray-700 flex items-center gap-3 w-full
-    
-    data-[highlighted]:bg-purple-100 
-    data-[highlighted]:text-purple-700
-    data-[highlighted]:border-purple-200
-
-    focus:bg-purple-100 
-    focus:text-purple-700
-    focus:border-purple-200
-    
+    text-gray-700 flex items-center gap-3 w-full outline-none
+    focus:!bg-purple-100 focus:!text-purple-900 focus:!border-purple-200
+    data-[highlighted]:!bg-purple-100 data-[highlighted]:!text-purple-900
     active:scale-95
   `;
 
@@ -87,10 +82,12 @@ function NavbarContent() {
 
   const handleMobileLanguageChange = (e: any, key: string) => {
     e.preventDefault(); 
+    setClickedLang(key);
     setTimeout(() => {
         setLanguage(key);           
         setIsMobileLangOpen(false); 
-    }, 400); 
+        setClickedLang(null); 
+    }, 500); 
   };
 
   const handleMobileNav = (e: any, path: string) => {
@@ -114,10 +111,10 @@ function NavbarContent() {
       
       <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[110]">
         
-        {/* LOGO */}
-        <div className={`flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[120] -ml-[156px] md:-ml-[220px] mt-2 md:mt-[11px] pointer-events-none`}>
+        {/* LOGO: W: 360px, Margin-Left: -116px, Margin-Top: -2px */}
+        <div className={`flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[120] -ml-[116px] md:-ml-[220px] mt-[-2px] md:mt-[-4px] pointer-events-none`}>
            <Link href="/" className="pointer-events-auto block"> 
-              <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[450px] md:w-[400px] h-auto object-contain object-left" priority />
+              <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[360px] md:w-[400px] h-auto object-contain object-left" priority />
            </Link>
         </div>
 
@@ -140,7 +137,7 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link href={user ? "/create" : "/auth/register?redirect=/create"}>
+          <Link href={user ? "/create" : "/auth/login?redirect=/create"}>
             <Button variant="ghost" className={`text-gray-600 font-bold text-sm h-10 px-4 hover:text-purple-600 hover:bg-purple-50 ${clickEffect} ${noFocusRing}`}>
                 {t('navPostService')}
             </Button>
@@ -190,13 +187,8 @@ function NavbarContent() {
           ) : (
              <div className="flex items-center gap-3">
                 <Link href="/auth/login">
-                    <Button variant="ghost" className={`font-bold text-sm text-gray-600 hover:text-purple-700 hover:bg-purple-50 h-10 px-6 ${clickEffect} ${noFocusRing}`}>
-                        {t('navLogin')}
-                    </Button>
-                </Link>
-                <Link href="/auth/register">
                     <Button className={`bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 ${clickEffect} ${noFocusRing}`}>
-                        {t('navJoin')}
+                        {t('navLogin')}
                     </Button>
                 </Link>
              </div>
@@ -212,15 +204,24 @@ function NavbarContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 z-[9999] p-2 bg-white border border-gray-100 shadow-xl rounded-xl">
-                  {Object.entries(languages).map(([key, { label, flag }]) => (
-                    <DropdownMenuItem 
-                        key={key} 
-                        onSelect={(e) => handleMobileLanguageChange(e, key)}
-                        className={mobileItemClass}
-                    >
-                      <span className="mr-3 text-xl">{flag}</span> {label}
-                    </DropdownMenuItem>
-                  ))}
+                  {Object.entries(languages).map(([key, { label, flag }]) => {
+                    const isClicked = clickedLang === key;
+                    return (
+                        <DropdownMenuItem 
+                            key={key} 
+                            onSelect={(e) => handleMobileLanguageChange(e, key)}
+                            className={`
+                                ${mobileItemClass}
+                                ${isClicked 
+                                    ? "!bg-purple-100 !text-purple-900 !border-purple-200 scale-95" 
+                                    : "border-transparent"
+                                }
+                            `}
+                        >
+                        <span className="mr-3 text-xl">{flag}</span> {label}
+                        </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
             </DropdownMenu>
 
@@ -230,6 +231,7 @@ function NavbarContent() {
                         <Menu className="w-7 h-7" />
                     </Button>
                 </DropdownMenuTrigger>
+                
                 <DropdownMenuContent align="end" className="w-64 p-2 font-sans bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl">
                     {user && (
                         <>
@@ -250,7 +252,11 @@ function NavbarContent() {
                         <Home className="w-4 h-4" /> {t('backHome')}
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, user ? "/create" : "/auth/register?redirect=/create")} className={`${mobileItemClass} text-purple-700 border-purple-100 bg-purple-50/50`}>
+                    {/* Post Service - Poseban stil */}
+                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, user ? "/create" : "/auth/login?redirect=/create")} className={`
+                        ${mobileItemClass} !text-purple-700 !bg-purple-50/50 !border-purple-100 
+                        focus:!bg-purple-100 focus:!text-purple-900
+                    `}>
                         <PlusCircle className="w-4 h-4" /> {t('navPostService')}
                     </DropdownMenuItem>
                     
@@ -262,7 +268,7 @@ function NavbarContent() {
                                 <UserIcon className="w-4 h-4" /> {t('navProfile')}
                             </DropdownMenuItem>
                             {user.role === 'admin' && (
-                                <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/admin/users")} className={`${mobileItemClass} text-blue-600 hover:text-blue-700`}>
+                                <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/admin/users")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
                                     <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
                                 </DropdownMenuItem>
                             )}
@@ -272,11 +278,12 @@ function NavbarContent() {
                         </>
                     ) : (
                         <>
-                           <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/auth/login")} className={mobileItemClass}>
+                           {/* Login dugme - Ljubičasto */}
+                           <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/auth/login")} className={`
+                                ${mobileItemClass} !bg-purple-600 !text-white 
+                                focus:!bg-purple-700 focus:!text-white
+                           `}>
                                 {t('navLogin')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/auth/register")} className={`${mobileItemClass} bg-purple-600 text-white hover:bg-purple-700 hover:text-white data-[highlighted]:bg-purple-700 data-[highlighted]:text-white`}>
-                                {t('navJoin')}
                             </DropdownMenuItem>
                         </>
                     )}
@@ -289,7 +296,7 @@ function NavbarContent() {
       {/* --- KATEGORIJE TRAKA --- */}
       <div className="block border-t border-transparent relative z-[130]">
          <div className="container mx-auto px-4">
-            <div className="flex items-center gap-6 md:gap-0 overflow-x-auto py-3 md:justify-between [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-400/60 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="flex items-center gap-6 md:gap-6 overflow-x-auto py-1 md:justify-between [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-400/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                 {categories.map((cat) => {
                   const isActive = activeCategory === cat.slug;
                   return (
@@ -304,7 +311,6 @@ function NavbarContent() {
                         }
                       `}
                     >
-                      {/* 👇 SADA ĆE DA RADI JER 'cat.key' POSTOJI */}
                       {t(cat.key)} 
                     </Link>
                   );
