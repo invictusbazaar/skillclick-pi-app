@@ -1,22 +1,16 @@
 import type { Metadata } from "next";
-// 👇 1. UVOZIMO OUTFIT FONT
-import { Outfit } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-
-import { LanguageProvider } from "@/components/LanguageContext"; 
-import { AuthProvider } from "@/components/AuthContext";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer"; 
+import { LanguageProvider } from "@/components/LanguageContext";
+// 👇 UVOZIMO SCRIPT KOMPONENTU IZ NEXT.JS
+import Script from "next/script"; 
 
-// 👇 2. KONFIGURIŠEMO GA (Učitavamo razne debljine za lepši dizajn)
-const outfit = Outfit({ 
-  subsets: ["latin"],
-  weight: ['300', '400', '500', '600', '700', '800'] 
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SkillClick - Invictus Bazaar",
-  description: "Global marketplace for Pi Network community",
+  title: "SkillClick - Pi Network Marketplace",
+  description: "Find skills, pay with Pi.",
 };
 
 export default function RootLayout({
@@ -26,14 +20,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* 👇 3. PRIMENJUJEMO GA NA CELO TELO APLIKACIJE */}
-      <body className={outfit.className}>
+      <head>
+        {/* Ovde možemo dodati meta tagove ako treba */}
+      </head>
+      <body className={inter.className}>
+        
+        {/* 👇 OVDE UČITAVAMO PI SDK */}
+        {/* strategy="beforeInteractive" znači da se učitava pre nego što se aplikacija "probudi" */}
+        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
+
         <LanguageProvider>
-          <AuthProvider> 
-             <Navbar /> 
-             {children}
-             <Footer />
-          </AuthProvider>
+          <div className="min-h-screen flex flex-col bg-[#f8f9fc]">
+            <Navbar />
+            <main className="flex-grow">
+              {children}
+            </main>
+            
+            {/* Footer možemo dodati kasnije ovde */}
+            <footer className="py-6 text-center text-gray-400 text-xs">
+              <p>© 2025 Invictus Bazaar. Powered by Pi Network.</p>
+            </footer>
+          </div>
         </LanguageProvider>
       </body>
     </html>

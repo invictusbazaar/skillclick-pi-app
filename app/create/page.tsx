@@ -11,19 +11,19 @@ import {
   Zap, ArrowLeft, Loader2, CheckCircle, 
   Car, Wrench, Bot, PawPrint, Heart, Palette, Code, 
   PenTool, Coffee, Camera, Home, GraduationCap, Tag, 
-  Clock, Repeat 
+  Clock, Repeat, Image as ImageIcon 
 } from 'lucide-react';
 import Link from 'next/link';
-// 👇 1. UVOZIMO PREVODILAC
 import { useLanguage } from '@/components/LanguageContext';
 
 export default function CreateServicePage() {
   const router = useRouter();
-  // 👇 2. AKTIVIRAMO JEZIK
   const { t } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  // 👇 NOVO: Stanje koje proverava da li je korisnik autorizovan
+  const [isAuthorized, setIsAuthorized] = useState(false);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -31,11 +31,12 @@ export default function CreateServicePage() {
     category: "",
     price: "",
     deliveryTime: "",
-    revisions: ""
+    revisions: "",
+    image1: "",
+    image2: "",
+    image3: "" 
   });
 
-  // 👇 3. KATEGORIJE POVEZANE SA PREVODIMA
-  // 'val' koristimo za logiku i bazu (engleski), 'key' za prikaz (prevod)
   const categories = [
     { key: "catDesign", val: "Graphics & Design" },
     { key: "catMarketing", val: "Digital Marketing" },
@@ -48,17 +49,30 @@ export default function CreateServicePage() {
 
   const [loggedInAuthor, setLoggedInAuthor] = useState('Invictus Bazaar');
 
+  // 👇 GLAVNA SIGURNOSNA PROVERA
   useEffect(() => {
     if (typeof window !== 'undefined') {
-        const email = localStorage.getItem('userEmail');
-        const name = localStorage.getItem('db_user_name');
-        if (name) {
-             setLoggedInAuthor(name);
-        } else if (email) {
-            setLoggedInAuthor(email.split('@')[0]);
+        const storedUser = localStorage.getItem("user");
+        
+        // 1. Ako NEMA korisnika -> Izbaci ga napolje!
+        if (!storedUser) {
+            router.push("/auth/login?redirect=/create");
+            return;
+        }
+
+        // 2. Ako IMA korisnika -> Učitaj podatke i dozvoli pristup
+        try {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser.username) {
+                setLoggedInAuthor(parsedUser.username);
+            }
+            setIsAuthorized(true); // ✅ Dozvola data
+        } catch (e) {
+            console.error("Greška pri čitanju korisnika", e);
+            router.push("/auth/login"); // Ako je greška, isto izbaci
         }
     }
-  }, []);
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -69,7 +83,6 @@ export default function CreateServicePage() {
       setFormData(prev => ({ ...prev, category: value }));
   }
 
-  // --- LOGIKA ZA PAMETNE IKONICE (Ostaje ista) ---
   const getDynamicVisuals = () => {
     const titleLower = formData.title.toLowerCase();
     let Icon = Zap; 
@@ -121,11 +134,12 @@ export default function CreateServicePage() {
       description: formData.description,
       category: formData.category,
       price: parseFloat(formData.price),
-      deliveryTime: formData.deliveryTime || "3", // Čuvamo samo broj ili string, prikaz dodaje "dana"
+      deliveryTime: formData.deliveryTime || "3", 
       revisions: formData.revisions ? formData.revisions : "Unlimited",
       author: loggedInAuthor,
       authorAvatar: "/placeholder-avatar.jpg",
       image: "/placeholder-service.jpg",
+      galleryImages: [formData.image1, formData.image2, formData.image3].filter(img => img.length > 0),
       rating: 5.0,
       reviews: 0,
       createdAt: new Date().toISOString()
@@ -152,6 +166,11 @@ export default function CreateServicePage() {
     }, 1000);
   };
 
+  // 👇 AKO NIJE AUTORIZOVAN, NE PRIKAZUJ NIŠTA (dok ga ne izbaci)
+  if (!isAuthorized) {
+      return null; 
+  }
+
   const inputClass = "rounded-xl border-gray-200 focus:!border-purple-500 focus:!ring-purple-500 focus:ring-2 outline-none transition-all h-12";
   const labelClass = "text-xs font-bold text-gray-700 uppercase ml-1 mb-1.5 block";
 
@@ -159,7 +178,6 @@ export default function CreateServicePage() {
     <div className="min-h-screen bg-gray-50 py-10 px-4 font-sans">
       <div className="max-w-2xl mx-auto">
         <Link href="/" className="inline-flex items-center text-gray-500 hover:text-purple-600 mb-6 font-bold text-sm transition-colors">
-            {/* 👇 PREVOD: Nazad na početnu */}
             <ArrowLeft className="w-5 h-5 mr-2" /> {t('backHome')}
         </Link>
 
@@ -168,10 +186,8 @@ export default function CreateServicePage() {
             <div className="mx-auto w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mb-4 text-purple-600 shadow-sm">
                 <Zap className="w-8 h-8" />
             </div>
-            {/* 👇 PREVOD: Objavi novu uslugu */}
             <h1 className="text-2xl font-extrabold text-gray-900">{t('createTitle')}</h1>
             <p className="text-gray-500 text-sm mt-1">
-              {/* 👇 PREVOD: Dobrodošli nazad (umesto Prijavljen kao) */}
               {t('welcomeBack')}: <span className="font-semibold text-purple-600">{loggedInAuthor}</span>
             </p>
           </div>
@@ -182,7 +198,6 @@ export default function CreateServicePage() {
                     <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="h-8 w-8" />
                     </div>
-                    {/* 👇 PREVOD: Uspešno (koristimo generički 'active' ili 'successMessage') */}
                     <h3 className="font-bold text-xl mb-2">{t('successMessage')}</h3>
                     <p>{t('loading')}...</p>
                 </div>
@@ -191,7 +206,6 @@ export default function CreateServicePage() {
                 
                 {/* 1. NASLOV */}
                 <div>
-                    {/* 👇 PREVOD: Naslov usluge */}
                     <Label htmlFor="title" className={labelClass}>{t('labelTitle')}</Label>
                     <div className="relative group">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
@@ -201,7 +215,6 @@ export default function CreateServicePage() {
                             id="title" 
                             name="title" 
                             type="text" 
-                            // 👇 PREVOD: Placeholder
                             placeholder={t('placeholderTitle')}
                             value={formData.title} 
                             onChange={handleChange} 
@@ -214,7 +227,6 @@ export default function CreateServicePage() {
                 {/* 2. RED: KATEGORIJA I CENA */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        {/* 👇 PREVOD: Kategorija */}
                         <Label htmlFor="category" className={labelClass}>{t('labelCategory')}</Label>
                         <Select value={formData.category} onValueChange={handleCategoryChange}>
                             <SelectTrigger 
@@ -226,12 +238,10 @@ export default function CreateServicePage() {
                                     focus:ring-offset-0 focus:outline-none ring-offset-0
                                 `}
                             >
-                                {/* 👇 PREVOD: Izaberi kategoriju */}
                                 <SelectValue placeholder={t('selectCategory') || "Select Category"} />
                             </SelectTrigger>
                             <SelectContent className="bg-white border-gray-100">
                                 {categories.map(cat => (
-                                    // Prikazujemo prevedeni naziv (t(cat.key)), a čuvamo engleski (cat.val) u bazi
                                     <SelectItem key={cat.key} value={cat.val} className="focus:bg-purple-50 focus:text-purple-700 cursor-pointer">
                                         {t(cat.key)}
                                     </SelectItem>
@@ -241,7 +251,6 @@ export default function CreateServicePage() {
                     </div>
 
                     <div>
-                        {/* 👇 PREVOD: Cena */}
                         <Label htmlFor="price" className={labelClass}>{t('labelPrice')}</Label>
                         <div className="relative group">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors font-bold text-lg font-serif">
@@ -264,7 +273,6 @@ export default function CreateServicePage() {
                 {/* 3. RED: ROK ISPORUKE I REVIZIJE */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        {/* 👇 PREVOD: Rok isporuke */}
                         <Label htmlFor="deliveryTime" className={labelClass}>{t('labelDelivery')}</Label>
                         <div className="relative group">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
@@ -284,7 +292,6 @@ export default function CreateServicePage() {
                     </div>
 
                     <div>
-                        {/* 👇 PREVOD: Revizije */}
                         <Label htmlFor="revisions" className={labelClass}>{t('revisions')}</Label>
                         <div className="relative group">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors">
@@ -304,15 +311,47 @@ export default function CreateServicePage() {
                     </div>
                 </div>
 
+                {/* SLIKE - URL */}
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <Label className={`${labelClass} mb-3 flex items-center gap-2`}>
+                        <ImageIcon className="w-4 h-4 text-purple-600" />
+                        Portfolio Images (URL Links)
+                    </Label>
+                    <div className="space-y-3">
+                        <Input 
+                            name="image1" 
+                            placeholder="https://example.com/image1.jpg" 
+                            value={formData.image1} 
+                            onChange={handleChange} 
+                            className={`${inputClass} bg-white`} 
+                        />
+                        <Input 
+                            name="image2" 
+                            placeholder="https://example.com/image2.jpg" 
+                            value={formData.image2} 
+                            onChange={handleChange} 
+                            className={`${inputClass} bg-white`} 
+                        />
+                        <Input 
+                            name="image3" 
+                            placeholder="https://example.com/image3.jpg" 
+                            value={formData.image3} 
+                            onChange={handleChange} 
+                            className={`${inputClass} bg-white`} 
+                        />
+                        <p className="text-[10px] text-gray-400">
+                            * Paste direct links to your images (Imgur, Drive, etc.)
+                        </p>
+                    </div>
+                </div>
+
                 {/* 4. OPIS */}
                 <div>
-                    {/* 👇 PREVOD: Opis */}
                     <Label htmlFor="description" className={labelClass}>{t('aboutService')}</Label>
                     <div className="relative">
                         <Textarea 
                             id="description" 
                             name="description" 
-                            // 👇 PREVOD: Placeholder
                             placeholder={t('placeholderDesc')}
                             value={formData.description} 
                             onChange={handleChange} 
@@ -323,8 +362,8 @@ export default function CreateServicePage() {
                     </div>
                 </div>
 
+                {/* Preview kartica */}
                 <div className="mt-6 p-5 border border-dashed border-gray-300 rounded-2xl bg-gray-50/50">
-                    {/* 👇 PREVOD: Preview (Pogledaj) */}
                     <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-3 text-center">{t('view')} {t('services')}</p>
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-all">
                         <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center ${colorClass} transition-all duration-300`}>
@@ -336,7 +375,6 @@ export default function CreateServicePage() {
                             </h4>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                                    {/* Prikaz kategorije ovde ostaje kakav jeste dok korisnik ne izabere */}
                                     {formData.category || t('labelCategory')}
                                 </span>
                                 <span className="text-xs text-purple-600 font-bold flex items-center gap-1">
@@ -349,8 +387,7 @@ export default function CreateServicePage() {
 
               <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg h-14 rounded-xl shadow-lg shadow-purple-600/20 active:scale-95 transition-all mt-4" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
-                {/* 👇 PREVOD: Dugme Objavi */}
-                {isLoading ? `${t('loading')}` : t('submitReview')} 
+                {isLoading ? `${t('loading')}` : t('btnPublish')} 
               </Button>
             </form>
             )}

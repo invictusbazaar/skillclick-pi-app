@@ -15,11 +15,9 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState("")
-  // 👇 PROVERA: Da li smo u modu za razvijanje (na tvom kompu)?
   const [isDev, setIsDev] = useState(false);
 
   useEffect(() => {
-    // Ovo osigurava da proveru radimo samo na klijentu
     if (process.env.NODE_ENV === 'development') {
         setIsDev(true);
     }
@@ -34,17 +32,23 @@ export default function LoginPage() {
             const Pi = (window as any).Pi;
             Pi.init({ version: "2.0", sandbox: true });
 
-            const scopes = ['username', 'payments'];
-            const onIncompletePaymentFound = (payment: any) => { console.log(payment); };
+            // 👇👇👇 OVO JE KLJUČNO ZA TVOJU GREŠKU 👇👇👇
+            // Mora da piše 'payments' ovde!
+            const scopes = ['username', 'payments']; 
+            
+            const onIncompletePaymentFound = (payment: any) => { console.log("Nedovršeno plaćanje:", payment); };
 
             const authResults = await Pi.authenticate(scopes, onIncompletePaymentFound);
             
             setStatus(`${t('piWelcomeUser')}, ${authResults.user.username}!`);
 
+            const MY_ADMIN_USERNAME = "ilijabrdar"; 
+            const role = authResults.user.username === MY_ADMIN_USERNAME ? "admin" : "user";
+
             const piUser = {
                 username: authResults.user.username,
                 uid: authResults.user.uid,
-                role: "user",
+                role: role, 
                 piBalance: "0.00",
                 accessToken: authResults.accessToken
             };
@@ -136,7 +140,6 @@ export default function LoginPage() {
                 {t('piLoginDisclaimer')}
             </p>
 
-            {/* 👇 OVO JE PAMETNO DUGME: Prikazuje se SAMO u 'development' modu */}
             {isDev && (
                 <div className="mt-8 pt-6 border-t border-gray-100">
                     <button 
