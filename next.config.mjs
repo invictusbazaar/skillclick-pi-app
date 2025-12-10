@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // !! OVO JE KLJUČNO !!
-    // Kažemo Vercelu: "Završi build čak i ako imaš TypeScript greške!"
+    // !! UPOZORENJE !!
+    // Ovo dozvoljava da se build završi čak i ako postoje TS greške.
+    // Ovo koristimo da bi Vercel pustio aplikaciju uprkos Pi SDK tipovima.
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Ignoriši i stilske greške
+    // Ovo ignoriše ESLint greške tokom build-a.
     ignoreDuringBuilds: true,
   },
 };
