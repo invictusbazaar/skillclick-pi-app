@@ -1,5 +1,3 @@
-// Ovo je tvoja kompletna šema baze
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -34,6 +32,7 @@ model Service {
   
   userId      String
   seller      User     @relation(fields: [userId], references: [id])
+  
   orders      Order[]
   reviews     Review[]
 }
