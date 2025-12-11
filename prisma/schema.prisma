@@ -1,15 +1,68 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Ovo je tvoja kompletna šema baze
 
 generator client {
   provider = "prisma-client-js"
-  // Output linija je uklonjena da bi Netlify automatski našao klijenta
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// --- MODELI (TABELE) ---
+
+model User {
+  id        String    @id @default(cuid())
+  username  String    @unique // Pi Network username
+  role      String    @default("user") // "user" ili "admin"
+  createdAt DateTime  @default(now())
+  
+  services  Service[] // Usluge koje prodaje
+  orders    Order[]   @relation("BuyerOrders") // Porudžbine koje je kupio
+  sales     Order[]   @relation("SellerOrders") // Porudžbine koje je prodao
+  reviews   Review[]
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Float
+  category    String
+  images      String[] // Niz linkova ka slikama
+  createdAt   DateTime @default(now())
+  
+  userId      String
+  seller      User     @relation(fields: [userId], references: [id])
+  orders      Order[]
+  reviews     Review[]
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  status    String   @default("pending") // pending, active, completed, cancelled
+  amount    Float
+  createdAt DateTime @default(now())
+
+  buyerId   String
+  buyer     User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  
+  sellerId  String
+  seller    User     @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
 }
