@@ -1,11 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // Ovo kaže Vercelu: "Ne prekidaj build čak i ako vidiš greške u tipovima!"
+    // !! UPOZORENJE !!
+    // Ovo dozvoljava da se završi build čak i ako postoje TS greške.
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Ovo kaže: "Ignoriši stilske greške."
+    // Ovo dozvoljava da se završi build čak i ako postoje ESLint greške.
     ignoreDuringBuilds: true,
   },
 };
