@@ -1,54 +1,65 @@
 import { NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 
-const dataFilePath = path.join(process.cwd(), 'data', 'services.json');
+// Kreiramo instancu Prisma klijenta da pričamo sa bazom
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Ako fajl ne postoji, vrati praznu listu
-    if (!fs.existsSync(dataFilePath)) {
-        return NextResponse.json([], { status: 200 });
-    }
-    const fileContents = fs.readFileSync(dataFilePath, 'utf-8');
-    const services = JSON.parse(fileContents);
-    return NextResponse.json(services, { status: 200 });
+    // 1. Čupamo sve oglase direktno iz Postgres baze
+    const services = await prisma.service.findMany({
+      include: {
+        seller: true,   // Daj mi podatke o onome ko je postavio oglas (username)
+        reviews: true   // Daj mi recenzije
+      },
+      orderBy: {
+        createdAt: 'desc' // Najnoviji oglasi prvi
+      }
+    });
+
+    // 2. Formatiramo podatke da odgovaraju onome što tvoj sajt (frontend) očekuje
+    const formattedServices = services.map(service => ({
+      id: service.id,
+      title: service.title,
+      description: service.description,
+      price: service.price,
+      category: service.category,
+      // Ovde mapiramo: baza ima 'seller', a sajt traži 'author'
+      author: service.seller ? service.seller.username : 'Nepoznat', 
+      reviews: service.reviews.length,
+      rating: 5.0, // Fiksno dok ne napravimo računanje proseka
+      images: service.images
+    }));
+
+    // Vraćamo podatke sajtu
+    return NextResponse.json(formattedServices);
   } catch (error) {
-    return NextResponse.json([], { status: 200 });
+    console.error("Greška pri učitavanju oglasa iz baze:", error);
+    return NextResponse.json({ error: 'Greška na serveru' }, { status: 500 });
   }
 }
 
+// Opciono: POST metoda za kreiranje novih oglasa preko sajta (kad to budeš radio)
 export async function POST(request: Request) {
   try {
-    const newService = await request.json();
-
-    // Proveri da li folder data postoji, ako ne napravi ga
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir);
-    }
-
-    // Učitaj postojeće
-    let services = [];
-    if (fs.existsSync(dataFilePath)) {
-        const fileContents = fs.readFileSync(dataFilePath, 'utf-8');
-        services = JSON.parse(fileContents);
-    }
-
-    const newId = services.length > 0 ? Math.max(...services.map((s: any) => s.id)) + 1 : 1;
-    const serviceToSave = { 
-        ...newService, 
-        id: newId, 
-        rating: 5.0 
-    };
+    const body = await request.json();
     
-    services.push(serviceToSave);
+    // Kreiranje u bazi
+    const newService = await prisma.service.create({
+      data: {
+        title: body.title,
+        description: body.description,
+        price: parseFloat(body.price),
+        category: body.category,
+        images: body.images || [],
+        // PAŽNJA: Frontend mora poslati validan ID korisnika koji je ulogovan!
+        userId: body.userId 
+      }
+    });
 
-    fs.writeFileSync(dataFilePath, JSON.stringify(services, null, 2), 'utf-8');
-
-    return NextResponse.json({ message: "Success", service: serviceToSave }, { status: 201 });
+    return NextResponse.json(newService, { status: 201 });
   } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ message: "Failed to save" }, { status: 500 });
+    console.error("Greška pri kreiranju oglasa:", error);
+    return NextResponse.json({ error: 'Neuspešno kreiranje' }, { status: 500 });
   }
 }
