@@ -15,7 +15,6 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 export async function GET() {
   try {
     console.log("🔄 Povezujem se na bazu...");
-    
     const services = await prisma.service.findMany({
       include: {
         seller: true,
