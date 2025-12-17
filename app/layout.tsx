@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import { LanguageProvider } from "@/components/LanguageContext";
 
-// 👇 1. Fontovi ostaju isti
+// Tvoji fontovi (ne menjamo ih)
 const inter = Inter({ 
   subsets: ["latin"],
   variable: "--font-inter",
@@ -29,10 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* 👇 OVDE JE PROMENA: Stavljamo <head> i običan script tag */}
-      {/* Ovo garantuje da se Pi SDK učita pre svega ostalog */}
       <head>
+        {/* 👇 OVO JE TAJ KLJUČ KOJI TI FALI! BEZ OVOGA NE RADI LOGIN 👇 */}
         <script src="https://sdk.minepi.com/pi-sdk.js" async defer></script>
+        {/* 👆 OVO JE MOST IZMEĐU TVOJE APLIKACIJE I PI PRETRAŽIVAČA 👆 */}
       </head>
 
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
