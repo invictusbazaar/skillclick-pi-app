@@ -4,15 +4,13 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import { LanguageProvider } from "@/components/LanguageContext";
-import Script from "next/script";
 
-// 👇 1. Definišemo Inter za tekst (body)
+// 👇 1. Fontovi ostaju isti
 const inter = Inter({ 
   subsets: ["latin"],
   variable: "--font-inter",
 });
 
-// 👇 2. Definišemo Poppins za naslove (headings)
 const poppins = Poppins({ 
   weight: ["400", "600", "700", "800"],
   subsets: ["latin"],
@@ -31,14 +29,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* 👇 Dodajemo obe promenljive u body klasu */}
+      {/* 👇 OVDE JE PROMENA: Stavljamo <head> i običan script tag */}
+      {/* Ovo garantuje da se Pi SDK učita pre svega ostalog */}
+      <head>
+        <script src="https://sdk.minepi.com/pi-sdk.js" async defer></script>
+      </head>
+
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        <Script 
-          src="https://sdk.minepi.com/pi-sdk.js" 
-          strategy="beforeInteractive" 
-        />
-
         <LanguageProvider>
             <Navbar />
             <main className="flex-grow">
