@@ -5,61 +5,84 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Search, ExternalLink, Star, ChevronLeft, ChevronRight, LayoutList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SERVICES_DATA } from '@/lib/data';
+
+// ❌ OBRISANO: import { SERVICES_DATA } from '@/lib/data'; 
+// Ovo je pravilo grešku "Module not found"
 
 export default function AdminServicesPage() {
   const router = useRouter();
   const [services, setServices] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // 👇 PAGINACIJA: 20 komada (10 levo + 10 desno)
+  // 👇 PAGINACIJA: 20 komada
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // 👇 BACK DUGME EFEKAT (Samo za mobilni vizuelni prikaz)
+  // 👇 BACK DUGME EFEKAT
   const [isBackActive, setIsBackActive] = useState(false);
 
   useEffect(() => {
-    let allServices = [...SERVICES_DATA];
-    if (typeof window !== 'undefined') {
-        const localServicesStr = localStorage.getItem('skillclick_services');
-        if (localServicesStr) {
-            try {
-                const localServices = JSON.parse(localServicesStr);
-                allServices = [...localServices, ...allServices];
-            } catch (e) {
-                console.error("Greška", e);
+    // 👇 NOVA LOGIKA: Učitaj iz API-ja (Baze) + LocalStorage
+    const loadData = async () => {
+        let allServices: any[] = [];
+
+        // 1. Probaj da povučeš iz baze
+        try {
+            const res = await fetch('/api/services');
+            if (res.ok) {
+                const dbData = await res.json();
+                if (Array.isArray(dbData)) {
+                    allServices = [...dbData];
+                }
+            }
+        } catch (error) {
+            console.error("Greška pri učitavanju iz API-ja:", error);
+        }
+
+        // 2. Spoji sa LocalStorage (tvoja postojeća logika)
+        if (typeof window !== 'undefined') {
+            const localServicesStr = localStorage.getItem('skillclick_services');
+            if (localServicesStr) {
+                try {
+                    const localServices = JSON.parse(localServicesStr);
+                    // Dodajemo lokalne na početak ili kraj, kako želiš (ovde su na početku)
+                    allServices = [...localServices, ...allServices];
+                } catch (e) {
+                    console.error("Greška local storage", e);
+                }
             }
         }
-    }
-    setServices(allServices);
+        
+        setServices(allServices);
+    };
+
+    loadData();
   }, []);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // 👇 NOVA PAMETNA FUNKCIJA ZA NAZAD
+  // 👇 PAMETNA FUNKCIJA ZA NAZAD
   const handleBack = () => {
-    // Provera da li je mobilni uređaj
     const isMobile = window.innerWidth < 768;
-
     if (isMobile) {
-        // MOBILNI: Aktiviraj vizuelni efekat, sačekaj 0.5s, pa idi nazad
         setIsBackActive(true);
         setTimeout(() => {
             router.back();
         }, 500);
     } else {
-        // PC: Idi nazad ODMAH (hover rešava boju)
         router.back();
     }
   }
 
-  const handleDeleteService = (id: number) => {
+  const handleDeleteService = async (id: number | string) => {
     if (confirm("Da li sigurno želiš da obrišeš ovaj oglas?")) {
+        // 1. Obriši iz State-a (Vizuelno)
         const updatedServices = services.filter(s => s.id !== id);
         setServices(updatedServices);
+
+        // 2. Obriši iz LocalStorage-a (ako je tamo)
         if (typeof window !== 'undefined') {
             const localServicesStr = localStorage.getItem('skillclick_services');
             if (localServicesStr) {
@@ -67,6 +90,13 @@ export default function AdminServicesPage() {
                  const newLocalServices = localServices.filter((s: any) => s.id !== id);
                  localStorage.setItem('skillclick_services', JSON.stringify(newLocalServices));
             }
+        }
+
+        // 3. 👇 NOVO: Obriši iz Baze (API poziv)
+        try {
+            await fetch(`/api/services?id=${id}`, { method: 'DELETE' });
+        } catch (e) {
+            console.error("Greška pri brisanju sa servera:", e);
         }
     }
   };
@@ -78,12 +108,14 @@ export default function AdminServicesPage() {
       "from-blue-500 to-indigo-600",
       "from-emerald-400 to-teal-500"
     ];
-    return gradients[(id - 1) % gradients.length];
+    // Osiguranje da je ID broj za modulo operaciju
+    const numId = typeof id === 'number' ? id : 1;
+    return gradients[(numId - 1) % gradients.length] || gradients[0];
   };
 
   const filteredServices = services.filter(service => 
-    service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.author.toLowerCase().includes(searchTerm.toLowerCase())
+    (service.title && service.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (service.author && service.author.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalPages = Math.ceil(filteredServices.length / ITEMS_PER_PAGE);
@@ -99,14 +131,12 @@ export default function AdminServicesPage() {
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
              
-             {/* 👇 BACK DUGME SA PAMETNIM EFEKTOM */}
+             {/* BACK DUGME */}
              <button 
                 onClick={handleBack}
                 className={`
                     flex items-center gap-2 font-bold transition-all duration-200 outline-none
-                    /* PC: Hover efekat (ljubičasto + blago uvećanje) */
                     hover:text-purple-600 hover:scale-105
-                    /* Mobilni: Active efekat (ljubičasto + smanjenje) */
                     ${isBackActive 
                         ? "text-purple-600 scale-95" 
                         : "text-gray-600 px-3 py-2 rounded-xl" 
@@ -146,14 +176,16 @@ export default function AdminServicesPage() {
             </span>
         </div>
 
-        {/* GRID LISTA - 2 KOLONE */}
+        {/* GRID LISTA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-8">
             {paginatedServices.map((service) => (
                 <div key={service.id} className="group bg-white rounded-xl border border-gray-200 p-2 shadow-sm hover:shadow-md hover:border-purple-200 transition-all duration-200 flex items-center gap-3">
                     
-                    {/* LEVO: Mala ikonica/Gradijent */}
+                    {/* LEVO: Ikonica */}
                     <div className={`w-16 h-16 shrink-0 rounded-lg bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center text-white shadow-inner`}>
-                         <div className="font-bold text-lg opacity-90">{service.author[0].toUpperCase()}</div>
+                         <div className="font-bold text-lg opacity-90">
+                            {service.author && service.author[0] ? service.author[0].toUpperCase() : 'U'}
+                         </div>
                     </div>
 
                     {/* SREDINA: Info */}
@@ -169,11 +201,11 @@ export default function AdminServicesPage() {
                              <span className="truncate max-w-[100px]">{service.category}</span>
                              <span className="text-gray-300">•</span>
                              <span className="flex items-center gap-1 text-amber-500 font-bold">
-                                <Star className="w-3 h-3 fill-current" /> {service.rating}
+                                <Star className="w-3 h-3 fill-current" /> {service.rating || 'N/A'}
                              </span>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                            Autor: @{service.author}
+                            Autor: @{service.author || 'unknown'}
                         </p>
                     </div>
 

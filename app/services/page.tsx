@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-// Uvoz podataka (ako koristiš local storage, ovo će se dopuniti)
+// Uvoz podataka
 import { SERVICES_DATA } from "@/lib/data";
 
 function ServicesContent() {
@@ -28,20 +28,52 @@ function ServicesContent() {
   const [allServices, setAllServices] = useState<any[]>([]);
   const [filteredServices, setFilteredServices] = useState<any[]>([]);
   
+  // DODATO: State za Pi korisnika (da bismo znali ko je ulogovan)
+  const [piUser, setPiUser] = useState<any>(null);
+  
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
 
   const [isBackActive, setIsBackActive] = useState(false);
 
+  // --- 1. PI AUTHENTICATION (NOVA LOGIKA) ---
+  useEffect(() => {
+    const initPi = async () => {
+      try {
+        const Pi = (window as any).Pi;
+        if (Pi) {
+          // Inicijalizacija bez debug konzole
+          await Pi.init({ version: "2.0", sandbox: true });
+          
+          // Tražimo samo Username i Payments
+          const scopes = ['username', 'payments'];
+          const auth = await Pi.authenticate(scopes, (payment: any) => {
+             console.log("Nedovršeno plaćanje:", payment);
+          });
+          
+          // Čuvamo korisnika
+          console.log("Uspešno ulogovan:", auth.user.username);
+          setPiUser(auth.user);
+        }
+      } catch (err) {
+        console.error("Pi Greška:", err);
+      }
+    };
+
+    if ((window as any).Pi) {
+      initPi();
+    } else {
+      window.addEventListener('pi-ready', initPi);
+    }
+  }, []);
+  // -------------------------------------------
+
   // --- GLAVNA FUNKCIJA ZA IKONICE (PAMETNA DETEKCIJA) ---
   const getServiceIcon = (service: any) => {
     const iconClass = "h-14 w-14 text-white/90 drop-shadow-md";
 
-    // 1. Provera sačuvanog izbora ili ključnih reči u naslovu/kategoriji
-    // Spajamo sve u jedan string za pretragu
     const textToCheck = `${service.icon || ''} ${service.title || ''} ${service.category || ''}`.toLowerCase();
 
-    // -- SPECIFIČNE IKONE (Prioritet) --
     if (textToCheck.includes('car') || textToCheck.includes('auto') || textToCheck.includes('vehicle')) 
       return <Car className={iconClass} />;
     
@@ -51,7 +83,6 @@ function ServicesContent() {
     if (textToCheck.includes('mobile') || textToCheck.includes('app') || textToCheck.includes('android')) 
         return <Smartphone className={iconClass} />;
 
-    // -- KATEGORIJE (Fallback ako nema specifične ključne reči) --
     switch (service.category) {
         case "Graphics & Design": return <PenTool className={iconClass} />;
         case "Digital Marketing": return <Monitor className={iconClass} />;
@@ -61,7 +92,6 @@ function ServicesContent() {
         case "Music & Audio": return <Music className={iconClass} />;
         case "Business": return <Database className={iconClass} />;
         case "Lifestyle": 
-            // Ako je lifestyle a nismo našli "car" ili "fix", onda kafa
             return <Coffee className={iconClass} />;
         default: return <Layers className={iconClass} />;
     }
@@ -157,15 +187,24 @@ function ServicesContent() {
          <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-blue-600/20 blur-[60px] rounded-full pointer-events-none"></div>
 
          <div className="container mx-auto px-4 pt-8 pb-12 relative z-10">
-            <button 
-                onClick={handleBackClick}
-                className={`flex items-center text-sm font-medium mb-6 transition-colors duration-300 ${
-                   isBackActive ? 'text-purple-400' : 'text-gray-400 hover:text-white'
-                }`}
-            >
-                <ArrowLeft className={`w-4 h-4 mr-2 ${isBackActive ? 'text-purple-400' : ''}`} />
-                Back to Home
-            </button>
+            <div className="flex justify-between items-start mb-6">
+                <button 
+                    onClick={handleBackClick}
+                    className={`flex items-center text-sm font-medium transition-colors duration-300 ${
+                       isBackActive ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+                    }`}
+                >
+                    <ArrowLeft className={`w-4 h-4 mr-2 ${isBackActive ? 'text-purple-400' : ''}`} />
+                    Back to Home
+                </button>
+                
+                {/* Prikaz korisnika ako je ulogovan */}
+                {piUser && (
+                   <span className="text-sm font-medium text-green-400 bg-green-400/10 px-3 py-1 rounded-full border border-green-400/20">
+                     @{piUser.username}
+                   </span>
+                )}
+            </div>
 
             <div className="max-w-3xl">
                 <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 flex items-center gap-3">
@@ -228,7 +267,6 @@ function ServicesContent() {
                     <Link href={`/services/${gig.id}`} className="block relative overflow-hidden h-48">
                         <div className={`absolute inset-0 bg-gradient-to-br ${gig.gradient || getRandomGradient(gig.id)} flex items-center justify-center`}>
                              <div className="transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 ease-out drop-shadow-md">
-                                {/* OVDE JE FIX: Pozivamo pametnu funkciju */}
                                 {getServiceIcon(gig)}
                              </div>
                         </div>
