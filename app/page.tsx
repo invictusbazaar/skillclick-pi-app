@@ -43,7 +43,7 @@ function HomeContent() {
         }
 
         // 1. Inicijalizacija
-        await window.Pi.init({ version: "2.0", sandbox: true });
+        await window.Pi.init({ version: "2.0", sandbox: false });
         
         // 2. Auth (Username i Payments)
         const scopes = ['username', 'payments']; 
