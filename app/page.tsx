@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useRef } from "react"
 import { 
   Search, Layers, Heart, Star, PenTool, Monitor, Briefcase, Video, Code, Music, 
   Coffee, ChevronLeft, ChevronRight, 
@@ -11,9 +11,6 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/components/LanguageContext" 
-
-// ❌ OBIRSALI SMO ONAJ STARI IMPORT KOJI JE PRAVIO PROBLEM
-// import { SERVICES_DATA } from "@/lib/data" <--- OVO VIŠE NE POSTOJI
 
 // Da TypeScript ne viče na 'window.Pi'
 declare global {
@@ -29,38 +26,78 @@ function HomeContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [user, setUser] = useState<any>(null); 
   
+  // 👇 OVO JE KOČNICA PROTIV BESKONAČNOG VRTEĆEG KRUGA 👇
+  const piInitRan = useRef(false);
+
   const itemsPerPage = 12;
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useLanguage();
 
-  // 👇👇👇 PI NETWORK LOGIKA (Ovo nismo dirali) 👇👇👇
+  // 👇👇👇 PI NETWORK LOGIKA (ISPRAVLJENA) 👇👇👇
   useEffect(() => {
+    // Ako smo već pokrenuli logovanje, nemoj opet!
+    if (piInitRan.current) return;
+    piInitRan.current = true;
+
     const initPi = async () => {
       try {
+        console.log("🚀 Pokrećem Pi inicijalizaciju...");
+        
+        // 1. Inicijalizacija
+        if (!window.Pi) {
+             console.log("Čekam da se Pi skripta učita...");
+             // Ako skripta kasni, sačekaćemo je (prosta logika)
+             await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        if(!window.Pi) {
+            console.error("Pi SDK nije pronađen!");
+            return;
+        }
+
         await window.Pi.init({ version: "2.0", sandbox: true });
+        console.log("✅ Pi Init uspešan.");
+
+        // 2. Autentifikacija
         const scopes = ['username', 'payments', 'wallet_address'];
+        const onIncompletePaymentFound = (payment: any) => { console.log("Nezavršeno plaćanje:", payment); };
+
         const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+        console.log("👤 Korisnik autentifikovan:", authResult.user.username);
+        
+        // Odmah postavljamo korisnika da vidiš da radi, pre nego što pitamo bazu
+        setUser(authResult.user);
+
+        // 3. Provera sa bazom (Ovo može da fejluje dok ne sredimo bazu, ali neće srušiti app)
         await verifyUser(authResult);
+
       } catch (error) {
-        console.error("Greška pri Pi logovanju:", error);
+        console.error("❌ Greška pri Pi logovanju:", error);
       }
     };
-    const onIncompletePaymentFound = (payment: any) => { console.log("Nezavršeno plaćanje:", payment); };
 
-    if (window.Pi) { initPi(); } 
-    else {
+    // Učitavanje skripte ako već nije tu
+    if (!window.Pi) {
       const script = document.createElement('script');
       script.src = "https://sdk.minepi.com/pi-sdk.js";
       script.async = true;
-      script.onload = () => initPi();
+      script.onload = () => {
+          // Kad se učita, pokreni init ako već nije
+          if (!piInitRan.current) initPi(); 
+      };
       document.body.appendChild(script);
+      // Ipak probamo init za svaki slučaj malo kasnije
+      initPi();
+    } else {
+      initPi();
     }
   }, []);
 
   const verifyUser = async (authData: any) => {
     try {
+      // Pokušavamo da javimo serveru, ali ako server (baza) nije spreman, samo ignorišemo grešku za sad
       const res = await fetch('/api/auth/pi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,9 +105,11 @@ function HomeContent() {
       });
       if (res.ok) {
         const data = await res.json();
-        setUser(data.user);
+        console.log("💾 Korisnik potvrđen u bazi:", data);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+        console.warn("⚠️ Baza još nije spremna, ali korisnik je ulogovan lokalno.", err); 
+    }
   };
   // 👆👆👆 KRAJ PI LOGIKE 👆👆👆
 
@@ -121,26 +160,18 @@ function HomeContent() {
     }
   };
 
-  // 👇 GLAVNA PROMENA: UČITAVANJE IZ BAZE PREKO API-ja 👇
+  // 👇 UČITAVANJE IZ BAZE (Sad će biti prazno jer smo očistili) 👇
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
       try {
-        console.log("📡 Zovem bazu...");
-        // Zovemo naš novi API most koji smo napravili
         const response = await fetch('/api/services');
-        
-        if (!response.ok) {
-           throw new Error('Problem sa mrežom');
-        }
+        if (!response.ok) throw new Error('Problem sa mrežom');
         
         let data = await response.json();
-        console.log("📦 Stigli podaci iz baze:", data);
-
-        // Ako je baza prazna (npr. greška), data će biti [], nećemo pucati
+        
         if (!Array.isArray(data)) data = [];
         
-        // Filtriranje
         if (selectedCategory) {
           const filterLower = selectedCategory.toLowerCase();
           data = data.filter((service: any) => 
@@ -156,7 +187,7 @@ function HomeContent() {
 
         setFilteredServices(data);
       } catch (error) {
-        console.error("❌ Failed to fetch services:", error);
+        console.error("Fetch error:", error);
       } finally {
         setLoading(false);
       }
@@ -164,7 +195,6 @@ function HomeContent() {
 
     fetchServices();
   }, [selectedCategory, searchTerm]); 
-  // 👆 KRAJ NOVE LOGIKE 👆
 
   const handleSearch = () => {
     if (searchQuery.trim()) { router.push(`/?search=${encodeURIComponent(searchQuery)}`) }
@@ -195,10 +225,16 @@ function HomeContent() {
          <div className="absolute bottom-0 right-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-indigo-500/20 rounded-full blur-[100px] md:blur-[120px] translate-x-1/3 translate-y-1/3"></div>
 
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
-            {user && (
+            
+            {/* OVO JE DEO GDE PIŠE DOBRODOŠAO */}
+            {user ? (
               <div className="mb-4 py-1 px-3 bg-white/10 rounded-full border border-white/20 text-xs md:text-sm text-purple-200 animate-fade-in">
                  Dobrodošao nazad, {user.username}!
               </div>
+            ) : (
+                <div className="mb-4 py-1 px-3 bg-white/10 rounded-full border border-white/20 text-xs md:text-sm text-purple-200">
+                    Čekam Pi login...
+                </div>
             )}
             
             <h1 className="text-4xl sm:text-5xl md:text-8xl font-extrabold mb-1 tracking-tighter drop-shadow-2xl">SkillClick</h1>
