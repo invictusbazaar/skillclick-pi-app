@@ -46,9 +46,12 @@ function HomeContent() {
         await window.Pi.init({ version: "2.0", sandbox: true });
         addLog("✅ Init završen.");
 
-        // 3. Auth
-        addLog("🔐 Tražim Auth...");
-        const scopes = ['username', 'payments'];
+        // 3. Auth - IZMENJENO: TRAŽIMO SAMO USERNAME
+        addLog("🔐 Tražim Auth (samo Username)...");
+        
+        // 👇 OVDE JE BILA GREŠKA - IZBACIO SAM 'PAYMENTS'
+        const scopes = ['username']; 
+        
         const auth = await window.Pi.authenticate(scopes, (p: any) => addLog("Plaćanje nađeno"));
         
         addLog(`👤 USPEH: Korisnik je ${auth.user.username}`);
@@ -77,7 +80,7 @@ function HomeContent() {
       {/* CRVENA DEBUG KUTIJA */}
       <div className="border-2 border-red-500 bg-black p-4 rounded-lg mb-6">
         <h1 className="text-xl font-bold text-red-500 border-b border-gray-700 mb-2">
-          DEBUG KONZOLA v2
+          DEBUG KONZOLA v3 (Samo Username)
         </h1>
         <div className="space-y-1 text-sm text-green-400">
           {logs.length === 0 ? "Čekam pokretanje..." : logs.map((l, i) => <div key={i}>{l}</div>)}
@@ -87,7 +90,10 @@ function HomeContent() {
       {/* STATUS KORISNIKA */}
       <div className="p-4 bg-gray-800 rounded-lg text-center">
         {user ? (
-          <h2 className="text-2xl text-green-500 font-bold">ULOGOVAN: {user.username}</h2>
+          <div>
+             <h2 className="text-2xl text-green-500 font-bold mb-2">🎉 ULOGOVAN: {user.username}</h2>
+             <p className="text-gray-400">UID: {user.uid}</p>
+          </div>
         ) : (
           <h2 className="text-xl text-yellow-500 animate-pulse">Nisi ulogovan...</h2>
         )}
