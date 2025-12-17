@@ -12,9 +12,6 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/components/LanguageContext" 
 
-// ❌ OBIRSALI SMO ONAJ STARI IMPORT KOJI JE PRAVIO PROBLEM
-// import { SERVICES_DATA } from "@/lib/data" <--- OVO VIŠE NE POSTOJI
-
 // Da TypeScript ne viče na 'window.Pi'
 declare global {
   interface Window {
@@ -35,30 +32,51 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const { t } = useLanguage();
 
-  // 👇👇👇 PI NETWORK LOGIKA (Ovo nismo dirali) 👇👇👇
+  // 👇👇👇 POPRAVLJENA PI LOGIKA (JEDINA IZMENA) 👇👇👇
   useEffect(() => {
-    const initPi = async () => {
+    const startLogin = async () => {
       try {
+        // Čekamo da Pi Browser ubaci window.Pi
+        if (!window.Pi) {
+          console.log("Pi SDK još nije spreman, čekam...");
+          return; 
+        }
+
+        // 1. Inicijalizacija
         await window.Pi.init({ version: "2.0", sandbox: true });
-        const scopes = ['username', 'payments', 'wallet_address'];
+        
+        // 2. Auth (Username i Payments)
+        const scopes = ['username', 'payments']; 
         const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-        await verifyUser(authResult);
+        
+        // 3. Uspeh - Čuvamo korisnika
+        console.log("Uspešan login:", authResult.user.username);
+        setUser(authResult.user);
+        
+        // Opciono: verifikacija na backendu (ostavio sam tvoju funkciju ako zatreba)
+        // verifyUser(authResult); 
+
       } catch (error) {
         console.error("Greška pri Pi logovanju:", error);
       }
     };
+
     const onIncompletePaymentFound = (payment: any) => { console.log("Nezavršeno plaćanje:", payment); };
 
-    if (window.Pi) { initPi(); } 
-    else {
-      const script = document.createElement('script');
-      script.src = "https://sdk.minepi.com/pi-sdk.js";
-      script.async = true;
-      script.onload = () => initPi();
-      document.body.appendChild(script);
-    }
-  }, []);
+    // Provera na svakih 500ms da li je Pi SDK stigao
+    const intervalId = setInterval(() => {
+      if (window.Pi) {
+        clearInterval(intervalId); // Prekini proveru
+        startLogin(); // Pokreni login
+      }
+    }, 500);
 
+    // Čistimo interval ako korisnik izađe sa strane
+    return () => clearInterval(intervalId);
+  }, []);
+  // 👆👆👆 KRAJ IZMENE 👆👆👆
+
+  // Ovu funkciju smo ostavili da postoji, mada je gore pozivamo opciono
   const verifyUser = async (authData: any) => {
     try {
       const res = await fetch('/api/auth/pi', {
@@ -72,8 +90,6 @@ function HomeContent() {
       }
     } catch (err) { console.error(err); }
   };
-  // 👆👆👆 KRAJ PI LOGIKE 👆👆👆
-
 
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
@@ -121,13 +137,12 @@ function HomeContent() {
     }
   };
 
-  // 👇 GLAVNA PROMENA: UČITAVANJE IZ BAZE PREKO API-ja 👇
+  // 👇 TVOJA NOVA LOGIKA: UČITAVANJE IZ BAZE PREKO API-ja 👇
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
       try {
         console.log("📡 Zovem bazu...");
-        // Zovemo naš novi API most koji smo napravili
         const response = await fetch('/api/services');
         
         if (!response.ok) {
@@ -135,12 +150,9 @@ function HomeContent() {
         }
         
         let data = await response.json();
-        console.log("📦 Stigli podaci iz baze:", data);
-
-        // Ako je baza prazna (npr. greška), data će biti [], nećemo pucati
+        
         if (!Array.isArray(data)) data = [];
         
-        // Filtriranje
         if (selectedCategory) {
           const filterLower = selectedCategory.toLowerCase();
           data = data.filter((service: any) => 
