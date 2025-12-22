@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react" // <--- OVO JE NEDOSTAJALO
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams, usePathname } from "next/navigation" 
 import { useLanguage } from "@/components/LanguageContext"
 import { 
-  LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, LayoutDashboard, Home, LogIn, RefreshCcw 
+  LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, Home, LogIn, RefreshCcw 
 } from "lucide-react"
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
@@ -29,42 +29,34 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const activeCategory = searchParams?.get('category');
 
+  // --- FILTRIRANJE ADMINA ---
+  // Admin panel vidi SAMO "ilija1969". Niko drugi.
+  const isAdmin = user?.username && (
+      user.username.toLowerCase() === "ilija1969" || 
+      user.username.toLowerCase() === "@ilija1969"
+  );
+
   useEffect(() => {
     setIsMounted(true);
-
-    // Ako smo na Login strani, BRIŠEMO lažnog korisnika da prekinemo petlju
-    if (pathname?.includes('/auth/login') || pathname?.includes('/login')) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("sessionKey");
-        setUser(null);
-    } else {
-        // Inače čitamo korisnika
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                setUser(null);
-            }
+    // Čitamo usera iz memorije telefona (Pi Browser ovo popunjava)
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+        try {
+            setUser(JSON.parse(storedUser));
+        } catch (e) {
+            setUser(null);
         }
     }
   }, [pathname]);
 
-  // --- FUNKCIJA ZA TOTALNI RESET (UBIJA LAŽNU SESIJU) ---
   const handleHardReset = () => {
-    // 1. Brišemo sve podatke
-    localStorage.removeItem("user");
-    localStorage.removeItem("sessionKey");
     localStorage.clear();
-    
-    // 2. Brišemo kolačiće
+    sessionStorage.clear();
     document.cookie.split(";").forEach((c) => {
       document.cookie = c
         .replace(/^ +/, "")
         .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
-
-    // 3. Vraćamo na početnu (ne na login) da Pi SDK pokuša ponovo ispravno
     window.location.href = "/";
   };
 
@@ -90,8 +82,6 @@ function NavbarContent() {
   ];
 
   const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
-  
-  // Stil za mobilne linkove (OBIČAN TEKST/DUGME, BEZ KOMPLIKACIJA)
   const mobileLinkClass = "flex items-center gap-3 w-full py-4 px-4 mb-2 font-bold text-gray-800 rounded-xl border-2 border-gray-100 bg-white shadow-sm active:scale-95 transition-all duration-200 decoration-0 no-underline cursor-pointer";
 
   const handleMobileLanguageChange = (e: any, key: string) => {
@@ -118,7 +108,7 @@ function NavbarContent() {
            </Link>
         </div>
 
-        {/* --- DESKTOP MENI (PC - Standardan) --- */}
+        {/* --- DESKTOP MENI --- */}
         <div className="hidden md:flex items-center gap-4 ml-auto relative z-[80]">
           <DropdownMenu>
             <DropdownMenuTrigger className={`${ghostBtnClass} rounded-full`}>
@@ -134,7 +124,8 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link href={user ? "/create" : "/auth/login?redirect=/create"} className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base`}>
+          {/* ISPRAVKA 1: UVEK VODI NA /create, NIKAD NA LOGIN */}
+          <Link href="/create" className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base`}>
              {t('navPostService')}
           </Link>
 
@@ -153,7 +144,8 @@ function NavbarContent() {
                             </Link>
                         </DropdownMenuItem>
                         
-                        {user.role === 'admin' && (
+                        {/* ISPRAVKA 2: ADMIN SAMO ZA ILIJU */}
+                        {isAdmin && (
                             <DropdownMenuItem asChild>
                                 <Link href="/profile" className={`${desktopItemClass} text-blue-600`}>
                                     <ShieldCheck className="w-4 h-4" /> {t('navAdminPanel')}
@@ -176,7 +168,7 @@ function NavbarContent() {
           )}
         </div>
 
-        {/* --- MOBILNI MENI (PI BROWSER "SAFE MODE") --- */}
+        {/* --- MOBILNI MENI --- */}
         <div className="flex md:hidden items-center gap-2 ml-auto relative z-[80]">
             <DropdownMenu open={isMobileLangOpen} onOpenChange={setIsMobileLangOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
@@ -191,7 +183,7 @@ function NavbarContent() {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* GLAVNI MOBILNI MENI */}
+            {/* GLAVNI MENI */}
             <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
                      <Menu className="w-7 h-7 text-gray-700" />
@@ -206,7 +198,7 @@ function NavbarContent() {
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-bold text-gray-800 text-lg">{user.username}</span>
-                                {user.role === 'admin' && <span className="text-xs text-blue-600 font-black bg-blue-100 px-2 py-0.5 rounded-full w-fit">ADMIN</span>}
+                                {isAdmin && <span className="text-xs text-blue-600 font-black bg-blue-100 px-2 py-0.5 rounded-full w-fit">ADMIN</span>}
                             </div>
                         </div>
                     )}
@@ -217,6 +209,7 @@ function NavbarContent() {
                         <Home className="w-5 h-5 text-gray-500" /> {t('backHome')}
                     </a>
 
+                    {/* ISPRAVKA 3: UVEK NA CREATE, NIKAD NA LOGIN */}
                     <a href="/create" className={`${mobileLinkClass} !bg-purple-50 !border-purple-100 !text-purple-700`}>
                         <PlusCircle className="w-5 h-5" /> {t('navPostService')}
                     </a>
@@ -229,7 +222,8 @@ function NavbarContent() {
                                 <UserIcon className="w-5 h-5 text-gray-500" /> {t('navProfile')}
                             </a>
 
-                            {user.role === 'admin' && (
+                            {/* ISPRAVKA 4: ADMIN LINK VIDI SAMO ILIJA */}
+                            {isAdmin && (
                                 <a href="/profile" className={`${mobileLinkClass} !text-blue-600 !bg-blue-50/50 !border-blue-100`}>
                                     <ShieldCheck className="w-5 h-5" /> {t('navAdminPanel')}
                                 </a>
