@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react" // <--- OVO JE NEDOSTAJALO
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams, usePathname } from "next/navigation" 
@@ -197,8 +197,6 @@ function NavbarContent() {
                      <Menu className="w-7 h-7 text-gray-700" />
                 </DropdownMenuTrigger>
                 
-                {/* NAPOMENA: Ovde više NE KORISTIMO DropdownMenuContent jer on može da blokira klikove na Pi Browseru */}
-                {/* Koristimo običan DIV koji simulira meni */}
                 <DropdownMenuContent align="end" className="w-[90vw] h-auto max-h-[85vh] overflow-y-auto p-4 bg-white rounded-2xl border border-gray-200 shadow-2xl z-[99999]">
                     
                     {user && (
@@ -213,14 +211,12 @@ function NavbarContent() {
                         </div>
                     )}
 
-                    {/* --- DIREKTNI LINKOVI ( BEZ REACT ROUTER-a ) --- */}
+                    {/* --- DIREKTNI LINKOVI --- */}
                     
-                    {/* Home */}
                     <a href="/" className={mobileLinkClass}>
                         <Home className="w-5 h-5 text-gray-500" /> {t('backHome')}
                     </a>
 
-                    {/* Postavi oglas */}
                     <a href="/create" className={`${mobileLinkClass} !bg-purple-50 !border-purple-100 !text-purple-700`}>
                         <PlusCircle className="w-5 h-5" /> {t('navPostService')}
                     </a>
@@ -229,19 +225,16 @@ function NavbarContent() {
 
                     {user ? (
                         <>
-                            {/* Profil */}
                             <a href="/profile" className={mobileLinkClass}>
                                 <UserIcon className="w-5 h-5 text-gray-500" /> {t('navProfile')}
                             </a>
 
-                            {/* Admin Panel */}
                             {user.role === 'admin' && (
                                 <a href="/profile" className={`${mobileLinkClass} !text-blue-600 !bg-blue-50/50 !border-blue-100`}>
                                     <ShieldCheck className="w-5 h-5" /> {t('navAdminPanel')}
                                 </a>
                             )}
                             
-                            {/* DUGME ZA ODJAVU / RESET */}
                             <div className="pt-4">
                                 <button 
                                     type="button" 
@@ -260,7 +253,6 @@ function NavbarContent() {
                         </>
                     )}
 
-                    {/* DODATNO SIGURNOSNO DUGME */}
                     <div className="mt-4 pt-4 border-t text-center">
                         <button onClick={handleHardReset} className="text-xs text-gray-400 flex items-center justify-center w-full gap-1 p-2">
                              <RefreshCcw className="w-3 h-3" /> Resetuj App (Ako zablokira)
