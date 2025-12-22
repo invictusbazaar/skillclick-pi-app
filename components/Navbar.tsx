@@ -24,19 +24,21 @@ function NavbarContent() {
   
   const [isMobileLangOpen, setIsMobileLangOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
   const [clickedLang, setClickedLang] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
 
   useEffect(() => {
+    // Provera da li je korisnik ulogovan
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
         try {
             setUser(JSON.parse(storedUser));
         } catch (e) {
-            console.error("User error", e);
+            // Ako su podaci oštećeni, odmah brišemo sve da ne baguje
+            console.error("User data corrupted", e);
+            localStorage.removeItem("user");
             setUser(null);
         }
     } else {
@@ -44,12 +46,22 @@ function NavbarContent() {
     }
   }, [pathname]);
 
+  // --- AGRESIVNI LOGOUT ---
   const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("sessionKey");
+    // 1. Brišemo sve iz lokalne memorije
+    localStorage.clear(); 
+    
+    // 2. Brišemo kolačiće (za svaki slučaj)
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
     setUser(null);
-    // 👇 IZMENA: Vraćamo na "/" (Home) umesto na login da izbegnemo redirect loop na mobilnom
-    window.location.href = "/"; 
+    
+    // 3. Tvrdo osvežavanje stranice (Hard Reload) na Login
+    window.location.href = "/auth/login";
   };
 
   const languages: Record<string, { label: string; flag: string }> = {
@@ -75,12 +87,9 @@ function NavbarContent() {
 
   const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
   
-  const mobileItemClass = `
-    py-3 px-3 mb-1 font-bold cursor-pointer rounded-xl border-2 border-transparent transition-all duration-300
-    text-gray-700 flex items-center gap-3 w-full outline-none
-    focus:!bg-purple-100 focus:!text-purple-900 focus:!border-purple-200
-    data-[highlighted]:!bg-purple-100 data-[highlighted]:!text-purple-900
-    active:scale-95
+  const mobileLinkClass = `
+    flex items-center gap-3 w-full py-3 px-3 mb-1 font-bold text-gray-700 rounded-xl border-2 border-transparent 
+    transition-all duration-300 hover:bg-purple-50 focus:bg-purple-100 outline-none
   `;
 
   const handleMobileLanguageChange = (e: any, key: string) => {
@@ -91,22 +100,6 @@ function NavbarContent() {
         setIsMobileLangOpen(false); 
         setClickedLang(null); 
     }, 300); 
-  };
-
-  const handleMobileNav = (e: any, path: string) => {
-    e.preventDefault();
-    setTimeout(() => {
-        router.push(path);
-        setIsMobileMenuOpen(false);
-    }, 300);
-  };
-
-  const handleMobileLogout = (e: any) => {
-    e.preventDefault();
-    setTimeout(() => {
-        logout();
-        setIsMobileMenuOpen(false);
-    }, 300);
   };
 
   return (
@@ -163,16 +156,15 @@ function NavbarContent() {
                             </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 bg-white border-gray-100 shadow-lg p-1 z-[100]">
-                        <DropdownMenuItem asChild className={desktopItemClass}>
-                            <Link href="/profile">
+                        <DropdownMenuItem asChild>
+                            <Link href="/profile" className={desktopItemClass}>
                                 <UserIcon className="w-4 h-4" /> {t('navProfile')}
                             </Link>
                         </DropdownMenuItem>
                         
-                        {/* PC Admin Panel - Vodi na /profile */}
                         {user.role === 'admin' && (
-                            <DropdownMenuItem asChild className={`${desktopItemClass} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}>
-                                <Link href="/profile">
+                            <DropdownMenuItem asChild>
+                                <Link href="/profile" className={`${desktopItemClass} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}>
                                     <ShieldCheck className="w-4 h-4" /> {t('navAdminPanel')}
                                 </Link>
                             </DropdownMenuItem>
@@ -208,13 +200,7 @@ function NavbarContent() {
                         <DropdownMenuItem 
                             key={key} 
                             onSelect={(e) => handleMobileLanguageChange(e, key)}
-                            className={`
-                                ${mobileItemClass}
-                                ${isClicked 
-                                    ? "!bg-purple-100 !text-purple-900 !border-purple-200 scale-95" 
-                                    : "border-transparent"
-                                }
-                            `}
+                            className={`py-3 px-3 mb-1 font-bold cursor-pointer rounded-xl border-2 border-transparent transition-all duration-300 ${isClicked ? "!bg-purple-100" : ""}`}
                         >
                         <span className="mr-3 text-xl">{flag}</span> {label}
                         </DropdownMenuItem>
@@ -244,50 +230,60 @@ function NavbarContent() {
                         </>
                     )}
 
-                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/")} className={mobileItemClass}>
-                        <Home className="w-4 h-4" /> {t('backHome')}
+                    <DropdownMenuItem asChild>
+                        <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className={mobileLinkClass}>
+                            <Home className="w-4 h-4" /> {t('backHome')}
+                        </Link>
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, user ? "/create" : "/auth/login?redirect=/create")} className={`
-                        ${mobileItemClass} !text-purple-700 !bg-purple-50/50 !border-purple-100 
-                        focus:!bg-purple-100 focus:!text-purple-900
-                    `}>
-                        <PlusCircle className="w-4 h-4" /> {t('navPostService')}
+                    <DropdownMenuItem asChild>
+                        <Link 
+                           href={user ? "/create" : "/auth/login?redirect=/create"} 
+                           onClick={() => setIsMobileMenuOpen(false)}
+                           className={`${mobileLinkClass} text-purple-700 bg-purple-50/50`}
+                        >
+                           <PlusCircle className="w-4 h-4" /> {t('navPostService')}
+                        </Link>
                     </DropdownMenuItem>
                     
                     <DropdownMenuSeparator className="bg-gray-100 my-1" />
 
                     {user ? (
                         <>
-                            <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={mobileItemClass}>
-                                <UserIcon className="w-4 h-4" /> {t('navProfile')}
+                            <DropdownMenuItem asChild>
+                                <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className={mobileLinkClass}>
+                                    <UserIcon className="w-4 h-4" /> {t('navProfile')}
+                                </Link>
                             </DropdownMenuItem>
                             
-                            {/* Mobilni Admin Panel - Vodi na /profile */}
+                            {/* ADMIN PANEL - VODI NA /profile */}
                             {user.role === 'admin' && (
-                                <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
-                                    <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
+                                <DropdownMenuItem asChild>
+                                    <Link 
+                                        href="/profile" 
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className={`${mobileLinkClass} text-blue-600 bg-blue-50/30`}
+                                    >
+                                        <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
+                                    </Link>
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onSelect={handleMobileLogout} className={mobileItemClass}>
+                            
+                            <DropdownMenuItem onClick={logout} className={`${mobileLinkClass} text-red-600 cursor-pointer`}>
                                 <LogOut className="w-4 h-4" /> {t('navLogout')}
                             </DropdownMenuItem>
                         </>
                     ) : (
                         <>
-                           {/* Mobilni Login - Putanja je /auth/login */}
-                           <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/auth/login")} className={`
-                                ${mobileItemClass} !bg-purple-600 !text-white 
-                                focus:!bg-purple-700 focus:!text-white
-                           `}>
-                                <LogIn className="w-4 h-4" /> {t('navLogin')}
-                            </DropdownMenuItem>
-
-                            {/* 👇 KLJUČNO: OVO DUGME REŠAVA TVOJ PROBLEM SA 404 NA MOBILNOM */}
-                            <DropdownMenuSeparator />
-                             <DropdownMenuItem onSelect={handleMobileLogout} className={`${mobileItemClass} text-red-500`}>
-                                <LogOut className="w-4 h-4" /> Resetuj/Odjavi se
-                            </DropdownMenuItem>
+                           {/* LOGIN ZA MOBILNI - KORISTIMO OBICAN <a href> DA SPREČIMO VRĆENJE */}
+                           <div className="p-1">
+                               <a 
+                                 href="/auth/login" 
+                                 className={`${mobileLinkClass} bg-purple-600 !text-white hover:!bg-purple-700 flex justify-center`}
+                               >
+                                    <LogIn className="w-4 h-4 mr-2" /> {t('navLogin')}
+                               </a>
+                           </div>
                         </>
                     )}
                 </DropdownMenuContent>
