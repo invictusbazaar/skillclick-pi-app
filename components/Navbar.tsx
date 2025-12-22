@@ -27,25 +27,29 @@ function NavbarContent() {
   const [clickedLang, setClickedLang] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
-  const activeCategory = searchParams.get('category');
+  const activeCategory = searchParams?.get('category');
 
   useEffect(() => {
     setIsMounted(true);
 
-    // --- KLJUČNI DEO: PREKIDANJE LOGIN PETLJE ---
-    // Ako smo na stranici za login, MORAMO obrisati starog korisnika iz memorije
+    // --- STOP LOGIN LOOP ---
+    // Ako smo na login stranici, a memorija ima podatke, brišemo ih!
     if (pathname === '/auth/login' || pathname === '/login') {
         localStorage.removeItem("user");
         localStorage.removeItem("sessionKey");
         setUser(null);
-        return; // Prekidamo dalje izvršavanje
+        return; 
     }
 
-    // U suprotnom, čitamo korisnika
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
         try {
-            setUser(JSON.parse(storedUser));
+            const parsed = JSON.parse(storedUser);
+            if (parsed && parsed.username) {
+                setUser(parsed);
+            } else {
+                localStorage.removeItem("user");
+            }
         } catch (e) {
             localStorage.removeItem("user");
             setUser(null);
@@ -53,18 +57,18 @@ function NavbarContent() {
     }
   }, [pathname]);
 
-  // --- BRUTALNA ODJAVA ---
+  // --- HARD LOGOUT ---
   const handleForceLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    // Brisanje kolačića
-    document.cookie.split(";").forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-    // Hard refresh na LOGIN stranicu
-    window.location.href = "/auth/login";
+    if (typeof window !== "undefined") {
+        localStorage.clear();
+        sessionStorage.clear();
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        window.location.href = "/auth/login";
+    }
   };
 
   const languages: Record<string, { label: string; flag: string }> = {
@@ -90,11 +94,8 @@ function NavbarContent() {
 
   const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
   
-  // Stil za mobilne linkove
-  const mobileLinkClass = `
-    flex items-center gap-3 w-full py-4 px-4 mb-2 font-bold text-gray-800 rounded-xl border-2 border-gray-100 
-    bg-white shadow-sm active:scale-95 transition-all duration-200 decoration-0 no-underline cursor-pointer
-  `;
+  // Stil za mobilne linkove (PI BROWSER FRIENDLY)
+  const mobileLinkClass = "flex items-center gap-3 w-full py-4 px-4 mb-2 font-bold text-gray-800 rounded-xl border-2 border-gray-100 bg-white shadow-sm active:scale-95 transition-all duration-200 decoration-0 no-underline cursor-pointer";
 
   const handleMobileLanguageChange = (e: any, key: string) => {
     e.preventDefault(); 
@@ -114,7 +115,7 @@ function NavbarContent() {
       <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[60]">
         
         {/* LOGO */}
-        <div className={`flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[70] -ml-[116px] md:-ml-[220px] mt-[-2px] md:mt-[-4px] pointer-events-none`}>
+        <div className="flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[70] -ml-[116px] md:-ml-[220px] mt-[-2px] md:mt-[-4px] pointer-events-none">
            <Link href="/" className="pointer-events-auto block"> 
               <Image src="/skillclick_logo.png" alt="SkillClick Logo" width={600} height={150} className="w-[360px] md:w-[400px] h-auto object-contain object-left" priority />
            </Link>
@@ -178,7 +179,7 @@ function NavbarContent() {
           )}
         </div>
 
-        {/* --- MOBILNI MENI (PI BROWSER SAFE MODE) --- */}
+        {/* --- MOBILNI MENI --- */}
         <div className="flex md:hidden items-center gap-2 ml-auto relative z-[80]">
             <DropdownMenu open={isMobileLangOpen} onOpenChange={setIsMobileLangOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
@@ -193,7 +194,6 @@ function NavbarContent() {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* GLAVNI MENI - Z-INDEX MAX */}
             <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
                      <Menu className="w-7 h-7 text-gray-700" />
@@ -213,7 +213,8 @@ function NavbarContent() {
                         </div>
                     )}
 
-                    {/* HARD LINKOVI - <a> tagovi */}
+                    {/* HARD LINKOVI (SA <a> TAGOVIMA) - OVO JE KLJUČNO ZA PI BROWSER */}
+                    
                     <a href="/" className={mobileLinkClass}>
                         <Home className="w-5 h-5 text-gray-500" /> {t('backHome')}
                     </a>
@@ -233,10 +234,9 @@ function NavbarContent() {
                             {user.role === 'admin' && (
                                 <a href="/profile" className={`${mobileLinkClass} !text-blue-600 !bg-blue-50/50 !border-blue-100`}>
                                     <ShieldCheck className="w-5 h-5" /> {t('navAdminPanel')}
-                                </Link>
+                                </a>
                             )}
                             
-                            {/* DUGME ZA ODJAVU */}
                             <div className="pt-4">
                                 <button 
                                     type="button"
@@ -255,7 +255,6 @@ function NavbarContent() {
                         </>
                     )}
 
-                    {/* RESET NA DNU */}
                     <div className="mt-6 border-t pt-4">
                          <button onClick={handleForceLogout} className="w-full text-center text-xs text-gray-400 py-2 flex items-center justify-center gap-1">
                              <RefreshCcw className="w-3 h-3" /> Resetuj aplikaciju (Force)
