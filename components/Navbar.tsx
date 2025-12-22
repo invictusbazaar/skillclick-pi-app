@@ -6,7 +6,7 @@ import Image from "next/image"
 import { useSearchParams, useRouter, usePathname } from "next/navigation" 
 import { useLanguage } from "@/components/LanguageContext"
 import { 
-  LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, LayoutDashboard, Home 
+  LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, LayoutDashboard, Home, LogIn 
 } from "lucide-react"
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
@@ -37,6 +37,7 @@ function NavbarContent() {
             setUser(JSON.parse(storedUser));
         } catch (e) {
             console.error("User error", e);
+            setUser(null);
         }
     } else {
         setUser(null);
@@ -46,8 +47,9 @@ function NavbarContent() {
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    router.push("/");
-    setTimeout(() => window.location.reload(), 100);
+    // Vraćeno na /auth/login jer je to tvoja prava putanja
+    router.push("/auth/login");
+    setTimeout(() => window.location.reload(), 300);
   };
 
   const languages: Record<string, { label: string; flag: string }> = {
@@ -138,6 +140,7 @@ function NavbarContent() {
           </DropdownMenu>
 
           <Link 
+            // VRACENO NA /auth/login
             href={user ? "/create" : "/auth/login?redirect=/create"} 
             className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base`}
           >
@@ -167,7 +170,7 @@ function NavbarContent() {
                             </Link>
                         </DropdownMenuItem>
                         
-                        {/* ISPRAVLJENO (DESKTOP): Vodi na /profile */}
+                        {/* Admin panel vodi na /profile */}
                         {user.role === 'admin' && (
                             <DropdownMenuItem asChild className={`${desktopItemClass} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}>
                                 <Link href="/profile">
@@ -186,6 +189,7 @@ function NavbarContent() {
             </div>
           ) : (
              <div className="flex items-center gap-3">
+                {/* VRACENO NA /auth/login */}
                 <Link href="/auth/login" className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 rounded-md inline-flex items-center justify-center text-sm transition-colors">
                     {t('navLogin')}
                 </Link>
@@ -261,7 +265,7 @@ function NavbarContent() {
                                 <UserIcon className="w-4 h-4" /> {t('navProfile')}
                             </DropdownMenuItem>
                             
-                            {/* 👇 ISPRAVLJENO (MOBILNI): Sada i ovde vodi na /profile */}
+                            {/* Admin panel na mobilnom vodi na /profile */}
                             {user.role === 'admin' && (
                                 <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
                                     <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
@@ -273,11 +277,18 @@ function NavbarContent() {
                         </>
                     ) : (
                         <>
+                           {/* VRACENO NA /auth/login */}
                            <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/auth/login")} className={`
                                 ${mobileItemClass} !bg-purple-600 !text-white 
                                 focus:!bg-purple-700 focus:!text-white
                            `}>
-                                {t('navLogin')}
+                                <LogIn className="w-4 h-4" /> {t('navLogin')}
+                            </DropdownMenuItem>
+
+                            {/* Sigurnosno dugme (ostaje za svaki slučaj) */}
+                            <DropdownMenuSeparator />
+                             <DropdownMenuItem onSelect={handleMobileLogout} className={`${mobileItemClass} text-red-500`}>
+                                <LogOut className="w-4 h-4" /> Resetuj/Odjavi se
                             </DropdownMenuItem>
                         </>
                     )}
