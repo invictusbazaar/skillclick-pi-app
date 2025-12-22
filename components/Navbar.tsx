@@ -9,7 +9,7 @@ import {
   LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, LayoutDashboard, Home, LogIn, RefreshCcw 
 } from "lucide-react"
 import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 
 // Stilovi
@@ -31,18 +31,22 @@ function NavbarContent() {
 
   useEffect(() => {
     setIsMounted(true);
+
+    // --- KLJUČNI DEO: PREKIDANJE LOGIN PETLJE ---
+    // Ako smo na stranici za login, MORAMO obrisati starog korisnika iz memorije
+    if (pathname === '/auth/login' || pathname === '/login') {
+        localStorage.removeItem("user");
+        localStorage.removeItem("sessionKey");
+        setUser(null);
+        return; // Prekidamo dalje izvršavanje
+    }
+
+    // U suprotnom, čitamo korisnika
     const storedUser = localStorage.getItem("user");
-    
     if (storedUser) {
         try {
-            const parsedUser = JSON.parse(storedUser);
-            // Prosta validacija - ako nema username, podaci su loši
-            if (!parsedUser || !parsedUser.username) {
-                 throw new Error("Invalid user data");
-            }
-            setUser(parsedUser);
+            setUser(JSON.parse(storedUser));
         } catch (e) {
-            // Ako su podaci korumpirani, odmah ih brišemo da ne bude "Zombi" stanja
             localStorage.removeItem("user");
             setUser(null);
         }
@@ -50,23 +54,17 @@ function NavbarContent() {
   }, [pathname]);
 
   // --- BRUTALNA ODJAVA ---
-  // Ova funkcija ne koristi React stanje, već direktno manipuliše browserom
   const handleForceLogout = () => {
-    try {
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Brisanje kolačića
-        document.cookie.split(";").forEach((c) => {
-          document.cookie = c
-            .replace(/^ +/, "")
-            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-    } catch (e) {
-        console.error("Logout error", e);
-    }
-    // Hard refresh na početnu
-    window.location.href = "/";
+    localStorage.clear();
+    sessionStorage.clear();
+    // Brisanje kolačića
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    // Hard refresh na LOGIN stranicu
+    window.location.href = "/auth/login";
   };
 
   const languages: Record<string, { label: string; flag: string }> = {
@@ -122,7 +120,7 @@ function NavbarContent() {
            </Link>
         </div>
 
-        {/* --- DESKTOP MENI (PC - Standardan React način) --- */}
+        {/* --- DESKTOP MENI --- */}
         <div className="hidden md:flex items-center gap-4 ml-auto relative z-[80]">
           <DropdownMenu>
             <DropdownMenuTrigger className={`${ghostBtnClass} rounded-full`}>
@@ -180,7 +178,7 @@ function NavbarContent() {
           )}
         </div>
 
-        {/* --- MOBILNI MENI (ANTI-REACT / PI BROWSER SAFE MODE) --- */}
+        {/* --- MOBILNI MENI (PI BROWSER SAFE MODE) --- */}
         <div className="flex md:hidden items-center gap-2 ml-auto relative z-[80]">
             <DropdownMenu open={isMobileLangOpen} onOpenChange={setIsMobileLangOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
@@ -195,7 +193,7 @@ function NavbarContent() {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* GLAVNI MENI - Z-INDEX MAX DA SE NE PREKLAPA SA MAPOM/SLIKAMA */}
+            {/* GLAVNI MENI - Z-INDEX MAX */}
             <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
                      <Menu className="w-7 h-7 text-gray-700" />
@@ -215,9 +213,7 @@ function NavbarContent() {
                         </div>
                     )}
 
-                    {/* --- HARD LINKOVI (SA <a> TAGOVIMA) --- */}
-                    {/* OVO MORA DA RADI JER ZAOBILAZI REACT ROUTER */}
-
+                    {/* HARD LINKOVI - <a> tagovi */}
                     <a href="/" className={mobileLinkClass}>
                         <Home className="w-5 h-5 text-gray-500" /> {t('backHome')}
                     </a>
@@ -237,17 +233,14 @@ function NavbarContent() {
                             {user.role === 'admin' && (
                                 <a href="/profile" className={`${mobileLinkClass} !text-blue-600 !bg-blue-50/50 !border-blue-100`}>
                                     <ShieldCheck className="w-5 h-5" /> {t('navAdminPanel')}
-                                </a>
+                                </Link>
                             )}
                             
-                            {/* DUGME ZA ODJAVU - OBIČAN BUTTON KOJI ZOVE JS FUNKCIJU */}
+                            {/* DUGME ZA ODJAVU */}
                             <div className="pt-4">
                                 <button 
                                     type="button"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        handleForceLogout();
-                                    }}
+                                    onClick={handleForceLogout}
                                     className="flex items-center justify-center w-full py-4 px-4 font-bold text-red-600 bg-red-50 border-2 border-red-100 rounded-xl active:scale-95 transition-all"
                                 >
                                     <LogOut className="w-5 h-5 mr-2" /> {t('navLogout')}
@@ -262,10 +255,10 @@ function NavbarContent() {
                         </>
                     )}
 
-                    {/* SIGURNOSNI RESET - UVEK VIDLJIV NA DNU AKO SVE ZAKAŽE */}
+                    {/* RESET NA DNU */}
                     <div className="mt-6 border-t pt-4">
                          <button onClick={handleForceLogout} className="w-full text-center text-xs text-gray-400 py-2 flex items-center justify-center gap-1">
-                             <RefreshCcw className="w-3 h-3" /> Resetuj aplikaciju (Ako zakoči)
+                             <RefreshCcw className="w-3 h-3" /> Resetuj aplikaciju (Force)
                          </button>
                     </div>
 
@@ -274,7 +267,7 @@ function NavbarContent() {
         </div>
       </div>
       
-      {/* Kategorije traka */}
+      {/* Kategorije */}
       <div className="block border-t border-transparent relative z-[90]">
          <div className="container mx-auto px-4">
             <div className="flex items-center gap-6 md:gap-6 overflow-x-auto py-1 md:justify-between [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-purple-400/60 [&::-webkit-scrollbar-thumb]:rounded-full">
