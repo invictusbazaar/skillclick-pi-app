@@ -27,10 +27,8 @@ function NavbarContent() {
   const [clickedLang, setClickedLang] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
-  const activeCategory = searchParams?.get('category');
 
-  // --- 1. KO JE GAZDA? ---
-  // Admin panel vidi SAMO "ilija1969". Niko drugi.
+  // PROVERA ZA ILIJU
   const isAdmin = user?.username && (
       user.username.toLowerCase() === "ilija1969" || 
       user.username.toLowerCase() === "@ilija1969"
@@ -38,20 +36,13 @@ function NavbarContent() {
 
   useEffect(() => {
     setIsMounted(true);
-
-    // Ako smo slučajno na login strani, a piše da smo ulogovani, brišemo to da ne zbunjujemo sistem
-    if (pathname?.includes('/auth/login')) {
-        localStorage.removeItem("user");
-        setUser(null);
-    } else {
-        // Inače učitavamo usera
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                setUser(null);
-            }
+    // Učitavamo korisnika kojeg je app/page.tsx sačuvao
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+        try {
+            setUser(JSON.parse(storedUser));
+        } catch (e) {
+            setUser(null);
         }
     }
   }, [pathname]);
@@ -59,11 +50,8 @@ function NavbarContent() {
   const handleHardReset = () => {
     localStorage.clear();
     sessionStorage.clear();
-    // Brisanje kolačića
     document.cookie.split(";").forEach((c) => {
-      document.cookie = c
-        .replace(/^ +/, "")
-        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
     window.location.href = "/";
   };
@@ -134,11 +122,7 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* --- KLJUČNA IZMENA ZA "POSTAVI OGLAS" --- 
-              Koristimo običan <a href> umesto Link komponente. 
-              To tera browser da uradi "full refresh" i pošalje prave podatke serveru.
-              Ovo rešava problem sa vraćanjem na login!
-          */}
+          {/* DUGME POSTAVI OGLAS - Vodi direktno na /create */}
           <a href="/create" className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base cursor-pointer no-underline`}>
              {t('navPostService')}
           </a>
@@ -158,7 +142,7 @@ function NavbarContent() {
                             </Link>
                         </DropdownMenuItem>
                         
-                        {/* SAMO AKO JE ILIJA (isAdmin je true) PRIKAZUJEMO ADMIN DUGME */}
+                        {/* SAMO AKO JE ILIJA (isAdmin) PRIKAZI OVO */}
                         {isAdmin && (
                             <DropdownMenuItem asChild>
                                 <Link href="/profile" className={`${desktopItemClass} text-blue-600`}>
@@ -175,6 +159,7 @@ function NavbarContent() {
             </div>
           ) : (
              <div className="flex items-center gap-3">
+                {/* Ako se desi greška, ovo je backup */}
                 <Link href="/auth/login" className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 rounded-md inline-flex items-center justify-center text-sm transition-colors">
                     {t('navLogin')}
                 </Link>
@@ -211,22 +196,15 @@ function NavbarContent() {
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-bold text-gray-800 text-lg">{user.username}</span>
-                                {/* SAMO AKO JE ILIJA PIŠE ADMIN */}
                                 {isAdmin && <span className="text-xs text-blue-600 font-black bg-blue-100 px-2 py-0.5 rounded-full w-fit">ADMIN</span>}
                             </div>
                         </div>
                     )}
 
-                    {/* --- DIREKTNI LINKOVI --- */}
-                    
                     <a href="/" className={mobileLinkClass}>
                         <Home className="w-5 h-5 text-gray-500" /> {t('backHome')}
                     </a>
 
-                    {/* KLJUČNO ZA PI BROWSER: Koristimo <a href> umesto Link-a. 
-                        Ovo naređuje telefonu da učita stranicu ispočetka, 
-                        čime se potvrđuje tvoj identitet na serveru.
-                    */}
                     <a href="/create" className={`${mobileLinkClass} !bg-purple-50 !border-purple-100 !text-purple-700`}>
                         <PlusCircle className="w-5 h-5" /> {t('navPostService')}
                     </a>
@@ -239,7 +217,6 @@ function NavbarContent() {
                                 <UserIcon className="w-5 h-5 text-gray-500" /> {t('navProfile')}
                             </a>
 
-                            {/* ADMIN LINK VIDI SAMO ILIJA */}
                             {isAdmin && (
                                 <a href="/profile" className={`${mobileLinkClass} !text-blue-600 !bg-blue-50/50 !border-blue-100`}>
                                     <ShieldCheck className="w-5 h-5" /> {t('navAdminPanel')}
