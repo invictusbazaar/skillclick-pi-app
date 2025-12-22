@@ -32,6 +32,32 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const { t } = useLanguage();
 
+  // Provera da li je korisnik gazda (Ilija)
+  const isAdmin = user?.username && (
+    user.username.toLowerCase() === "ilija1969" || 
+    user.username.toLowerCase() === "@ilija1969"
+  );
+
+  // 👇👇👇 FUNKCIJA ZA SLANJE PODATAKA SERVERU 👇👇👇
+  const verifyUser = async (authData: any) => {
+    try {
+      console.log("🔐 Verifikujem korisnika na serveru...");
+      const res = await fetch('/api/auth/pi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: authData.accessToken, user: authData.user }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log("✅ Server potvrdio sesiju:", data.user.username);
+        setUser(data.user);
+        
+        // Čuvamo u localStorage da Navbar zna
+        localStorage.setItem("user", JSON.stringify(data.user)); 
+      }
+    } catch (err) { console.error("Greška pri verifikaciji:", err); }
+  };
+
   // 👇👇👇 PI LOGIKA 👇👇👇
   useEffect(() => {
     const startLogin = async () => {
@@ -46,8 +72,20 @@ function HomeContent() {
         const scopes = ['username', 'payments']; 
         const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
         
-        console.log("Uspešan login:", authResult.user.username);
+        console.log("Uspešan Pi login:", authResult.user.username);
+        
+        // 1. POSTAVLJAMO KORISNIKA LOKALNO
         setUser(authResult.user);
+
+        // 2. KLJUČNO: JAVLJAMO SERVERU DA SMO TU (Ovo je falilo!)
+        await verifyUser(authResult);
+
+        // 3. AUTOMATSKI REDIRECT ZA ILIJU
+        const username = authResult.user.username.toLowerCase();
+        if (username === "ilija1969" || username === "@ilija1969") {
+            console.log("👑 Gazda prepoznat, prebacujem na panel...");
+            router.replace("/profile"); 
+        }
 
       } catch (error) {
         console.error("Greška pri Pi logovanju:", error);
@@ -64,21 +102,7 @@ function HomeContent() {
     }, 500);
 
     return () => clearInterval(intervalId);
-  }, []);
-
-  const verifyUser = async (authData: any) => {
-    try {
-      const res = await fetch('/api/auth/pi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: authData.accessToken, user: authData.user }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      }
-    } catch (err) { console.error(err); }
-  };
+  }, [router]);
 
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
@@ -195,20 +219,16 @@ function HomeContent() {
 
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
             
-            {/* 👇👇👇 IZMENJENO: ADMIN DUGME I USER BADGE KAO NA SLICI 👇👇👇 */}
-            {user && (
+            {/* 👇 SAKRIVENO ZA SVE OSIM ZA ILIJU 👇 */}
+            {/* Tvoj sin Mario ovo NEĆE videti jer nije admin */}
+            {user && isAdmin && (
               <div className="flex flex-col items-center gap-4 mb-8 animate-fade-in">
-                 {/* Pozdravni bedž */}
                  <div className="flex items-center gap-2 px-4 py-1.5 bg-indigo-900/40 rounded-full border border-indigo-400/30 backdrop-blur-md shadow-lg">
-                    <span className="text-xl">👋</span>
+                    <span className="text-xl">👑</span>
                     <span className="font-bold text-purple-100">{user.username}</span>
-                    <span className="text-xs text-purple-300 hover:text-white cursor-pointer ml-2 border-l border-purple-500/50 pl-2">
-                       (Odjavi se)
-                    </span>
                  </div>
 
-                 {/* CRVENO DUGME - LINK POPRAVLJEN NA /admin */}
-                 <Link href="/admin">
+                 <Link href="/profile">
                     <Button className="bg-red-600 hover:bg-red-700 text-white font-bold text-base md:text-lg py-6 px-8 rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all border border-red-500/20 flex items-center gap-2">
                        <ShieldCheck className="w-6 h-6" />
                        UDJI U ADMIN PANEL
@@ -216,7 +236,6 @@ function HomeContent() {
                  </Link>
               </div>
             )}
-            {/* 👆👆👆 KRAJ IZMENE 👆👆👆 */}
             
             <h1 className="text-4xl sm:text-5xl md:text-8xl font-extrabold mb-1 tracking-tighter drop-shadow-2xl">SkillClick</h1>
             
@@ -237,6 +256,17 @@ function HomeContent() {
                     {t('searchBtn') || "Search"}
                 </Button>
             </div>
+            
+            {/* DUGME ZA POSTAVLJANJE OGLASA (U HERO SEKCIJI) - Hard link */}
+            <div className="mt-8">
+                <a 
+                  href="/create" 
+                  className="inline-flex items-center justify-center px-6 py-3 text-base md:text-lg font-bold text-white bg-purple-500/20 border border-purple-400/30 rounded-full hover:bg-purple-500/40 transition-all"
+                >
+                  + {t('navPostService')}
+                </a>
+            </div>
+
          </div>
       </main>
 
