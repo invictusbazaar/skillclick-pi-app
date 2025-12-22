@@ -6,7 +6,7 @@ import Image from "next/image"
 import { useSearchParams, useRouter, usePathname } from "next/navigation" 
 import { useLanguage } from "@/components/LanguageContext"
 import { 
-  LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, LayoutDashboard, Home, LogIn 
+  LogOut, ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, LayoutDashboard, Home, LogIn, RefreshCcw 
 } from "lucide-react"
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel
@@ -18,6 +18,7 @@ const iconBtnClass = "h-10 w-10 rounded-full p-0 hover:bg-purple-50 inline-flex 
 
 function NavbarContent() {
   const [user, setUser] = useState<any>(null);
+  const [isMounted, setIsMounted] = useState(false); // NOVO: Čeka da se browser učita
   const { language, setLanguage, t } = useLanguage(); 
   const router = useRouter(); 
   const pathname = usePathname();
@@ -30,37 +31,31 @@ function NavbarContent() {
   const activeCategory = searchParams.get('category');
 
   useEffect(() => {
-    // Provera da li je korisnik ulogovan
+    setIsMounted(true); // Signalizira da je HTML spreman
+    
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
         try {
             setUser(JSON.parse(storedUser));
         } catch (e) {
-            // Ako su podaci oštećeni, odmah brišemo sve da ne baguje
-            console.error("User data corrupted", e);
             localStorage.removeItem("user");
             setUser(null);
         }
-    } else {
-        setUser(null);
     }
   }, [pathname]);
 
-  // --- AGRESIVNI LOGOUT ---
-  const logout = () => {
-    // 1. Brišemo sve iz lokalne memorije
-    localStorage.clear(); 
-    
-    // 2. Brišemo kolačiće (za svaki slučaj)
+  // --- FORCE LOGOUT ---
+  const handleForceLogout = () => {
+    // Brisanje svega živog
+    localStorage.clear();
+    sessionStorage.clear();
+    // Brisanje kolačića "peške"
     document.cookie.split(";").forEach((c) => {
       document.cookie = c
         .replace(/^ +/, "")
         .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
-
-    setUser(null);
-    
-    // 3. Tvrdo osvežavanje stranice (Hard Reload) na Login
+    // Tvrdi refresh na login
     window.location.href = "/auth/login";
   };
 
@@ -87,6 +82,7 @@ function NavbarContent() {
 
   const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
   
+  // Stil za mobilne linkove
   const mobileLinkClass = `
     flex items-center gap-3 w-full py-3 px-3 mb-1 font-bold text-gray-700 rounded-xl border-2 border-transparent 
     transition-all duration-300 hover:bg-purple-50 focus:bg-purple-100 outline-none
@@ -102,6 +98,9 @@ function NavbarContent() {
     }, 300); 
   };
 
+  // Ako browser nije spreman, renderujemo prazan navbar da ne bi bilo "Ilija" greške
+  if (!isMounted) return <div className="h-20 bg-white border-b"></div>;
+
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
       
@@ -114,7 +113,7 @@ function NavbarContent() {
            </Link>
         </div>
 
-        {/* --- DESKTOP MENI --- */}
+        {/* --- DESKTOP MENI (Ostaje isti jer radi) --- */}
         <div className="hidden md:flex items-center gap-4 ml-auto relative z-[80]">
           
           <DropdownMenu>
@@ -171,7 +170,7 @@ function NavbarContent() {
                         )}
                         
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={logout} className={`${desktopItemClass} text-red-600 hover:text-red-700 hover:bg-red-50`}>
+                        <DropdownMenuItem onClick={handleForceLogout} className={`${desktopItemClass} text-red-600 hover:text-red-700 hover:bg-red-50`}>
                             <LogOut className="w-4 h-4" /> {t('navLogout')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -187,7 +186,7 @@ function NavbarContent() {
           )}
         </div>
 
-        {/* --- MOBILNI MENI --- */}
+        {/* --- MOBILNI MENI (TOTALNA PROMENA - SIROVI LINKOVI) --- */}
         <div className="flex md:hidden items-center gap-2 ml-auto relative z-[80]">
             <DropdownMenu open={isMobileLangOpen} onOpenChange={setIsMobileLangOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
@@ -214,12 +213,13 @@ function NavbarContent() {
                      <Menu className="w-7 h-7 text-gray-700" />
                 </DropdownMenuTrigger>
                 
+                {/* SADRŽAJ MENIJA - KORISTIMO OBIČNE <a href> DA ZAOBIĐEMO REACT LOOP */}
                 <DropdownMenuContent align="end" className="w-64 p-2 font-sans bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl max-h-[85vh] overflow-y-auto">
                     {user && (
                         <>
                             <DropdownMenuLabel className="px-2 py-3 bg-purple-50 rounded-lg mb-2 flex items-center gap-3 mx-1">
                                 <div className="w-8 h-8 bg-purple-200 text-purple-800 rounded-full flex items-center justify-center font-bold text-sm">
-                                    {user.username[0].toUpperCase()}
+                                    {user.username ? user.username[0].toUpperCase() : "U"}
                                 </div>
                                 <div className="flex flex-col overflow-hidden">
                                     <span className="font-bold text-gray-800 truncate">{user.username}</span>
@@ -230,20 +230,17 @@ function NavbarContent() {
                         </>
                     )}
 
+                    {/* Hard Link za Home */}
                     <DropdownMenuItem asChild>
-                        <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className={mobileLinkClass}>
+                        <a href="/" className={mobileLinkClass}>
                             <Home className="w-4 h-4" /> {t('backHome')}
-                        </Link>
+                        </a>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem asChild>
-                        <Link 
-                           href={user ? "/create" : "/auth/login?redirect=/create"} 
-                           onClick={() => setIsMobileMenuOpen(false)}
-                           className={`${mobileLinkClass} text-purple-700 bg-purple-50/50`}
-                        >
+                        <a href="/create" className={`${mobileLinkClass} text-purple-700 bg-purple-50/50`}>
                            <PlusCircle className="w-4 h-4" /> {t('navPostService')}
-                        </Link>
+                        </a>
                     </DropdownMenuItem>
                     
                     <DropdownMenuSeparator className="bg-gray-100 my-1" />
@@ -251,31 +248,28 @@ function NavbarContent() {
                     {user ? (
                         <>
                             <DropdownMenuItem asChild>
-                                <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className={mobileLinkClass}>
+                                <a href="/profile" className={mobileLinkClass}>
                                     <UserIcon className="w-4 h-4" /> {t('navProfile')}
-                                </Link>
+                                </a>
                             </DropdownMenuItem>
                             
-                            {/* ADMIN PANEL - VODI NA /profile */}
+                            {/* ADMIN PANEL - OBAVEZNO OBIČAN LINK NA /profile */}
                             {user.role === 'admin' && (
                                 <DropdownMenuItem asChild>
-                                    <Link 
-                                        href="/profile" 
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                        className={`${mobileLinkClass} text-blue-600 bg-blue-50/30`}
-                                    >
+                                    <a href="/profile" className={`${mobileLinkClass} text-blue-600 bg-blue-50/30`}>
                                         <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
-                                    </Link>
+                                    </a>
                                 </DropdownMenuItem>
                             )}
                             
-                            <DropdownMenuItem onClick={logout} className={`${mobileLinkClass} text-red-600 cursor-pointer`}>
+                            {/* DUGME ZA ODJAVU KOJE RADI HARD RELOAD */}
+                            <DropdownMenuItem onClick={handleForceLogout} className={`${mobileLinkClass} text-red-600 cursor-pointer`}>
                                 <LogOut className="w-4 h-4" /> {t('navLogout')}
                             </DropdownMenuItem>
                         </>
                     ) : (
                         <>
-                           {/* LOGIN ZA MOBILNI - KORISTIMO OBICAN <a href> DA SPREČIMO VRĆENJE */}
+                           {/* LOGIN DUGME - OBAVEZNO <a href> DA PREKINE LOOP */}
                            <div className="p-1">
                                <a 
                                  href="/auth/login" 
@@ -286,6 +280,13 @@ function NavbarContent() {
                            </div>
                         </>
                     )}
+
+                    {/* SIGURNOSNO DUGME ZA RESET - ZA SVAKI SLUČAJ */}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleForceLogout} className="text-xs text-gray-400 p-2 cursor-pointer flex items-center justify-center">
+                         <RefreshCcw className="w-3 h-3 mr-1" /> Resetuj aplikaciju
+                    </DropdownMenuItem>
+
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
