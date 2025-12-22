@@ -137,7 +137,6 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* 👇 IZMENA: !font-extrabold i hover:!text-purple-900 (TAMNO ljubičasta) */}
           <Link 
             href={user ? "/create" : "/auth/login?redirect=/create"} 
             className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base`}
@@ -168,9 +167,10 @@ function NavbarContent() {
                             </Link>
                         </DropdownMenuItem>
                         
+                        {/* 👇 IZMENA: Sada vodi na /profile jer je tu admin panel */}
                         {user.role === 'admin' && (
                             <DropdownMenuItem asChild className={`${desktopItemClass} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}>
-                                <Link href="/admin/users">
+                                <Link href="/profile">
                                     <ShieldCheck className="w-4 h-4" /> {t('navAdminPanel')}
                                 </Link>
                             </DropdownMenuItem>
@@ -260,8 +260,10 @@ function NavbarContent() {
                             <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={mobileItemClass}>
                                 <UserIcon className="w-4 h-4" /> {t('navProfile')}
                             </DropdownMenuItem>
+                            
+                            {/* 👇 IZMENA: I ovde vodi na /profile */}
                             {user.role === 'admin' && (
-                                <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/admin/users")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
+                                <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
                                     <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
                                 </DropdownMenuItem>
                             )}
