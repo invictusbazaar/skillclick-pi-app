@@ -29,7 +29,7 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const activeCategory = searchParams?.get('category');
 
-  // --- FILTRIRANJE ADMINA ---
+  // --- 1. KO JE GAZDA? ---
   // Admin panel vidi SAMO "ilija1969". Niko drugi.
   const isAdmin = user?.username && (
       user.username.toLowerCase() === "ilija1969" || 
@@ -38,13 +38,20 @@ function NavbarContent() {
 
   useEffect(() => {
     setIsMounted(true);
-    // Čitamo usera iz memorije telefona (Pi Browser ovo popunjava)
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-        try {
-            setUser(JSON.parse(storedUser));
-        } catch (e) {
-            setUser(null);
+
+    // Ako smo slučajno na login strani, a piše da smo ulogovani, brišemo to da ne zbunjujemo sistem
+    if (pathname?.includes('/auth/login')) {
+        localStorage.removeItem("user");
+        setUser(null);
+    } else {
+        // Inače učitavamo usera
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                setUser(null);
+            }
         }
     }
   }, [pathname]);
@@ -52,6 +59,7 @@ function NavbarContent() {
   const handleHardReset = () => {
     localStorage.clear();
     sessionStorage.clear();
+    // Brisanje kolačića
     document.cookie.split(";").forEach((c) => {
       document.cookie = c
         .replace(/^ +/, "")
@@ -82,6 +90,8 @@ function NavbarContent() {
   ];
 
   const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
+  
+  // Stil za mobilne linkove
   const mobileLinkClass = "flex items-center gap-3 w-full py-4 px-4 mb-2 font-bold text-gray-800 rounded-xl border-2 border-gray-100 bg-white shadow-sm active:scale-95 transition-all duration-200 decoration-0 no-underline cursor-pointer";
 
   const handleMobileLanguageChange = (e: any, key: string) => {
@@ -124,10 +134,14 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* ISPRAVKA 1: UVEK VODI NA /create, NIKAD NA LOGIN */}
-          <Link href="/create" className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base`}>
+          {/* --- KLJUČNA IZMENA ZA "POSTAVI OGLAS" --- 
+              Koristimo običan <a href> umesto Link komponente. 
+              To tera browser da uradi "full refresh" i pošalje prave podatke serveru.
+              Ovo rešava problem sa vraćanjem na login!
+          */}
+          <a href="/create" className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base cursor-pointer no-underline`}>
              {t('navPostService')}
-          </Link>
+          </a>
 
           {user ? (
             <div className="flex items-center gap-4 border-l border-gray-200 pl-4">
@@ -144,7 +158,7 @@ function NavbarContent() {
                             </Link>
                         </DropdownMenuItem>
                         
-                        {/* ISPRAVKA 2: ADMIN SAMO ZA ILIJU */}
+                        {/* SAMO AKO JE ILIJA (isAdmin je true) PRIKAZUJEMO ADMIN DUGME */}
                         {isAdmin && (
                             <DropdownMenuItem asChild>
                                 <Link href="/profile" className={`${desktopItemClass} text-blue-600`}>
@@ -183,7 +197,6 @@ function NavbarContent() {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* GLAVNI MENI */}
             <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
                      <Menu className="w-7 h-7 text-gray-700" />
@@ -198,6 +211,7 @@ function NavbarContent() {
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-bold text-gray-800 text-lg">{user.username}</span>
+                                {/* SAMO AKO JE ILIJA PIŠE ADMIN */}
                                 {isAdmin && <span className="text-xs text-blue-600 font-black bg-blue-100 px-2 py-0.5 rounded-full w-fit">ADMIN</span>}
                             </div>
                         </div>
@@ -209,7 +223,10 @@ function NavbarContent() {
                         <Home className="w-5 h-5 text-gray-500" /> {t('backHome')}
                     </a>
 
-                    {/* ISPRAVKA 3: UVEK NA CREATE, NIKAD NA LOGIN */}
+                    {/* KLJUČNO ZA PI BROWSER: Koristimo <a href> umesto Link-a. 
+                        Ovo naređuje telefonu da učita stranicu ispočetka, 
+                        čime se potvrđuje tvoj identitet na serveru.
+                    */}
                     <a href="/create" className={`${mobileLinkClass} !bg-purple-50 !border-purple-100 !text-purple-700`}>
                         <PlusCircle className="w-5 h-5" /> {t('navPostService')}
                     </a>
@@ -222,7 +239,7 @@ function NavbarContent() {
                                 <UserIcon className="w-5 h-5 text-gray-500" /> {t('navProfile')}
                             </a>
 
-                            {/* ISPRAVKA 4: ADMIN LINK VIDI SAMO ILIJA */}
+                            {/* ADMIN LINK VIDI SAMO ILIJA */}
                             {isAdmin && (
                                 <a href="/profile" className={`${mobileLinkClass} !text-blue-600 !bg-blue-50/50 !border-blue-100`}>
                                     <ShieldCheck className="w-5 h-5" /> {t('navAdminPanel')}
@@ -249,7 +266,7 @@ function NavbarContent() {
 
                     <div className="mt-4 pt-4 border-t text-center">
                         <button onClick={handleHardReset} className="text-xs text-gray-400 flex items-center justify-center w-full gap-1 p-2">
-                             <RefreshCcw className="w-3 h-3" /> Resetuj App (Ako zablokira)
+                             <RefreshCcw className="w-3 h-3" /> Resetuj App (Panic Button)
                         </button>
                     </div>
 
