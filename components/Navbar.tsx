@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams, usePathname } from "next/navigation" 
@@ -32,43 +32,40 @@ function NavbarContent() {
   useEffect(() => {
     setIsMounted(true);
 
-    // --- STOP LOGIN LOOP ---
-    // Ako smo na login stranici, a memorija ima podatke, brišemo ih!
-    if (pathname === '/auth/login' || pathname === '/login') {
+    // Ako smo na Login strani, BRIŠEMO lažnog korisnika da prekinemo petlju
+    if (pathname?.includes('/auth/login') || pathname?.includes('/login')) {
         localStorage.removeItem("user");
         localStorage.removeItem("sessionKey");
         setUser(null);
-        return; 
-    }
-
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-        try {
-            const parsed = JSON.parse(storedUser);
-            if (parsed && parsed.username) {
-                setUser(parsed);
-            } else {
-                localStorage.removeItem("user");
+    } else {
+        // Inače čitamo korisnika
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                setUser(null);
             }
-        } catch (e) {
-            localStorage.removeItem("user");
-            setUser(null);
         }
     }
   }, [pathname]);
 
-  // --- HARD LOGOUT ---
-  const handleForceLogout = () => {
-    if (typeof window !== "undefined") {
-        localStorage.clear();
-        sessionStorage.clear();
-        document.cookie.split(";").forEach((c) => {
-            document.cookie = c
-                .replace(/^ +/, "")
-                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-        window.location.href = "/auth/login";
-    }
+  // --- FUNKCIJA ZA TOTALNI RESET (UBIJA LAŽNU SESIJU) ---
+  const handleHardReset = () => {
+    // 1. Brišemo sve podatke
+    localStorage.removeItem("user");
+    localStorage.removeItem("sessionKey");
+    localStorage.clear();
+    
+    // 2. Brišemo kolačiće
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    // 3. Vraćamo na početnu (ne na login) da Pi SDK pokuša ponovo ispravno
+    window.location.href = "/";
   };
 
   const languages: Record<string, { label: string; flag: string }> = {
@@ -94,7 +91,7 @@ function NavbarContent() {
 
   const desktopItemClass = "w-full cursor-pointer text-gray-700 font-bold py-3 text-sm flex items-center gap-3 transition-all duration-300 ease-out rounded-md outline-none border border-transparent hover:border-purple-200 hover:bg-purple-50 hover:text-purple-900 focus:border-purple-200 focus:bg-purple-50 focus:text-purple-900 active:scale-95 px-2";
   
-  // Stil za mobilne linkove (PI BROWSER FRIENDLY)
+  // Stil za mobilne linkove (OBIČAN TEKST/DUGME, BEZ KOMPLIKACIJA)
   const mobileLinkClass = "flex items-center gap-3 w-full py-4 px-4 mb-2 font-bold text-gray-800 rounded-xl border-2 border-gray-100 bg-white shadow-sm active:scale-95 transition-all duration-200 decoration-0 no-underline cursor-pointer";
 
   const handleMobileLanguageChange = (e: any, key: string) => {
@@ -121,7 +118,7 @@ function NavbarContent() {
            </Link>
         </div>
 
-        {/* --- DESKTOP MENI --- */}
+        {/* --- DESKTOP MENI (PC - Standardan) --- */}
         <div className="hidden md:flex items-center gap-4 ml-auto relative z-[80]">
           <DropdownMenu>
             <DropdownMenuTrigger className={`${ghostBtnClass} rounded-full`}>
@@ -164,7 +161,7 @@ function NavbarContent() {
                             </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleForceLogout} className={`${desktopItemClass} text-red-600`}>
+                        <DropdownMenuItem onClick={handleHardReset} className={`${desktopItemClass} text-red-600`}>
                             <LogOut className="w-4 h-4" /> {t('navLogout')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -179,7 +176,7 @@ function NavbarContent() {
           )}
         </div>
 
-        {/* --- MOBILNI MENI --- */}
+        {/* --- MOBILNI MENI (PI BROWSER "SAFE MODE") --- */}
         <div className="flex md:hidden items-center gap-2 ml-auto relative z-[80]">
             <DropdownMenu open={isMobileLangOpen} onOpenChange={setIsMobileLangOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
@@ -194,12 +191,15 @@ function NavbarContent() {
                 </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* GLAVNI MOBILNI MENI */}
             <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
                      <Menu className="w-7 h-7 text-gray-700" />
                 </DropdownMenuTrigger>
                 
-                <DropdownMenuContent align="end" className="w-[90vw] p-4 font-sans bg-white border border-gray-200 shadow-2xl z-[99999] rounded-2xl max-h-[85vh] overflow-y-auto mt-2 mr-2">
+                {/* NAPOMENA: Ovde više NE KORISTIMO DropdownMenuContent jer on može da blokira klikove na Pi Browseru */}
+                {/* Koristimo običan DIV koji simulira meni */}
+                <DropdownMenuContent align="end" className="w-[90vw] h-auto max-h-[85vh] overflow-y-auto p-4 bg-white rounded-2xl border border-gray-200 shadow-2xl z-[99999]">
                     
                     {user && (
                         <div className="mb-4 p-4 bg-purple-50 rounded-2xl border border-purple-100 flex items-center gap-4">
@@ -213,12 +213,14 @@ function NavbarContent() {
                         </div>
                     )}
 
-                    {/* HARD LINKOVI (SA <a> TAGOVIMA) - OVO JE KLJUČNO ZA PI BROWSER */}
+                    {/* --- DIREKTNI LINKOVI ( BEZ REACT ROUTER-a ) --- */}
                     
+                    {/* Home */}
                     <a href="/" className={mobileLinkClass}>
                         <Home className="w-5 h-5 text-gray-500" /> {t('backHome')}
                     </a>
 
+                    {/* Postavi oglas */}
                     <a href="/create" className={`${mobileLinkClass} !bg-purple-50 !border-purple-100 !text-purple-700`}>
                         <PlusCircle className="w-5 h-5" /> {t('navPostService')}
                     </a>
@@ -227,21 +229,24 @@ function NavbarContent() {
 
                     {user ? (
                         <>
+                            {/* Profil */}
                             <a href="/profile" className={mobileLinkClass}>
                                 <UserIcon className="w-5 h-5 text-gray-500" /> {t('navProfile')}
                             </a>
 
+                            {/* Admin Panel */}
                             {user.role === 'admin' && (
                                 <a href="/profile" className={`${mobileLinkClass} !text-blue-600 !bg-blue-50/50 !border-blue-100`}>
                                     <ShieldCheck className="w-5 h-5" /> {t('navAdminPanel')}
                                 </a>
                             )}
                             
+                            {/* DUGME ZA ODJAVU / RESET */}
                             <div className="pt-4">
                                 <button 
-                                    type="button"
-                                    onClick={handleForceLogout}
-                                    className="flex items-center justify-center w-full py-4 px-4 font-bold text-red-600 bg-red-50 border-2 border-red-100 rounded-xl active:scale-95 transition-all"
+                                    type="button" 
+                                    onClick={handleHardReset}
+                                    className="w-full py-4 px-4 bg-red-50 text-red-600 font-bold border-2 border-red-100 rounded-xl flex items-center justify-center active:scale-95"
                                 >
                                     <LogOut className="w-5 h-5 mr-2" /> {t('navLogout')}
                                 </button>
@@ -255,10 +260,11 @@ function NavbarContent() {
                         </>
                     )}
 
-                    <div className="mt-6 border-t pt-4">
-                         <button onClick={handleForceLogout} className="w-full text-center text-xs text-gray-400 py-2 flex items-center justify-center gap-1">
-                             <RefreshCcw className="w-3 h-3" /> Resetuj aplikaciju (Force)
-                         </button>
+                    {/* DODATNO SIGURNOSNO DUGME */}
+                    <div className="mt-4 pt-4 border-t text-center">
+                        <button onClick={handleHardReset} className="text-xs text-gray-400 flex items-center justify-center w-full gap-1 p-2">
+                             <RefreshCcw className="w-3 h-3" /> Resetuj App (Ako zablokira)
+                        </button>
                     </div>
 
                 </DropdownMenuContent>
