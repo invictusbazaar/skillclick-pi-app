@@ -46,10 +46,10 @@ function NavbarContent() {
 
   const logout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("sessionKey");
     setUser(null);
-    // Vraćeno na /auth/login jer je to tvoja prava putanja
-    router.push("/auth/login");
-    setTimeout(() => window.location.reload(), 300);
+    // 👇 IZMENA: Vraćamo na "/" (Home) umesto na login da izbegnemo redirect loop na mobilnom
+    window.location.href = "/"; 
   };
 
   const languages: Record<string, { label: string; flag: string }> = {
@@ -140,7 +140,6 @@ function NavbarContent() {
           </DropdownMenu>
 
           <Link 
-            // VRACENO NA /auth/login
             href={user ? "/create" : "/auth/login?redirect=/create"} 
             className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base`}
           >
@@ -170,7 +169,7 @@ function NavbarContent() {
                             </Link>
                         </DropdownMenuItem>
                         
-                        {/* Admin panel vodi na /profile */}
+                        {/* PC Admin Panel - Vodi na /profile */}
                         {user.role === 'admin' && (
                             <DropdownMenuItem asChild className={`${desktopItemClass} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}>
                                 <Link href="/profile">
@@ -189,7 +188,6 @@ function NavbarContent() {
             </div>
           ) : (
              <div className="flex items-center gap-3">
-                {/* VRACENO NA /auth/login */}
                 <Link href="/auth/login" className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 rounded-md inline-flex items-center justify-center text-sm transition-colors">
                     {t('navLogin')}
                 </Link>
@@ -265,7 +263,7 @@ function NavbarContent() {
                                 <UserIcon className="w-4 h-4" /> {t('navProfile')}
                             </DropdownMenuItem>
                             
-                            {/* Admin panel na mobilnom vodi na /profile */}
+                            {/* Mobilni Admin Panel - Vodi na /profile */}
                             {user.role === 'admin' && (
                                 <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
                                     <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
@@ -277,7 +275,7 @@ function NavbarContent() {
                         </>
                     ) : (
                         <>
-                           {/* VRACENO NA /auth/login */}
+                           {/* Mobilni Login - Putanja je /auth/login */}
                            <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/auth/login")} className={`
                                 ${mobileItemClass} !bg-purple-600 !text-white 
                                 focus:!bg-purple-700 focus:!text-white
@@ -285,7 +283,7 @@ function NavbarContent() {
                                 <LogIn className="w-4 h-4" /> {t('navLogin')}
                             </DropdownMenuItem>
 
-                            {/* Sigurnosno dugme (ostaje za svaki slučaj) */}
+                            {/* 👇 KLJUČNO: OVO DUGME REŠAVA TVOJ PROBLEM SA 404 NA MOBILNOM */}
                             <DropdownMenuSeparator />
                              <DropdownMenuItem onSelect={handleMobileLogout} className={`${mobileItemClass} text-red-500`}>
                                 <LogOut className="w-4 h-4" /> Resetuj/Odjavi se
