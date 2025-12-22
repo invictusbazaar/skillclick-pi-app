@@ -167,7 +167,7 @@ function NavbarContent() {
                             </Link>
                         </DropdownMenuItem>
                         
-                        {/* 👇 IZMENA: Sada vodi na /profile jer je tu admin panel */}
+                        {/* ISPRAVLJENO (DESKTOP): Vodi na /profile */}
                         {user.role === 'admin' && (
                             <DropdownMenuItem asChild className={`${desktopItemClass} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}>
                                 <Link href="/profile">
@@ -261,7 +261,7 @@ function NavbarContent() {
                                 <UserIcon className="w-4 h-4" /> {t('navProfile')}
                             </DropdownMenuItem>
                             
-                            {/* 👇 IZMENA: I ovde vodi na /profile */}
+                            {/* 👇 ISPRAVLJENO (MOBILNI): Sada i ovde vodi na /profile */}
                             {user.role === 'admin' && (
                                 <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
                                     <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
