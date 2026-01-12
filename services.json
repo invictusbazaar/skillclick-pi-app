@@ -1,0 +1,32 @@
+[
+  {
+    "id": "alfa-159-jtdm",
+    "title": "Alfa Romeo 159 JTDm - Servisni Saveti",
+    "description": "Detaljno uputstvo za održavanje servo pumpe i creva na 1.9 JTDm motorima (2006).",
+    "price": "5.5",
+    "category": "Tech",
+    "author": "Ilija1969",
+    "rating": 5.0,
+    "reviews": 14
+  },
+  {
+    "id": "cnc-svg-lightburn",
+    "title": "CNC & Lightburn SVG Modeli",
+    "description": "Kolekcija proverenih SVG fajlova za lasersko sečenje i CNC obradu.",
+    "price": "12.0",
+    "category": "Graphics & Design",
+    "author": "SkillMaster",
+    "rating": 4.9,
+    "reviews": 22
+  },
+  {
+    "id": "pi-node-setup-win",
+    "title": "Podešavanje Pi Node-a na Windows-u",
+    "description": "Kompletna asistencija za Docker i otvaranje portova za stabilan Pi Node.",
+    "price": "20.0",
+    "category": "Tech",
+    "author": "PiExpert",
+    "rating": 5.0,
+    "reviews": 9
+  }
+]
