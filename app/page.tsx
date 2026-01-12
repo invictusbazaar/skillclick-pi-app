@@ -130,15 +130,9 @@ function HomeContent() {
     const fetchServices = async () => {
       setLoading(true);
       try {
-        console.log("📡 Zovem bazu...");
         const response = await fetch('/api/services');
-        
-        if (!response.ok) {
-           throw new Error('Problem sa mrežom');
-        }
-        
+        if (!response.ok) throw new Error('Problem sa mrežom');
         let data = await response.json();
-        
         if (!Array.isArray(data)) data = [];
         
         if (selectedCategory) {
@@ -153,7 +147,6 @@ function HomeContent() {
             service.description.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
-
         setFilteredServices(data);
       } catch (error) {
         console.error("❌ Failed to fetch services:", error);
@@ -161,7 +154,6 @@ function HomeContent() {
         setLoading(false);
       }
     };
-
     fetchServices();
   }, [selectedCategory, searchTerm]); 
 
@@ -181,8 +173,7 @@ function HomeContent() {
   };
 
   const getRandomGradient = (id: any) => {
-    const gradients = ["from-fuchsia-500 to-pink-600", "from-violet-500 to-purple-600", "from-blue-500 to-indigo-600", "from-emerald-400 to-teal-500"];
-    return gradients[0]; 
+    return "from-fuchsia-500 to-pink-600"; 
   };
 
   return (
@@ -195,9 +186,9 @@ function HomeContent() {
 
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
             
-            {/* 👇👇👇 IZMENJENO: ADMIN DUGME I USER BADGE KAO NA SLICI 👇👇👇 */}
+            {/* 👇👇👇 MODIFIKOVANO: SKRIVENO NA MOBILNOM, VIDLJIVO NA PC (md:flex) 👇👇👇 */}
             {user && (
-              <div className="flex flex-col items-center gap-4 mb-8 animate-fade-in">
+              <div className="hidden md:flex flex-col items-center gap-4 mb-8 animate-fade-in">
                  {/* Pozdravni bedž */}
                  <div className="flex items-center gap-2 px-4 py-1.5 bg-indigo-900/40 rounded-full border border-indigo-400/30 backdrop-blur-md shadow-lg">
                     <span className="text-xl">👋</span>
@@ -207,7 +198,7 @@ function HomeContent() {
                     </span>
                  </div>
 
-                 {/* CRVENO DUGME - LINK POPRAVLJEN NA /admin */}
+                 {/* CRVENO DUGME */}
                  <Link href="/admin">
                     <Button className="bg-red-600 hover:bg-red-700 text-white font-bold text-base md:text-lg py-6 px-8 rounded-xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all border border-red-500/20 flex items-center gap-2">
                        <ShieldCheck className="w-6 h-6" />
@@ -216,7 +207,7 @@ function HomeContent() {
                  </Link>
               </div>
             )}
-            {/* 👆👆👆 KRAJ IZMENE 👆👆👆 */}
+            {/* 👆👆👆 KRAJ MODIFIKACIJE 👆👆👆 */}
             
             <h1 className="text-4xl sm:text-5xl md:text-8xl font-extrabold mb-1 tracking-tighter drop-shadow-2xl">SkillClick</h1>
             
