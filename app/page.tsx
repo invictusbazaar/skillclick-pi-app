@@ -11,11 +11,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/components/LanguageContext" 
 
-declare global {
-  interface Window {
-    Pi: any;
-  }
-}
+declare global { interface Window { Pi: any; } }
 
 function HomeContent() {
   const [searchQuery, setSearchQuery] = useState("") 
@@ -25,183 +21,142 @@ function HomeContent() {
   const [user, setUser] = useState<any>(null); 
   
   const itemsPerPage = 12;
-
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
-  // 👇 PI LOGIKA SA REDIREKCIJOM I DUGMETOM 👇
-  useEffect(() => {
-    const startLogin = async () => {
-      try {
-        if (!window.Pi) return; 
-
-        await window.Pi.init({ version: "2.0", sandbox: false });
-        
-        const scopes = ['username', 'payments']; 
-        const authResult = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-        
-        const userData = {
-            username: authResult.user.username,
-            role: authResult.user.username === 'Ilija1969' ? 'admin' : 'user',
-            uid: authResult.user.uid
-        };
-
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-
-        // Automatski redirect samo prvi put u sesiji
-        const hasRedirected = sessionStorage.getItem("adminRedirected");
-        if (userData.username === 'Ilija1969' && !hasRedirected) {
-           sessionStorage.setItem("adminRedirected", "true");
-           router.push('/profile');
-        }
-
-      } catch (error) {
-        console.error("Greška pri Pi logovanju:", error);
-      }
-    };
-
-    const onIncompletePaymentFound = (payment: any) => { console.log("Incomplete:", payment); };
-
-    const intervalId = setInterval(() => {
-      if (window.Pi) {
-        clearInterval(intervalId);
-        startLogin();
-      }
-    }, 500);
-
-    return () => clearInterval(intervalId);
-  }, [router]);
-
-  // Logika za pretragu i preuzimanje usluga
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
 
-  const getCategoryName = (slug: string) => {
-    switch(slug) {
-        case 'design': return t('catDesign');
-        case 'marketing': return t('catMarketing');
-        case 'writing': return t('catWriting');
-        case 'video': return t('catVideo');
-        case 'tech': return t('catTech');
-        case 'business': return t('catBusiness');
-        case 'lifestyle': return t('catLifestyle');
-        default: return slug;
-    }
-  }
-
-  let displayTitle = t('adsTitle');
-  let displaySubtitle = t('exploreBest');
-
-  if (selectedCategory) {
-      displayTitle = getCategoryName(selectedCategory);
-      displaySubtitle = t('adsTitle'); 
-  } else if (searchTerm) {
-      displayTitle = `"${searchTerm}"`;
-      displaySubtitle = t('searchPlaceholder');
-  }
-
-  const getSmartIcon = (service: any) => {
-    const iconClass = "h-10 w-10 md:h-12 md:w-12 text-white/90 drop-shadow-md";
-    const titleLower = (service.title || "").toLowerCase();
-    if (titleLower.includes('auto') || titleLower.includes('alfa')) return <Car className={iconClass} />;
-    if (titleLower.includes('popravka')) return <Wrench className={iconClass} />;
-    if (titleLower.includes('kod')) return <Code className={iconClass} />;
-    return <Layers className={iconClass} />;
+  const getRandomGradient = (id: any) => {
+    const gradients = ["from-fuchsia-500 to-pink-600", "from-violet-500 to-purple-600", "from-indigo-500 to-purple-600", "from-purple-500 to-indigo-600"];
+    const seed = id ? id.toString().length : 0;
+    return gradients[seed % gradients.length];
   };
+
+  useEffect(() => {
+    const startLogin = async () => {
+      if (!window.Pi) return;
+      try {
+        await window.Pi.init({ version: "2.0", sandbox: false });
+        const auth = await window.Pi.authenticate(['username'], () => {});
+        const userData = {
+            username: auth.user.username,
+            role: auth.user.username === 'Ilija1969' ? 'admin' : 'user'
+        };
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+
+        if (userData.username === 'Ilija1969' && !sessionStorage.getItem("adminRedirected")) {
+           sessionStorage.setItem("adminRedirected", "true");
+           router.push('/profile');
+        }
+      } catch (e) { console.error(e); }
+    };
+    const intId = setInterval(() => { if (window.Pi) { clearInterval(intId); startLogin(); } }, 500);
+    return () => clearInterval(intId);
+  }, [router]);
 
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
       try {
         const response = await fetch('/api/services');
-        if (!response.ok) throw new Error('Greška');
         let data = await response.json();
+        
         if (selectedCategory) {
-          data = data.filter((s: any) => s.category.toLowerCase().includes(selectedCategory.toLowerCase()));
+          const cat = selectedCategory.toLowerCase();
+          data = data.filter((s: any) => s.category.toLowerCase().includes(cat));
         } else if (searchTerm) {
-          data = data.filter((s: any) => s.title.toLowerCase().includes(searchTerm.toLowerCase()));
+          const st = searchTerm.toLowerCase();
+          data = data.filter((s: any) => s.title.toLowerCase().includes(st) || s.description.toLowerCase().includes(st));
         }
         setFilteredServices(data);
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };
     fetchServices();
-  }, [selectedCategory, searchTerm]); 
+  }, [selectedCategory, searchTerm]);
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) { router.push(`/?search=${encodeURIComponent(searchQuery)}`) }
-  }
+  const getSmartIcon = (service: any) => {
+    const iconClass = "h-10 w-10 md:h-12 md:w-12 text-white/90 drop-shadow-md";
+    const title = (typeof service.title === 'string' ? service.title : (service.title?.en || "")).toLowerCase();
+    if (title.includes('auto') || title.includes('alfa')) return <Car className={iconClass} />;
+    if (title.includes('popravka') || title.includes('servis')) return <Wrench className={iconClass} />;
+    return <Layers className={iconClass} />;
+  };
+
+  const currentServices = filteredServices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-10 md:py-32 overflow-hidden">
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
-            
-            {/* 👇 DUGME KOJE SE VIDI SAMO ZA ADMINA NA MOBILNOM ILI NA PC-u 👇 */}
-            {user && (
-              <div className={`${user.username === 'Ilija1969' ? 'flex' : 'hidden md:flex'} flex-col items-center gap-4 mb-8`}>
-                 <Link href="/profile">
-                    <Button className="bg-red-600 hover:bg-red-700 text-white font-bold text-sm md:text-lg py-4 md:py-6 px-6 md:px-8 rounded-xl shadow-xl flex items-center gap-2">
-                       <ShieldCheck className="w-5 h-5 md:w-6 md:h-6" />
-                       ADMIN PANEL
-                    </Button>
-                 </Link>
-              </div>
+            {user?.username === 'Ilija1969' && (
+              <Link href="/profile" className="mb-8">
+                <Button className="bg-red-600 font-bold px-8 py-6 rounded-xl shadow-xl flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
+                  <ShieldCheck className="w-6 h-6" /> ADMIN PANEL
+                </Button>
+              </Link>
             )}
-
             <h1 className="text-4xl sm:text-5xl md:text-8xl font-extrabold mb-1 tracking-tighter drop-shadow-2xl">SkillClick</h1>
             <p className="text-xs sm:text-sm md:text-2xl font-bold text-purple-200 uppercase mb-6 md:mb-10">{t('heroTitle')}</p>
-
-            <div className="w-full max-w-3xl flex items-center bg-white p-1 md:p-2 rounded-full shadow-2xl h-10 md:h-auto">
-                <div className="pl-3 md:pl-4 text-gray-400"><Search className="w-4 h-4 md:w-6 md:h-6" /></div>
+            <div className="w-full max-w-3xl flex items-center bg-white p-1 rounded-full shadow-2xl h-10 md:h-auto">
                 <Input 
-                    type="text" 
-                    placeholder={t('searchPlaceholder')} 
-                    value={searchQuery} 
+                    placeholder={t('searchPlaceholder')} value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)} 
                     className="flex-grow border-none shadow-none focus-visible:ring-0 text-gray-800 h-8 md:h-14 bg-transparent" 
                 />
-                <Button onClick={handleSearch} className="h-8 md:h-14 px-4 md:px-8 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold">
-                    {t('searchBtn') || "Search"}
-                </Button>
+                <Button onClick={() => router.push(`/?search=${searchQuery}`)} className="h-8 md:h-14 px-4 rounded-full bg-purple-600 font-bold">{t('searchBtn')}</Button>
             </div>
          </div>
       </main>
 
-      {/* Grid sa uslugama */}
-      <section className="container mx-auto px-2 md:px-4 py-6 md:py-16 flex-grow">
-        <h2 className="text-lg md:text-3xl font-bold text-gray-900 mb-6">{displayTitle}</h2>
-        {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
-                {[1,2,3,4].map(i => <div key={i} className="h-64 bg-gray-200 rounded-2xl"></div>)}
-            </div>
-        ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {filteredServices.slice((currentPage - 1) * 12, currentPage * 12).map((gig) => (
-                    <div key={gig.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow">
-                        <Link href={`/services/${gig.id}`} className="block h-28 md:h-48 relative bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+      <section className="container mx-auto px-2 md:px-4 py-6 md:py-16 flex-grow bg-gray-50">
+        <h2 className="text-lg md:text-3xl font-bold text-gray-900 mb-6">{selectedCategory ? selectedCategory.toUpperCase() : t('adsTitle')}</h2>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8">
+            {currentServices.map((gig) => (
+                <div key={gig.id} className="group bg-white rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden flex flex-col h-full">
+                    <Link href={`/services/${gig.id}`} className="block relative h-28 md:h-48">
+                        <div className={`absolute inset-0 bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center`}>
                             {getSmartIcon(gig)}
-                        </Link>
-                        <div className="p-3 flex flex-col flex-grow">
-                            <h3 className="font-bold text-sm md:text-lg line-clamp-2">{gig.title}</h3>
-                            <div className="mt-auto pt-2 border-t flex justify-between">
-                                <span className="font-bold text-purple-700">{gig.price} π</span>
+                        </div>
+                        <div className="absolute top-2 right-2 p-1.5 bg-white/30 backdrop-blur-md rounded-full text-white">
+                              <Heart className="h-3 w-3 md:h-4 md:w-4" />
+                        </div>
+                    </Link>
+
+                    <div className="p-2.5 md:p-5 flex flex-col flex-grow relative">
+                        <div className="absolute -top-5 left-3 md:-top-6 md:left-5">
+                            <div className="w-9 h-9 md:w-12 md:h-12 bg-white p-0.5 rounded-full shadow-md">
+                              <div className="w-full h-full bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-xs md:text-sm">
+                                {gig.author?.username?.[0].toUpperCase() || 'U'}
+                              </div>
                             </div>
                         </div>
+                        <div className="mt-4 mb-1 flex justify-end">
+                            <span className="text-[10px] md:text-sm font-semibold text-gray-500">@{gig.author?.username || 'user'}</span>
+                        </div>
+                        
+                        <h3 className="text-gray-900 font-bold mb-1 text-xs md:text-lg line-clamp-2">
+                          {typeof gig.title === 'object' ? (gig.title[lang] || gig.title['en']) : gig.title}
+                        </h3>
+
+                        <div className="mt-auto pt-2 border-t flex items-center justify-between">
+                            <div className="flex items-center text-gray-700 text-[10px] md:text-sm font-semibold gap-1">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {gig.rating || '5.0'}
+                            </div>
+                            <span className="text-sm md:text-lg font-bold text-purple-700">{gig.price} π</span>
+                        </div>
                     </div>
-                ))}
-            </div>
-        )}
+                </div>
+            ))}
+        </div>
       </section>
     </div>
   )
 }
 
 export default function HomePage() {
-  return (
-    <Suspense fallback={<div className="p-10 text-center">...</div>}>
-      <HomeContent />
-    </Suspense>
-  )
+  return ( <Suspense fallback={<div>...</div>}><HomeContent /></Suspense> )
 }
