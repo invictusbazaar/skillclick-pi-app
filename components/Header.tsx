@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image'; 
 import { useLanguage } from './LanguageContext';
-import { usePathname, useRouter } from 'next/navigation'; // <--- NOVI IMPORTI ZA NAVIGACIJU
-import { Menu, X, ChevronDown, LogOut, User, ArrowLeft } from 'lucide-react'; // <--- Dodao ArrowLeft
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, X, ChevronDown, LogOut, User, ArrowLeft, PlusCircle } from 'lucide-react';
 
 const languagesList = [
   { code: 'sr', label: '🇷🇸 SR', name: 'Srpski' },
@@ -22,17 +22,16 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Stanje za podatke o korisniku
   const [username, setUsername] = useState<string>("Korisnik");
   const [email, setEmail] = useState<string>("user@example.com");
 
-  // --- NOVO: Navigacija ---
-  const pathname = usePathname(); // Gde se trenutno nalazimo?
-  const router = useRouter();     // Kontrola rutera
-  const isHome = pathname === '/'; // Da li smo na početnoj?
+  const pathname = usePathname();
+  const router = useRouter();     
+  const isHome = pathname === '/'; 
 
   const currentLang = languagesList.find(l => l.code === lang) || languagesList[1];
 
+  // VRACENO: PC sesija
   useEffect(() => {
     if (sessionKeyProp) {
       const storedName = localStorage.getItem('user_name');
@@ -54,15 +53,12 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm transition-all">
       <div className="container mx-auto px-4 h-20 md:h-24 flex items-center justify-between relative">
         
-        {/* --- LEVA STRANA: LOGO + NAZAD DUGME --- */}
+        {/* LEVA STRANA */}
         <div className="flex items-center gap-2 md:gap-4 z-50">
-          
-          {/* DUGME NAZAD - Prikazuje se samo ako NISMO na Home stranici */}
           {!isHome && (
             <button 
               onClick={() => router.back()} 
               className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-700 transition-all active:scale-95 shadow-sm"
-              title={t('backBtn')} // Tooltip na hover
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -70,10 +66,8 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
 
           <Link href="/" className="flex items-center group relative">
             <div className="w-10 md:w-10 h-1" />
-            
-            {/* Logo slika */}
             <div className={`absolute left-0 top-1/2 -translate-y-1/2 transition-transform group-hover:scale-105 duration-300 pointer-events-none
-                ${!isHome ? '-ml-20 md:-ml-52' : '-ml-24 md:-ml-56'} /* Malo pomeramo logo ako postoji dugme nazad */
+                ${!isHome ? '-ml-20 md:-ml-52' : '-ml-24 md:-ml-56'}
                 h-48 w-[28rem] md:h-80 md:w-[50rem]`}>
                <Image 
                  src="/skillclick_logo.png" 
@@ -86,10 +80,9 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
           </Link>
         </div>
 
-        {/* --- DESNA STRANA --- */}
+        {/* DESNA STRANA */}
         <div className="flex items-center gap-2 md:gap-5 z-[60] relative">
           
-          {/* JEZIK */}
           <div className="relative">
             <button 
               onClick={() => setIsLangOpen(!isLangOpen)}
@@ -103,7 +96,7 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
             {isLangOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsLangOpen(false)} />
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20">
                   {languagesList.map((l: any) => (
                     <button
                       key={l.code}
@@ -119,7 +112,7 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
             )}
           </div>
 
-          {/* KORISNIK / AUTH (Desktop) */}
+          {/* PC AUTH SEKCIJA - OSTAVLJENA NETAKNUTA */}
           {!sessionKeyProp ? (
             <div className="hidden md:flex items-center gap-3">
               <Link href="/login">
@@ -128,7 +121,7 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
                 </button>
               </Link>
               <Link href="/register">
-                <button className="text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                <button className="text-sm font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-2.5 rounded-full shadow-md transition-all">
                   {t('register')}
                 </button>
               </Link>
@@ -137,7 +130,7 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
              <div className="hidden md:flex relative">
                 <button 
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold border border-purple-200 shadow-sm hover:ring-2 hover:ring-purple-300 transition-all"
+                  className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 font-bold border border-purple-200"
                 >
                   {username.charAt(0).toUpperCase()}
                 </button>
@@ -145,18 +138,14 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
                 {isUserMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsUserMenuOpen(false)} />
-                    <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20 animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-20">
                         <div className="px-4 py-3 border-b border-gray-50 mb-1">
                             <p className="text-sm font-bold text-gray-900">{username}</p>
-                            <p className="text-xs text-gray-500 truncate">{email}</p>
                         </div>
-                        <Link href="/profile" onClick={() => setIsUserMenuOpen(false)} className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-gray-700 hover:bg-purple-50 transition-colors">
+                        <Link href="/profile" onClick={() => setIsUserMenuOpen(false)} className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-gray-700 hover:bg-purple-50">
                             <User className="w-4 h-4" /> Profil
                         </Link>
-                        <button 
-                            onClick={handleLogout}
-                            className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-red-600 hover:bg-red-50 transition-colors font-medium"
-                        >
+                        <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm flex items-center gap-2 text-red-600 hover:bg-red-50 font-medium">
                             <LogOut className="w-4 h-4" /> Odjavi se
                         </button>
                     </div>
@@ -165,9 +154,9 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
              </div>
           )}
 
-          {/* MOBILNI MENI DUGME */}
+          {/* MOBILNI DUGME */}
           <button 
-            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg active:scale-95 transition-transform"
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -175,45 +164,17 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
         </div>
       </div>
 
-      {/* MOBILNI MENI (Sadržaj) */}
+      {/* MOBILNI MENI (IZMENJEN) */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white p-4 absolute w-full shadow-xl z-40 animate-in slide-in-from-top-5">
+        <div className="md:hidden border-t border-gray-100 bg-white p-4 absolute w-full shadow-xl z-40">
            <nav className="flex flex-col gap-2">
-             {/* I u meniju dodajemo Home za svaki slučaj */}
              <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-purple-50 rounded-xl font-medium text-gray-700 flex items-center gap-3">
                🏠 <span className="text-gray-900">Home</span>
              </Link>
-             <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-purple-50 rounded-xl font-medium text-gray-700 flex items-center gap-3">
-               🔍 <span className="text-gray-900">{t('adsTitle')}</span>
+             {/* Na mobilnom ostaje samo Post a Service */}
+             <Link href="/create" onClick={() => setIsMobileMenuOpen(false)} className="p-3 bg-purple-50 text-purple-700 rounded-xl font-bold flex items-center gap-3">
+               <PlusCircle className="w-5 h-5" /> <span>{t('navPostService')}</span>
              </Link>
-             
-             {!sessionKeyProp ? (
-               <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100">
-                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    <button className="w-full py-3 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors">
-                      {t('login')}
-                    </button>
-                 </Link>
-                 <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                    <button className="w-full py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 transition-colors shadow-md">
-                      {t('register')}
-                    </button>
-                 </Link>
-               </div>
-             ) : (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="px-3 py-2 bg-gray-50 rounded-lg mb-2">
-                        <p className="font-bold text-gray-900">{username}</p>
-                        <p className="text-xs text-gray-500">{email}</p>
-                    </div>
-                    <button 
-                        onClick={handleLogout}
-                        className="w-full py-3 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <LogOut className="w-5 h-5" /> Odjavi se
-                    </button>
-                </div>
-             )}
            </nav>
         </div>
       )}
