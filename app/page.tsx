@@ -31,7 +31,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const { t } = useLanguage();
 
-  // 👇👇👇 PI LOGIKA: AUTOMATSKO PREUSMERAVANJE ZA ADMINA 👇👇👇
+  // 👇👇👇 PI LOGIKA: AUTOMATSKO PREUSMERAVANJE NA /profile ZA ADMINA 👇👇👇
   useEffect(() => {
     const startLogin = async () => {
       try {
@@ -44,9 +44,10 @@ function HomeContent() {
         
         setUser(authResult.user);
 
-        // PROVERA: Ako si ti, odmah ideš u Admin Panel
+        // PROVERA: Ako si ti (Ilija1969), odmah te šalje na Profil/Admin stranu
         if (authResult.user.username === 'Ilija1969') {
-           router.push('/admin');
+           // Promenjeno sa /admin na /profile jer /admin očigledno ne postoji ili je prazan
+           router.push('/profile');
         }
 
       } catch (error) {
@@ -66,7 +67,6 @@ function HomeContent() {
     return () => clearInterval(intervalId);
   }, [router]);
 
-  // Ostatak logike za pretragu i kategorije
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
 
@@ -147,16 +147,20 @@ function HomeContent() {
   const currentServices = filteredServices.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
 
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    const section = document.getElementById('services-section');
+    if (section) { section.scrollIntoView({ behavior: 'smooth' }); }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       
-      {/* HERO SEKCIJA - SADA JE ČISTA BEZ DUGMADI ZA ADMINA */}
+      {/* HERO SEKCIJA */}
       <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-10 md:py-32 overflow-hidden">
          <div className="absolute top-0 left-0 w-64 h-64 md:w-96 md:h-96 bg-purple-500/20 rounded-full blur-[80px] -translate-x-1/2 -translate-y-1/2"></div>
 
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
-            
-            {/* Naslov i Pretraga su sada u fokusu */}
             <h1 className="text-4xl sm:text-5xl md:text-8xl font-extrabold mb-1 tracking-tighter drop-shadow-2xl">SkillClick</h1>
             
             <p className="text-xs sm:text-sm md:text-2xl font-bold text-purple-200 tracking-[0.1em] uppercase mb-6 md:mb-10 max-w-3xl">
@@ -179,7 +183,7 @@ function HomeContent() {
          </div>
       </main>
 
-      {/* Grid sa uslugama */}
+      {/* SERVICES GRID */}
       <section id="services-section" className="container mx-auto px-2 md:px-4 py-6 md:py-16 flex-grow bg-gray-50">
         <div className="flex justify-between items-end mb-4 md:mb-10">
             <div>
@@ -193,23 +197,48 @@ function HomeContent() {
                 {[1,2,3,4].map(i => <div key={i} className="h-64 md:h-80 bg-gray-200 rounded-2xl"></div>)}
             </div>
         ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 min-h-[500px]">
-                {currentServices.map((gig) => (
-                    <div key={gig.id} className="group bg-white rounded-xl md:rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
-                        <Link href={`/services/${gig.id}`} className="block relative overflow-hidden h-28 md:h-48">
-                            <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                                {getSmartIcon(gig)}
-                            </div>
-                        </Link>
-                        <div className="p-2.5 md:p-5 flex flex-col flex-grow">
-                            <h3 className="text-gray-900 font-bold mb-1 text-xs md:text-lg line-clamp-2">{gig.title}</h3>
-                            <div className="mt-auto pt-2 border-t border-gray-50 flex justify-between items-center">
-                                <span className="text-sm md:text-lg font-bold text-gray-900">{gig.price} π</span>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 min-h-[500px]">
+                  {currentServices.map((gig) => (
+                      <div key={gig.id} className="group bg-white rounded-xl md:rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
+                          <Link href={`/services/${gig.id}`} className="block relative overflow-hidden h-28 md:h-48">
+                              <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                                  {getSmartIcon(gig)}
+                              </div>
+                          </Link>
+                          <div className="p-2.5 md:p-5 flex flex-col flex-grow">
+                              <h3 className="text-gray-900 font-bold mb-1 text-xs md:text-lg line-clamp-2">{gig.title}</h3>
+                              <div className="mt-auto pt-2 border-t border-gray-50 flex justify-between items-center">
+                                  <span className="text-sm md:text-lg font-bold text-gray-900">{gig.price} π</span>
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center mt-10 gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="rounded-full w-10 h-10 border-gray-200"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="rounded-full w-10 h-10 border-gray-200"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </Button>
+                </div>
+              )}
+            </>
         )}
       </section>
     </div>
