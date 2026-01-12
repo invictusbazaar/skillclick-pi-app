@@ -30,6 +30,7 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
 
+  // VRACENO: Logika za PC korisnika
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -47,7 +48,6 @@ function NavbarContent() {
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
-    // Vraćeno na /auth/login jer je to tvoja prava putanja
     router.push("/auth/login");
     setTimeout(() => window.location.reload(), 300);
   };
@@ -101,14 +101,6 @@ function NavbarContent() {
     }, 300);
   };
 
-  const handleMobileLogout = (e: any) => {
-    e.preventDefault();
-    setTimeout(() => {
-        logout();
-        setIsMobileMenuOpen(false);
-    }, 300);
-  };
-
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
       
@@ -121,7 +113,7 @@ function NavbarContent() {
            </Link>
         </div>
 
-        {/* --- DESKTOP MENI --- */}
+        {/* --- DESKTOP MENI (OSTAVLJEN IDENTIČAN) --- */}
         <div className="hidden md:flex items-center gap-4 ml-auto relative z-[80]">
           
           <DropdownMenu>
@@ -140,7 +132,6 @@ function NavbarContent() {
           </DropdownMenu>
 
           <Link 
-            // VRACENO NA /auth/login
             href={user ? "/create" : "/auth/login?redirect=/create"} 
             className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900 text-base`}
           >
@@ -169,8 +160,6 @@ function NavbarContent() {
                                 <UserIcon className="w-4 h-4" /> {t('navProfile')}
                             </Link>
                         </DropdownMenuItem>
-                        
-                        {/* Admin panel vodi na /profile */}
                         {user.role === 'admin' && (
                             <DropdownMenuItem asChild className={`${desktopItemClass} text-blue-600 hover:text-blue-700 hover:bg-blue-50`}>
                                 <Link href="/profile">
@@ -178,18 +167,15 @@ function NavbarContent() {
                                 </Link>
                             </DropdownMenuItem>
                         )}
-                        
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={logout} className={`${desktopItemClass} text-red-600 hover:text-red-700 hover:bg-red-50`}>
                             <LogOut className="w-4 h-4" /> {t('navLogout')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-
             </div>
           ) : (
              <div className="flex items-center gap-3">
-                {/* VRACENO NA /auth/login */}
                 <Link href="/auth/login" className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md h-10 px-6 rounded-md inline-flex items-center justify-center text-sm transition-colors">
                     {t('navLogin')}
                 </Link>
@@ -197,7 +183,7 @@ function NavbarContent() {
           )}
         </div>
 
-        {/* --- MOBILNI MENI --- */}
+        {/* --- MOBILNI MENI (IZMENJEN) --- */}
         <div className="flex md:hidden items-center gap-2 ml-auto relative z-[80]">
             <DropdownMenu open={isMobileLangOpen} onOpenChange={setIsMobileLangOpen}>
                 <DropdownMenuTrigger className={iconBtnClass}>
@@ -230,68 +216,19 @@ function NavbarContent() {
                      <Menu className="w-7 h-7 text-gray-700" />
                 </DropdownMenuTrigger>
                 
-                <DropdownMenuContent align="end" className="w-64 p-2 font-sans bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl max-h-[85vh] overflow-y-auto">
-                    {user && (
-                        <>
-                            <DropdownMenuLabel className="px-2 py-3 bg-purple-50 rounded-lg mb-2 flex items-center gap-3 mx-1">
-                                <div className="w-8 h-8 bg-purple-200 text-purple-800 rounded-full flex items-center justify-center font-bold text-sm">
-                                    {user.username[0].toUpperCase()}
-                                </div>
-                                <div className="flex flex-col overflow-hidden">
-                                    <span className="font-bold text-gray-800 truncate">{user.username}</span>
-                                    {user.role === 'admin' && <span className="text-[10px] text-blue-600 font-extrabold">ADMINISTRATOR</span>}
-                                </div>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-gray-100 my-1" />
-                        </>
-                    )}
-
+                <DropdownMenuContent align="end" className="w-64 p-2 font-sans bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl">
                     <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/")} className={mobileItemClass}>
                         <Home className="w-4 h-4" /> {t('backHome')}
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, user ? "/create" : "/auth/login?redirect=/create")} className={`
-                        ${mobileItemClass} !text-purple-700 !bg-purple-50/50 !border-purple-100 
-                        focus:!bg-purple-100 focus:!text-purple-900
+                    {/* Na mobilnom ostaje samo Post a Service kao glavna akcija */}
+                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/create")} className={`
+                        ${mobileItemClass} !text-white !bg-purple-600 focus:!bg-purple-700
                     `}>
                         <PlusCircle className="w-4 h-4" /> {t('navPostService')}
                     </DropdownMenuItem>
                     
-                    <DropdownMenuSeparator className="bg-gray-100 my-1" />
-
-                    {user ? (
-                        <>
-                            <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={mobileItemClass}>
-                                <UserIcon className="w-4 h-4" /> {t('navProfile')}
-                            </DropdownMenuItem>
-                            
-                            {/* Admin panel na mobilnom vodi na /profile */}
-                            {user.role === 'admin' && (
-                                <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={`${mobileItemClass} !text-blue-600 focus:!text-blue-700 focus:!bg-blue-50`}>
-                                    <LayoutDashboard className="w-4 h-4" /> {t('navAdminPanel')}
-                                </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onSelect={handleMobileLogout} className={mobileItemClass}>
-                                <LogOut className="w-4 h-4" /> {t('navLogout')}
-                            </DropdownMenuItem>
-                        </>
-                    ) : (
-                        <>
-                           {/* VRACENO NA /auth/login */}
-                           <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/auth/login")} className={`
-                                ${mobileItemClass} !bg-purple-600 !text-white 
-                                focus:!bg-purple-700 focus:!text-white
-                           `}>
-                                <LogIn className="w-4 h-4" /> {t('navLogin')}
-                            </DropdownMenuItem>
-
-                            {/* Sigurnosno dugme (ostaje za svaki slučaj) */}
-                            <DropdownMenuSeparator />
-                             <DropdownMenuItem onSelect={handleMobileLogout} className={`${mobileItemClass} text-red-500`}>
-                                <LogOut className="w-4 h-4" /> Resetuj/Odjavi se
-                            </DropdownMenuItem>
-                        </>
-                    )}
+                    {/* Ovde su izbačeni User Label, Admin Panel, Login i Logout za mobilni prikaz */}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
