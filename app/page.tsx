@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
+// ... (ostali importi ostaju isti)
 import { 
   Search, Layers, Heart, Star, ChevronLeft, ChevronRight, 
   Wrench, Car, Bot, Code, PawPrint, Palette, ShieldCheck
@@ -14,6 +15,7 @@ import { useLanguage } from "@/components/LanguageContext"
 declare global { interface Window { Pi: any; } }
 
 function HomeContent() {
+  // ... (sve promenljive ostaju iste)
   const [searchQuery, setSearchQuery] = useState("") 
   const [filteredServices, setFilteredServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,13 +30,29 @@ function HomeContent() {
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
 
+  // --- OVO JE NOVI DEO KOJI DODAJEMO ---
+  // Mapa koja povezuje URL (slug) sa prevodima (key)
+  const categoryMap: Record<string, string> = {
+    "design": "catDesign",
+    "marketing": "catMarketing",
+    "writing": "catWriting",
+    "video": "catVideo",
+    "tech": "catTech",
+    "business": "catBusiness",
+    "lifestyle": "catLifestyle"
+  };
+  // -------------------------------------
+
   const getRandomGradient = (id: any) => {
+    // ... (kod ostaje isti)
     const gradients = ["from-fuchsia-500 to-pink-600", "from-violet-500 to-purple-600", "from-indigo-500 to-purple-600", "from-purple-500 to-indigo-600"];
     const seed = id ? id.toString().length : 0;
     return gradients[seed % gradients.length];
   };
 
+  // ... (useEffect hookovi ostaju isti)
   useEffect(() => {
+    // ... tvoj kod za Pi login ...
     const startLogin = async () => {
       if (!window.Pi) return;
       try {
@@ -64,11 +82,7 @@ function HomeContent() {
         const response = await fetch('/api/services');
         let data = await response.json();
         
-        // Sigurnosna provera: ako data nije niz, postavi na prazan niz
-        if (!Array.isArray(data)) {
-           console.error("API response is not an array:", data);
-           data = [];
-        }
+        if (!Array.isArray(data)) { data = []; } // Tvoja sigurnosna provera
 
         if (selectedCategory) {
           const cat = selectedCategory.toLowerCase();
@@ -84,6 +98,7 @@ function HomeContent() {
   }, [selectedCategory, searchTerm]);
 
   const getSmartIcon = (service: any) => {
+    // ... (kod ostaje isti)
     const iconClass = "h-10 w-10 md:h-12 md:w-12 text-white/90 drop-shadow-md";
     const title = (typeof service.title === 'string' ? service.title : (service.title?.en || "")).toLowerCase();
     if (title.includes('auto') || title.includes('alfa')) return <Car className={iconClass} />;
@@ -91,13 +106,13 @@ function HomeContent() {
     return <Layers className={iconClass} />;
   };
 
-  // FIX: Provera da li je niz pre pozivanja slice funkcije
   const safeServices = Array.isArray(filteredServices) ? filteredServices : [];
   const currentServices = safeServices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-10 md:py-32 overflow-hidden">
+         {/* ... (Hero sekcija ostaje ista) ... */}
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
             {user?.username === 'Ilija1969' && (
               <Link href="/profile" className="mb-8">
@@ -120,9 +135,17 @@ function HomeContent() {
       </main>
 
       <section className="container mx-auto px-2 md:px-4 py-6 md:py-16 flex-grow bg-gray-50">
-        <h2 className="text-lg md:text-3xl font-bold text-gray-900 mb-6">{selectedCategory ? selectedCategory.toUpperCase() : t('adsTitle')}</h2>
+        
+        {/* --- OVDE JE PROMENA --- */}
+        <h2 className="text-lg md:text-3xl font-bold text-gray-900 mb-6">
+            {selectedCategory 
+                ? (categoryMap[selectedCategory] ? t(categoryMap[selectedCategory]) : selectedCategory.toUpperCase()) 
+                : t('adsTitle')}
+        </h2>
+        {/* ----------------------- */}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8">
+            {/* ... (Prikaz kartica ostaje isti) ... */}
             {currentServices.map((gig) => (
                 <div key={gig.id} className="group bg-white rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden flex flex-col h-full">
                     <Link href={`/services/${gig.id}`} className="block relative h-28 md:h-48">
