@@ -6,27 +6,22 @@ import { ArrowLeft, Trash2, Search, ExternalLink, Star, ChevronLeft, ChevronRigh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-// ❌ OBRISANO: import { SERVICES_DATA } from '@/lib/data'; 
-// Ovo je pravilo grešku "Module not found"
-
 export default function AdminServicesPage() {
   const router = useRouter();
   const [services, setServices] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // 👇 PAGINACIJA: 20 komada
+  // PAGINACIJA
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // 👇 BACK DUGME EFEKAT
+  // BACK DUGME
   const [isBackActive, setIsBackActive] = useState(false);
 
   useEffect(() => {
-    // 👇 NOVA LOGIKA: Učitaj iz API-ja (Baze) + LocalStorage
     const loadData = async () => {
         let allServices: any[] = [];
 
-        // 1. Probaj da povučeš iz baze
         try {
             const res = await fetch('/api/services');
             if (res.ok) {
@@ -39,13 +34,11 @@ export default function AdminServicesPage() {
             console.error("Greška pri učitavanju iz API-ja:", error);
         }
 
-        // 2. Spoji sa LocalStorage (tvoja postojeća logika)
         if (typeof window !== 'undefined') {
             const localServicesStr = localStorage.getItem('skillclick_services');
             if (localServicesStr) {
                 try {
                     const localServices = JSON.parse(localServicesStr);
-                    // Dodajemo lokalne na početak ili kraj, kako želiš (ovde su na početku)
                     allServices = [...localServices, ...allServices];
                 } catch (e) {
                     console.error("Greška local storage", e);
@@ -63,7 +56,6 @@ export default function AdminServicesPage() {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // 👇 PAMETNA FUNKCIJA ZA NAZAD
   const handleBack = () => {
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
@@ -78,11 +70,9 @@ export default function AdminServicesPage() {
 
   const handleDeleteService = async (id: number | string) => {
     if (confirm("Da li sigurno želiš da obrišeš ovaj oglas?")) {
-        // 1. Obriši iz State-a (Vizuelno)
         const updatedServices = services.filter(s => s.id !== id);
         setServices(updatedServices);
 
-        // 2. Obriši iz LocalStorage-a (ako je tamo)
         if (typeof window !== 'undefined') {
             const localServicesStr = localStorage.getItem('skillclick_services');
             if (localServicesStr) {
@@ -92,7 +82,6 @@ export default function AdminServicesPage() {
             }
         }
 
-        // 3. 👇 NOVO: Obriši iz Baze (API poziv)
         try {
             await fetch(`/api/services?id=${id}`, { method: 'DELETE' });
         } catch (e) {
@@ -108,15 +97,24 @@ export default function AdminServicesPage() {
       "from-blue-500 to-indigo-600",
       "from-emerald-400 to-teal-500"
     ];
-    // Osiguranje da je ID broj za modulo operaciju
-    const numId = typeof id === 'number' ? id : 1;
-    return gradients[(numId - 1) % gradients.length] || gradients[0];
+    // Bezbedno pretvaranje u broj ako je string (npr. cuid)
+    const numId = typeof id === 'number' ? id : (id ? id.toString().charCodeAt(0) : 1);
+    return gradients[numId % gradients.length] || gradients[0];
   };
 
-  const filteredServices = services.filter(service => 
-    (service.title && service.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (service.author && service.author.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Helper funkcija za izvlačenje korisničkog imena
+  const getAuthorName = (author: any) => {
+      if (!author) return 'unknown';
+      if (typeof author === 'object') return author.username || 'unknown';
+      return author;
+  };
+
+  const filteredServices = services.filter(service => {
+    const titleMatch = service.title && service.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const authorName = getAuthorName(service.author).toLowerCase();
+    const authorMatch = authorName.includes(searchTerm.toLowerCase());
+    return titleMatch || authorMatch;
+  });
 
   const totalPages = Math.ceil(filteredServices.length / ITEMS_PER_PAGE);
   const paginatedServices = filteredServices.slice(
@@ -130,26 +128,19 @@ export default function AdminServicesPage() {
       {/* HEADER */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-             
-             {/* BACK DUGME */}
              <button 
                 onClick={handleBack}
                 className={`
                     flex items-center gap-2 font-bold transition-all duration-200 outline-none
                     hover:text-purple-600 hover:scale-105
-                    ${isBackActive 
-                        ? "text-purple-600 scale-95" 
-                        : "text-gray-600 px-3 py-2 rounded-xl" 
-                    }
+                    ${isBackActive ? "text-purple-600 scale-95" : "text-gray-600 px-3 py-2 rounded-xl" }
                 `}
                 style={{ WebkitTapHighlightColor: "transparent" }}
              >
                 <ArrowLeft className={`w-5 h-5 transition-transform ${isBackActive ? '-translate-x-1' : ''}`} />
                 <span>Nazad</span>
              </button>
-
              <div className="border-l border-gray-300 h-6 mx-2 hidden md:block"></div>
-
              <div>
                 <h1 className="text-xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
                     <LayoutList className="w-5 h-5 text-purple-600" /> Oglasi
@@ -178,13 +169,16 @@ export default function AdminServicesPage() {
 
         {/* GRID LISTA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-8">
-            {paginatedServices.map((service) => (
+            {paginatedServices.map((service) => {
+                const authorName = getAuthorName(service.author);
+                
+                return (
                 <div key={service.id} className="group bg-white rounded-xl border border-gray-200 p-2 shadow-sm hover:shadow-md hover:border-purple-200 transition-all duration-200 flex items-center gap-3">
                     
                     {/* LEVO: Ikonica */}
                     <div className={`w-16 h-16 shrink-0 rounded-lg bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center text-white shadow-inner`}>
                          <div className="font-bold text-lg opacity-90">
-                            {service.author && service.author[0] ? service.author[0].toUpperCase() : 'U'}
+                            {authorName[0]?.toUpperCase() || 'U'}
                          </div>
                     </div>
 
@@ -205,7 +199,7 @@ export default function AdminServicesPage() {
                              </span>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                            Autor: @{service.author || 'unknown'}
+                            Autor: @{authorName}
                         </p>
                     </div>
 
@@ -215,7 +209,7 @@ export default function AdminServicesPage() {
                             size="icon" 
                             variant="ghost" 
                             className="h-7 w-7 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50"
-                            onClick={() => router.push(`/service/${service.id}`)}
+                            onClick={() => router.push(`/services/${service.id}`)}
                             title="Pogledaj"
                         >
                             <ExternalLink className="w-4 h-4" />
@@ -231,7 +225,7 @@ export default function AdminServicesPage() {
                         </Button>
                     </div>
                 </div>
-            ))}
+            )})}
         </div>
 
         {/* PAGINACIJA */}
