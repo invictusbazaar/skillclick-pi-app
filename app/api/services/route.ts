@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
+// 👇 OVO JE KLJUČNO: Govori Vercelu da uvek povlači sveže podatke iz baze!
+export const dynamic = 'force-dynamic';
+
 const prisma = global.prisma || new PrismaClient();
 if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
@@ -17,13 +20,20 @@ export async function GET() {
     });
 
     // Mapiramo podatke da odgovaraju onome što frontend očekuje
-    // Frontend traži 'author', a baza ima 'seller', pa ih ovde povezujemo
     const formattedServices = services.map(service => ({
       ...service,
-      author: service.seller // Ovde pravimo tu vezu
+      author: service.seller 
     }));
 
-    return NextResponse.json(formattedServices);
+    // 👇 Vraćamo podatke uz naredbu pretraživaču da NE PAMTI (ne kešira) stari rezultat
+    return NextResponse.json(formattedServices, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
+
   } catch (error) {
     console.error("Greška pri učitavanju oglasa:", error);
     return NextResponse.json({ error: "Greška na serveru" }, { status: 500 });
