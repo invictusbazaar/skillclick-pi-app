@@ -5,9 +5,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // 👇 Vercel promenljive koje popravljaju grešku sa linkom
-  url       = env("POSTGRES_PRISMA_URL") 
-  directUrl = env("POSTGRES_URL_NON_POOLING")
+  // 👇 Vraćamo na DATABASE_URL jer samo to imaš u Vercelu
+  url      = env("DATABASE_URL")
 }
 
 // --- MODELI (TABELE) ---
