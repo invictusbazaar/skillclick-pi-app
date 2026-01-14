@@ -9,14 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { 
   Zap, ArrowLeft, Loader2, CheckCircle, 
-  Car, Wrench, Bot, Code, Image as ImageIcon 
+  Image as ImageIcon 
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/LanguageContext';
 
 export default function CreateServicePage() {
   const router = useRouter();
-  const { t } = useLanguage(); // Uklonjen 'lang' jer se ne koristi direktno ovde
+  const { t } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -29,7 +29,7 @@ export default function CreateServicePage() {
     price: "",
     deliveryTime: "",
     revisions: "",
-    image1: "", // Polja postoje u state-u, sada su dodata i u formi
+    image1: "", 
     image2: "",
     image3: "" 
   });
@@ -44,8 +44,9 @@ export default function CreateServicePage() {
     { key: "catLifestyle", val: "Lifestyle" }
   ];
 
-  const [loggedInAuthor, setLoggedInAuthor] = useState('Invictus Bazaar');
+  const [loggedInAuthor, setLoggedInAuthor] = useState<string | null>(null);
 
+  // Provera logovanja
   useEffect(() => {
     if (typeof window !== 'undefined') {
         const storedUser = localStorage.getItem("user");
@@ -57,8 +58,10 @@ export default function CreateServicePage() {
             const parsedUser = JSON.parse(storedUser);
             if (parsedUser.username) {
                 setLoggedInAuthor(parsedUser.username);
+                setIsAuthorized(true);
+            } else {
+                router.push("/auth/login");
             }
-            setIsAuthorized(true);
         } catch (e) {
             console.error("Greška pri čitanju korisnika", e);
             router.push("/auth/login");
@@ -75,11 +78,28 @@ export default function CreateServicePage() {
       setFormData(prev => ({ ...prev, category: value }));
   }
 
+  // --- GLAVNA IZMENA: DETALJNA PROVERA GREŠAKA ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    // 1. Provera autora
+    if (!loggedInAuthor) {
+        alert("Greška: Niste ulogovani. Molimo ulogujte se ponovo.");
+        setIsLoading(false);
+        return;
+    }
+
+    // 2. Provera kategorije
+    if (!formData.category) {
+        alert("Molimo izaberite kategoriju.");
+        setIsLoading(false);
+        return;
+    }
+
     try {
+        console.log("🚀 Šaljem podatke na server...", { author: loggedInAuthor, title: formData.title });
+
         const response = await fetch('/api/services/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -91,22 +111,28 @@ export default function CreateServicePage() {
                 deliveryTime: formData.deliveryTime,
                 revisions: formData.revisions,
                 author: loggedInAuthor,
-                // Filtriramo prazne stringove da ne šaljemo prazne slike
                 images: [formData.image1, formData.image2, formData.image3].filter(img => img.length > 0)
             }),
         });
 
-        if (response.ok) {
-            setIsSuccess(true);
-            setTimeout(() => {
-                router.push('/'); 
-            }, 1500);
-        } else {
-            throw new Error("Greška pri upisu u bazu");
+        // Čitamo odgovor servera (bilo da je uspeh ili greška)
+        const data = await response.json();
+
+        if (!response.ok) {
+            // Ako server vrati grešku (npr. 400 ili 500), bacamo exception sa TAČNOM porukom
+            throw new Error(data.error || "Nepoznata greška na serveru");
         }
-    } catch (error) {
-        console.error("Greška:", error);
-        alert("Greška: Oglas nije sačuvan. Proverite da li imate API rutu /api/services/create.");
+
+        // Ako je sve OK
+        setIsSuccess(true);
+        setTimeout(() => {
+            router.push('/'); 
+        }, 1500);
+
+    } catch (error: any) {
+        console.error("❌ Greška pri slanju:", error);
+        // Prikazujemo pravu poruku korisniku
+        alert(`Greška: ${error.message}`);
     } finally {
         setIsLoading(false);
     }
@@ -181,7 +207,7 @@ export default function CreateServicePage() {
                     </div>
                 </div>
 
-                {/* --- NOVI DEO: UNOS SLIKA --- */}
+                {/* UNOS SLIKA */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                     <Label className={`${labelClass} mb-3 flex items-center gap-2`}>
                         <ImageIcon className="w-4 h-4" /> Slike Oglasa (URL)
@@ -191,7 +217,6 @@ export default function CreateServicePage() {
                         <Input name="image2" placeholder="Image URL 2 (Optional)" value={formData.image2} onChange={handleChange} className={inputClass} />
                     </div>
                 </div>
-                {/* --------------------------- */}
 
                 <div>
                     <Label htmlFor="description" className={labelClass}>{t('aboutService')}</Label>
