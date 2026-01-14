@@ -1,14 +1,12 @@
-//
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  // 👇 Vraćamo na DATABASE_URL jer samo to imaš u Vercelu
+  // 👇 MORA BITI DATABASE_URL JER SAMO NJEGA IMAŠ U VERCELU
   url      = env("DATABASE_URL")
 }
-
 // --- MODELI (TABELE) ---
 
 model User {
