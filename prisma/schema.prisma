@@ -1,10 +1,13 @@
+//
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // 👇 Vercel promenljive koje popravljaju grešku sa linkom
+  url       = env("POSTGRES_PRISMA_URL") 
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 // --- MODELI (TABELE) ---
@@ -42,6 +45,11 @@ model Order {
   status    String   @default("pending") // pending, active, completed, cancelled
   amount    Float
   createdAt DateTime @default(now())
+
+  // --- POLJA ZA PI NETWORK ---
+  paymentId String?   @unique
+  txid      String?
+  // ---------------------------
 
   buyerId   String
   buyer     User     @relation("BuyerOrders", fields: [buyerId], references: [id])
