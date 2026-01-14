@@ -7,40 +7,38 @@ if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, category, price, deliveryTime, revisions, author, images } = body;
+    const { title, description, category, price, images, author } = body;
+
+    // Provera da li fale podaci
+    if (!title || !price || !author) {
+        return NextResponse.json({ error: "Fale obavezni podaci" }, { status: 400 });
+    }
 
     // 1. Nađi ili napravi korisnika
-    let user = await prisma.user.findUnique({
-      where: { username: author }
-    });
+    let user = await prisma.user.findUnique({ where: { username: author } });
 
     if (!user) {
       user = await prisma.user.create({
-        data: { 
-            username: author,
-            role: author === 'Ilija1969' ? 'admin' : 'user'
-        }
+        data: { username: author, role: 'user' }
       });
     }
 
-    // 2. Upisivanje oglasa (Pazimo na userId polje iz tvoje šeme)
+    // 2. Upisivanje oglasa
     const newService = await prisma.service.create({
       data: {
         title,
         description,
         category,
         price: parseFloat(price),
-        // Ovi podaci nisu u šemi ali ih možemo dodati u opis ili ignorisati ako šema ne podržava
-        // Za sada ih ne upisujemo direktno ako polja ne postoje u Service modelu
-        images: images || [], 
-        userId: user.id, // BITNO: Koristimo userId kako piše u tvojoj šemi
+        images: images || [],
+        userId: user.id,
       },
     });
 
     return NextResponse.json({ success: true, service: newService });
 
-  } catch (error) {
-    console.error("Greška pri kreiranju oglasa:", error);
-    return NextResponse.json({ error: "Greška na serveru" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Greška:", error);
+    return NextResponse.json({ error: error.message || "Greška na serveru" }, { status: 500 });
   }
 }
