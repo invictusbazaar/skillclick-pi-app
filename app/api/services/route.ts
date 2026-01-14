@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Ova linija sprečava Next.js da otvara previše konekcija ka bazi
+const prisma = global.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
 export async function GET() {
   try {
-    // Vučemo sve oglase iz baze podataka uključujući podatke o autoru
+    // Proveravamo direktno bazu
     const services = await prisma.service.findMany({
       include: { author: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
 
     return NextResponse.json(services, {
@@ -17,7 +19,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("Greška u API-ju:", error);
-    return NextResponse.json([], { status: 200 });
+    console.error("Greška pri čitanju iz baze:", error);
+    return NextResponse.json({ error: "Baza nije dostupna" }, { status: 500 });
   }
 }

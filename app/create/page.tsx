@@ -9,16 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { 
   Zap, ArrowLeft, Loader2, CheckCircle, 
-  Car, Wrench, Bot, PawPrint, Heart, Palette, Code, 
-  PenTool, Coffee, Camera, Home, GraduationCap, Tag, 
-  Clock, Repeat, Image as ImageIcon 
+  Car, Wrench, Bot, Code, Image as ImageIcon 
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/LanguageContext';
 
 export default function CreateServicePage() {
   const router = useRouter();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage(); // Uklonjen 'lang' jer se ne koristi direktno ovde
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -31,7 +29,7 @@ export default function CreateServicePage() {
     price: "",
     deliveryTime: "",
     revisions: "",
-    image1: "",
+    image1: "", // Polja postoje u state-u, sada su dodata i u formi
     image2: "",
     image3: "" 
   });
@@ -77,34 +75,6 @@ export default function CreateServicePage() {
       setFormData(prev => ({ ...prev, category: value }));
   }
 
-  const getDynamicVisuals = () => {
-    const titleLower = formData.title.toLowerCase();
-    let Icon = Zap; 
-    let colorClass = "text-gray-600 bg-gray-100"; 
-
-    switch(formData.category) {
-        case "Lifestyle": colorClass = "text-orange-500 bg-orange-100"; break;
-        case "Graphics & Design": colorClass = "text-purple-600 bg-purple-100"; break;
-        case "Programming & Tech": colorClass = "text-blue-600 bg-blue-100"; break;
-        case "Digital Marketing": colorClass = "text-green-600 bg-green-100"; break;
-        case "Video & Animation": colorClass = "text-pink-600 bg-pink-100"; break;
-        case "Writing & Translation": colorClass = "text-yellow-600 bg-yellow-100"; break;
-        case "Business": colorClass = "text-slate-600 bg-slate-200"; break;
-        default: colorClass = "text-purple-600 bg-purple-50"; 
-    }
-
-    if (titleLower.includes('auto') || titleLower.includes('alfa')) Icon = Car;
-    else if (titleLower.includes('popravka') || titleLower.includes('servis')) Icon = Wrench;
-    else if (titleLower.includes('cnc') || titleLower.includes('laser')) Icon = Bot;
-    else if (titleLower.includes('sajt') || titleLower.includes('kod')) Icon = Code;
-    else Icon = Zap;
-
-    return { Icon, colorClass };
-  };
-
-  const { Icon: DynamicIcon, colorClass } = getDynamicVisuals();
-
-  // 👇 IZMENJENO: Sada šalje podatke u bazu umesto u localStorage
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -121,6 +91,7 @@ export default function CreateServicePage() {
                 deliveryTime: formData.deliveryTime,
                 revisions: formData.revisions,
                 author: loggedInAuthor,
+                // Filtriramo prazne stringove da ne šaljemo prazne slike
                 images: [formData.image1, formData.image2, formData.image3].filter(img => img.length > 0)
             }),
         });
@@ -135,7 +106,7 @@ export default function CreateServicePage() {
         }
     } catch (error) {
         console.error("Greška:", error);
-        alert("Greška: Oglas nije sačuvan u bazu. Proveri internet vezu.");
+        alert("Greška: Oglas nije sačuvan. Proverite da li imate API rutu /api/services/create.");
     } finally {
         setIsLoading(false);
     }
@@ -209,6 +180,18 @@ export default function CreateServicePage() {
                         <Input id="revisions" name="revisions" placeholder="Unlimited" value={formData.revisions} onChange={handleChange} required className={inputClass} />
                     </div>
                 </div>
+
+                {/* --- NOVI DEO: UNOS SLIKA --- */}
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <Label className={`${labelClass} mb-3 flex items-center gap-2`}>
+                        <ImageIcon className="w-4 h-4" /> Slike Oglasa (URL)
+                    </Label>
+                    <div className="space-y-3">
+                        <Input name="image1" placeholder="Image URL 1 (Cover)" value={formData.image1} onChange={handleChange} className={inputClass} />
+                        <Input name="image2" placeholder="Image URL 2 (Optional)" value={formData.image2} onChange={handleChange} className={inputClass} />
+                    </div>
+                </div>
+                {/* --------------------------- */}
 
                 <div>
                     <Label htmlFor="description" className={labelClass}>{t('aboutService')}</Label>
