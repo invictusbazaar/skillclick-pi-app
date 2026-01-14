@@ -64,6 +64,12 @@ function HomeContent() {
         const response = await fetch('/api/services');
         let data = await response.json();
         
+        // Sigurnosna provera: ako data nije niz, postavi na prazan niz
+        if (!Array.isArray(data)) {
+           console.error("API response is not an array:", data);
+           data = [];
+        }
+
         if (selectedCategory) {
           const cat = selectedCategory.toLowerCase();
           data = data.filter((s: any) => s.category.toLowerCase().includes(cat));
@@ -85,7 +91,9 @@ function HomeContent() {
     return <Layers className={iconClass} />;
   };
 
-  const currentServices = filteredServices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // FIX: Provera da li je niz pre pozivanja slice funkcije
+  const safeServices = Array.isArray(filteredServices) ? filteredServices : [];
+  const currentServices = safeServices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
