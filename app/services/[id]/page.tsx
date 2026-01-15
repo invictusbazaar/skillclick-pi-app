@@ -6,7 +6,6 @@ import { useLanguage } from '@/components/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CreditCard, Clock, PenTool, Car, Wrench, Palette, Code, Video, Briefcase } from 'lucide-react';
 
-// Definišemo Pi tipove da TypeScript ne viče
 declare global { interface Window { Pi: any; } }
 
 export default function ServiceDetail() {
@@ -55,6 +54,8 @@ export default function ServiceDetail() {
       const initPi = async () => {
           if (!window.Pi) return;
           try { 
+              // PAŽNJA: Ako ti je aplikacija na Pi Portalu podešena kao "Production",
+              // možda treba da staviš sandbox: false. Za sad ostavi true.
               await window.Pi.init({ version: "2.0", sandbox: true });
               console.log("✅ Pi SDK Initialized");
               setPiReady(true);
@@ -67,53 +68,68 @@ export default function ServiceDetail() {
       return () => clearInterval(interval);
   }, [piReady]);
 
-  // --- GLAVNA FUNKCIJA ZA PLAĆANJE (SA INTEGRISANOM DOZVOLOM) ---
+  // --- GLAVNA FUNKCIJA SA DETEKTIVIMA 🕵️ ---
   const handlePayment = async () => {
-    if (!window.Pi) { alert("Greška: Pi Browser nije detektovan."); return; }
+    if (!window.Pi) { alert("Greška: Nema Pi Browsera."); return; }
     if (!service) return;
 
     const amountNum = parseFloat(service.price);
-    if (isNaN(amountNum)) { alert("Greška: Cena nije validna."); return; }
+    if (isNaN(amountNum)) { alert("Greška: Cena nije broj."); return; }
 
-    alert(`Pokušavam naplatu: ${amountNum} Pi`);
+    // 1. KORAK
+    alert(`1. Krećem... Cena: ${amountNum}`);
 
     try {
-      // 👇 1. PRVO I OBAVEZNO: Tražimo dozvolu "payments" DIREKTNO OVDE
       const scopes = ['username', 'payments'];
       
-      // Ovo će naterati Pi Browser da proveri dozvole. Ako ih nema, pitaće korisnika.
-      await window.Pi.authenticate(scopes, (payment: any) => {
-          console.log("Nedovršeno plaćanje:", payment);
-      });
+      // 2. KORAK - AUTENTIFIKACIJA
+      // alert("2. Tražim dozvolu (Auth)..."); 
 
-      // 👇 2. TEK SAD KREIRAMO PLAĆANJE
+      await window.Pi.authenticate(scopes, onIncompletePaymentFound);
+
+      // 3. KORAK - AKO PROĐE AUTH
+      alert("3. Dozvola dobijena! Pravim zahtev...");
+
       const paymentData = {
         amount: amountNum,
-        memo: `Order: ${service.title.substring(0, 15)}...`, 
+        memo: `Order #${service.id.substring(0, 5)}...`, 
         metadata: { serviceId: service.id, type: 'service_order' }
       };
 
       const callbacks = {
         onReadyForServerApproval: async (paymentId: string) => {
-          await fetch('/api/payments/approve', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId, serviceId: service.id }),
-          });
+          alert("4. Čekam server (Approve)... ID: " + paymentId);
+          try {
+              const res = await fetch('/api/payments/approve', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ paymentId, serviceId: service.id }),
+              });
+              if (!res.ok) throw new Error(await res.text());
+              const data = await res.json();
+              alert("5. Server odobrio! " + JSON.stringify(data));
+          } catch (err: any) {
+              alert("❌ Greška na serveru (Approve): " + err.message);
+          }
         },
         onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-          await fetch('/api/payments/complete', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId, txid, serviceId: service.id }),
-          });
-          alert("✅ Plaćanje uspešno! Novac je prebačen.");
-          router.push('/'); 
+          alert("6. Završavam (Complete)... TXID: " + txid);
+          try {
+              await fetch('/api/payments/complete', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ paymentId, txid, serviceId: service.id }),
+              });
+              alert("✅ USPEH! Pare su legle.");
+              router.push('/'); 
+          } catch (err: any) {
+              alert("❌ Greška pri završetku: " + err.message);
+          }
         },
-        onCancel: () => alert("Plaćanje otkazano."),
+        onCancel: () => alert("⚠️ Plaćanje otkazano od strane korisnika."),
         onError: (e: any) => {
             console.error(e);
-            alert(`Greška: ${e.message || e}`);
+            alert(`🔥 CRVENA GREŠKA: ${e.message || JSON.stringify(e)}`);
         }
       };
 
@@ -121,9 +137,27 @@ export default function ServiceDetail() {
 
     } catch (e: any) { 
         console.error("Payment Error:", e);
-        // Ako je greška i dalje vezana za scope, ispiši je jasno
-        alert("Greška pri pokretanju: " + e.message);
+        alert("💀 Mrtvo: " + e.message);
     }
+  };
+
+  // --- REŠAVANJE ZAGLAVLJENIH TRANSAKCIJA ---
+  const onIncompletePaymentFound = (payment: any) => {
+      // Ako vidiš ovaj alert, to je bio problem!
+      alert("⚠️ NAĐENA ZAGLAVLJENA TRANSAKCIJA! " + payment.identifier);
+      
+      // Pokušavamo da je otkažemo da odčepimo sistem
+      // U pravoj app bi je poslao na server da se proveri, ovde je samo logujemo
+      // Pi SDK nekad zahteva da se ovo reši pre novog plaćanja
+      try {
+        fetch('/api/payments/approve', { // Koristimo approve endpoint samo da testiramo vezu
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ paymentId: payment.identifier, serviceId: "incomplete_cleanup" }),
+        }).then(() => alert("Pokušao sam da prijavim zaglavljenu transakciju. Probaj opet dugme."));
+      } catch (e) {
+          alert("Ne mogu da očistim staru transakciju.");
+      }
   };
 
   if (!service) return <div className="p-20 text-center text-purple-600 font-bold">Učitavanje...</div>;
