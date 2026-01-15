@@ -30,10 +30,10 @@ export default function LoginPage() {
     try {
         if (typeof window !== 'undefined' && (window as any).Pi) {
             const Pi = (window as any).Pi;
+            // Ako testiraš sa pravim Pi coinima prebaci sandbox na false
             Pi.init({ version: "2.0", sandbox: true });
 
-            // 👇👇👇 OVO JE KLJUČNO ZA TVOJU GREŠKU 👇👇👇
-            // Mora da piše 'payments' ovde!
+            // 👇 OVO REŠAVA PROBLEM: Tražimo dozvolu za plaćanje
             const scopes = ['username', 'payments']; 
             
             const onIncompletePaymentFound = (payment: any) => { console.log("Nedovršeno plaćanje:", payment); };
@@ -97,13 +97,10 @@ export default function LoginPage() {
         <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-900/20 border border-white/50 overflow-hidden text-center p-8">
           
             <div className="flex justify-center mb-6">
-                 <Image 
-                    src="/skillclick_logo.png" 
-                    alt="Logo" 
-                    width={220} 
-                    height={70} 
-                    className="h-14 w-auto object-contain"
-                />
+                 {/* Uklonjen Image komponenta ako nema slike, ili vrati ako imaš logo */}
+                 <div className="h-14 w-auto flex items-center justify-center text-2xl font-black text-purple-700">
+                    SkillClick<span className="text-sm align-top">π</span>
+                 </div>
             </div>
 
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-2">{t('welcomeBack')}</h1>
