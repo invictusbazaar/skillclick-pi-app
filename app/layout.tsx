@@ -4,7 +4,6 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import { LanguageProvider } from "@/components/LanguageContext";
-import Script from "next/script"; // 👈 OVO JE FALILO
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -29,14 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Originalni način učitavanja skripte */}
+        <script src="https://sdk.minepi.com/pi-sdk.js" async defer></script>
+      </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        {/* 👇 OVO SI IMAO POGREŠNO. OVAKO TREBA: */}
-        <Script 
-          src="https://sdk.minepi.com/pi-sdk.js" 
-          strategy="beforeInteractive" 
-        />
-
         <LanguageProvider>
             <Navbar />
             <main className="flex-grow">
