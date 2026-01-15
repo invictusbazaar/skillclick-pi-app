@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
@@ -14,12 +14,14 @@ export default function LoginPage() {
     try {
         if (!window.Pi) throw new Error("Nema Pi Browsera");
 
-        // 👇 PROMENA: Stavili smo sandbox na FALSE da testiramo pravu mrežu
-        await window.Pi.init({ version: "2.0", sandbox: false });
+        // 👇 VRAĆENO NA TRUE: Ovo je obavezno za testiranje plaćanja!
+        await window.Pi.init({ version: "2.0", sandbox: true });
         
         const scopes = withPayments ? ['username', 'payments'] : ['username'];
         
-        const auth = await window.Pi.authenticate(scopes, (p: any) => console.log(p));
+        const auth = await window.Pi.authenticate(scopes, (p: any) => {
+            console.log("Nedovršeno plaćanje:", p);
+        });
         
         setStatus("✅ USPEH! Ulogovan kao: " + auth.user.username);
         
@@ -30,10 +32,11 @@ export default function LoginPage() {
         }));
 
         if(withPayments) {
-            alert("To je to! Plaćanje je odobreno!");
+            // Ako je prošlo plaćanje auth, idemo na početnu
+            alert("BRAVO! Dobio si dozvolu za PLAĆANJE! Sada možeš da kupuješ.");
             setTimeout(() => router.push('/'), 1000);
         } else {
-            alert("Ulogovan si (Samo ime). Sad probaj drugo dugme!");
+            alert("Ime je prošlo! Sada klikni LJUBIČASTO dugme za pare.");
         }
 
     } catch (error: any) {
@@ -51,15 +54,15 @@ export default function LoginPage() {
         </div>
 
         <Button onClick={() => login(false)} className="w-full bg-blue-600 h-14 text-lg">
-            1. TEST: Samo Ime
+            1. TEST: Samo Ime (Rade!)
         </Button>
 
-        <Button onClick={() => login(true)} className="w-full bg-purple-600 h-14 text-lg">
-            2. TEST: Ime + Plaćanje
+        <Button onClick={() => login(true)} className="w-full bg-purple-600 h-14 text-lg font-bold shadow-xl">
+            2. KLIKNI OVDE: Traži Dozvolu za PARE
         </Button>
         
         <p className="text-xs text-gray-500 mt-4">
-            Prvo klikni plavo dugme. Mora da radi!
+            Klikni ljubičasto dugme. Trebalo bi da piše "Username" i "PAYMENTS".
         </p>
     </div>
   )
