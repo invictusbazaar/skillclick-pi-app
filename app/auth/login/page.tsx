@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ShieldCheck, ArrowLeft, Loader2, Smartphone } from "lucide-react"
+import { ShieldCheck, ArrowLeft, Loader2, Smartphone, RefreshCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import Image from 'next/image'
 import { useLanguage } from "@/components/LanguageContext"
 
 export default function LoginPage() {
@@ -15,99 +14,91 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState("")
-  const [isDev, setIsDev] = useState(false);
 
+  // Čišćenje pri dolasku na stranu
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-        setIsDev(true);
-    }
+    // Opciono: Očistimo stare podatke da budemo sigurni
+    // localStorage.removeItem("user");
   }, []);
 
   const handlePiLogin = async () => {
+    if (isLoading) return; // Spreči dupli klik
     setIsLoading(true);
-    setStatus(t('piConnecting')); 
+    setStatus("Povezujem se sa Pi Mrežom..."); 
+
+    // Tajmer za slučaj da se zaglavi
+    const safetyTimer = setTimeout(() => {
+        if(isLoading) {
+            setIsLoading(false);
+            setStatus("Pi Browser ne reaguje. Osveži stranicu.");
+            alert("Login traje predugo. Molim te osveži stranicu (povuci nadole) i probaj ponovo.");
+        }
+    }, 8000); // 8 sekundi čekamo
 
     try {
         if (typeof window !== 'undefined' && (window as any).Pi) {
             const Pi = (window as any).Pi;
-            // Ako testiraš sa pravim Pi coinima prebaci sandbox na false
-            Pi.init({ version: "2.0", sandbox: true });
+            
+            // Inicijalizacija (bezbedna)
+            try {
+                await Pi.init({ version: "2.0", sandbox: true });
+            } catch (err) {
+                console.log("Pi init already done or failed", err);
+            }
 
-            // 👇 OVO REŠAVA PROBLEM: Tražimo dozvolu za plaćanje
+            // OVO JE ONO ŠTO GA ZBUNJUJE - TRAŽIMO PLAĆANJE
             const scopes = ['username', 'payments']; 
             
-            const onIncompletePaymentFound = (payment: any) => { console.log("Nedovršeno plaćanje:", payment); };
+            const onIncompletePaymentFound = (payment: any) => { 
+                console.log("Nedovršeno:", payment); 
+            };
 
+            // Pokušaj autentifikacije
             const authResults = await Pi.authenticate(scopes, onIncompletePaymentFound);
             
-            setStatus(`${t('piWelcomeUser')}, ${authResults.user.username}!`);
+            // Ako prođe, gasimo tajmer
+            clearTimeout(safetyTimer);
 
-            const MY_ADMIN_USERNAME = "ilijabrdar"; 
-            const role = authResults.user.username === MY_ADMIN_USERNAME ? "admin" : "user";
+            setStatus(`Dobrodošao, ${authResults.user.username}!`);
 
             const piUser = {
                 username: authResults.user.username,
                 uid: authResults.user.uid,
-                role: role, 
-                piBalance: "0.00",
+                role: "user", 
                 accessToken: authResults.accessToken
             };
 
             localStorage.setItem("user", JSON.stringify(piUser));
             
+            // Preusmeravanje
             setTimeout(() => {
-                const redirectUrl = searchParams.get('redirect') || "/profile";
+                const redirectUrl = searchParams.get('redirect') || "/profile"; // Ili / (home)
                 router.push(redirectUrl);
-            }, 1000);
+            }, 500);
 
         } else {
-            alert(t('piBrowserError')); 
+            clearTimeout(safetyTimer);
+            alert("Nisi u Pi Browseru!"); 
             setIsLoading(false);
-            setStatus(t('piBrowserError'));
+            setStatus("Greška: Nema Pi Browsera");
         }
-    } catch (error) {
+    } catch (error: any) {
+        clearTimeout(safetyTimer);
         console.error("Pi Auth Error:", error);
-        setStatus(t('piAuthFailed')); 
         setIsLoading(false);
+        // Ovde ćemo ispisati tačnu grešku da vidimo šta ga muči
+        setStatus("Greška pri logovanju. Probaj refresh.");
+        alert("Greška: " + (error.message || JSON.stringify(error)));
     }
   }
 
-  const handleDemoLogin = () => {
-      const demoUser = {
-          username: "ilijabrdar",
-          role: "admin",
-          piBalance: "1250.00"
-      };
-      localStorage.setItem("user", JSON.stringify(demoUser));
-      router.push("/profile");
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc] font-sans relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc] font-sans relative p-4">
       
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-purple-900 to-[#f8f9fc] -z-10" />
-      <div className="absolute -top-20 -left-20 w-96 h-96 bg-purple-600/30 rounded-full blur-3xl" />
-      
-      <div className="w-full max-w-md px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        
-        <Link href="/" className="inline-flex items-center text-sm font-bold text-white/80 hover:text-white mb-6 transition-colors">
-            <ArrowLeft className="w-4 h-4 mr-2" /> {t('backHome')}
-        </Link>
-
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-purple-900/20 border border-white/50 overflow-hidden text-center p-8">
-          
-            <div className="flex justify-center mb-6">
-                 {/* Uklonjen Image komponenta ako nema slike, ili vrati ako imaš logo */}
-                 <div className="h-14 w-auto flex items-center justify-center text-2xl font-black text-purple-700">
-                    SkillClick<span className="text-sm align-top">π</span>
-                 </div>
-            </div>
-
-            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-2">{t('welcomeBack')}</h1>
+      <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md text-center">
             
-            <p className="text-gray-500 text-sm mb-8">
-                {t('piLoginDesc')}
-            </p>
+            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">SkillClick Login</h1>
+            <p className="text-gray-500 text-sm mb-8">Prijavi se putem Pi Network-a</p>
 
             {status && (
                 <div className="mb-6 p-3 bg-purple-50 text-purple-700 text-sm font-bold rounded-xl border border-purple-100">
@@ -117,42 +108,20 @@ export default function LoginPage() {
 
             <Button 
                 onClick={handlePiLogin}
-                className="w-full bg-[#6d28d9] hover:bg-[#5b21b6] text-white font-bold py-7 rounded-2xl shadow-lg shadow-purple-500/30 transition-all active:scale-[0.98] text-lg relative overflow-hidden group"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 rounded-2xl text-lg mb-4"
                 disabled={isLoading}
             >
-                {isLoading ? (
-                    <div className="flex items-center gap-2">
-                        <Loader2 className="animate-spin w-6 h-6" />
-                        <span>{t('piVerifying')}</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center gap-3">
-                        <Smartphone className="w-6 h-6" /> 
-                        <span>{t('piLoginBtn')}</span>
-                    </div>
-                )}
+                {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Smartphone className="mr-2" />}
+                {isLoading ? "Čekam Pi..." : "Login with Pi"}
             </Button>
 
-            <p className="text-xs text-gray-400 mt-6 max-w-xs mx-auto">
-                {t('piLoginDisclaimer')}
-            </p>
-
-            {isDev && (
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                    <button 
-                        onClick={handleDemoLogin} 
-                        className="text-xs text-gray-300 hover:text-purple-500 font-mono transition-colors"
-                    >
-                        [Developer Mode: PC Login]
-                    </button>
-                </div>
-            )}
-
-            <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider mt-4">
-                <ShieldCheck className="w-3 h-3" /> {t('securedBy')}
-            </div>
-
-        </div>
+            {/* Dugme za osvežavanje ako sve zakuca */}
+            <button 
+                onClick={() => window.location.reload()}
+                className="text-gray-400 text-sm flex items-center justify-center gap-1 mx-auto hover:text-purple-600 mt-4"
+            >
+                <RefreshCcw className="w-3 h-3" /> Ako zablokira, klikni ovde
+            </button>
       </div>
     </div>
   )
