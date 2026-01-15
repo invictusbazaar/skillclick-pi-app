@@ -2,44 +2,39 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Smartphone, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [status, setStatus] = useState("")
-  const [showForceBtn, setShowForceBtn] = useState(false) // Novo dugme za spas
+  const [status, setStatus] = useState("Spreman.")
+  const [currentUrl, setCurrentUrl] = useState("")
 
-  // 🧹 ČISTIMO SVE KAD DOĐEŠ OVDE
   useEffect(() => {
+    // Čistimo stare podatke
     localStorage.clear();
-    sessionStorage.clear();
-    console.log("🧹 Sve obrisano. Spreman za čist start.");
+    // Prikazujemo trenutnu adresu
+    if (typeof window !== 'undefined') {
+        setCurrentUrl(window.location.href);
+    }
   }, []);
 
   const handlePiLogin = async () => {
-    setIsLoading(true);
-    setStatus("Povezujem se sa Pi Wallet-om...");
+    setStatus("1. Inicijalizacija...");
     
-    // Tajmer: Ako se vrti duže od 5 sekundi, dajemo opciju za silu
-    const timer = setTimeout(() => setShowForceBtn(true), 5000);
-
     try {
-        if (!window.Pi) throw new Error("Pi Browser nije nađen");
+        if (!window.Pi) throw new Error("Pi Browser nije detektovan!");
 
-        const Pi = window.Pi;
-        await Pi.init({ version: "2.0", sandbox: true });
+        // Inicijalizacija
+        await window.Pi.init({ version: "2.0", sandbox: true });
+        setStatus("2. Pi Init OK. Tražim Auth...");
 
-        // 👇 OVO JE ONO ŠTO GA ZBUNJUJE AKO URL NIJE DOBAR U PORTALU
+        // Autentifikacija
         const scopes = ['username', 'payments']; 
+        const auth = await window.Pi.authenticate(scopes, (p: any) => setStatus("Nedovršeno: " + p.paymentId));
         
-        const auth = await Pi.authenticate(scopes, (p: any) => console.log(p));
+        setStatus("3. USPEH! " + auth.user.username);
         
-        clearTimeout(timer);
-        setStatus(`Uspeh! Zdravo ${auth.user.username}`);
-        
-        // Čuvamo podatke
+        // Čuvanje
         localStorage.setItem("user", JSON.stringify({
             username: auth.user.username,
             uid: auth.user.uid,
@@ -51,43 +46,29 @@ export default function LoginPage() {
 
     } catch (error: any) {
         console.error(error);
-        setStatus("Greška: " + (error.message || "Auth Failed"));
-        setShowForceBtn(true); // Pokaži dugme za spas ako pukne
+        setStatus("GREŠKA: " + (error.message || JSON.stringify(error)));
     }
   }
 
-  // 👇 OVO KORISTI SAMO AKO SE SVE ZAGLAVI
-  const forceAdminLogin = () => {
-      if(confirm("Ovo je samo za testiranje! Da li želiš da uđeš kao Admin bez Pi provere?")) {
-        localStorage.setItem("user", JSON.stringify({
-            username: "ilijabrdar", // Tvoje ime
-            role: "admin"
-        }));
-        router.push('/');
-      }
-  }
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6 text-center">
-      <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm">
-        <h1 className="text-2xl font-bold mb-2">SkillClick Login</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-gray-100">
+      <div className="bg-white p-6 rounded-xl shadow-lg w-full">
+        <h1 className="text-xl font-bold mb-4">Debug Login</h1>
         
-        {status && <div className="bg-yellow-50 text-yellow-800 p-2 rounded mb-4 text-sm">{status}</div>}
+        <div className="bg-gray-800 text-green-400 p-4 rounded text-xs text-left mb-4 font-mono break-all">
+            <p>TRENUTNA ADRESA (Mora biti ista u Portalu):</p>
+            <p className="font-bold text-yellow-300 my-2">{currentUrl}</p>
+            <p className="border-t border-gray-600 pt-2">STATUS:</p>
+            <p>{status}</p>
+        </div>
 
-        <Button onClick={handlePiLogin} className="w-full bg-purple-600 h-14 text-lg mb-4" disabled={isLoading}>
-            {isLoading ? <Loader2 className="animate-spin mr-2"/> : <Smartphone className="mr-2"/>}
-            Prijavi se (Pi)
+        <Button onClick={handlePiLogin} className="w-full bg-purple-600 h-12 text-lg font-bold">
+            POKRENI LOGIN
         </Button>
-
-        {/* Dugme koje se pojavi ako se Login zaglavi */}
-        {showForceBtn && (
-            <div className="mt-4 pt-4 border-t">
-                <p className="text-xs text-red-500 mb-2">Login ne reaguje? Verovatno URL u Developer Portalu nije dobar.</p>
-                <button onClick={forceAdminLogin} className="text-gray-500 text-xs underline flex items-center justify-center w-full gap-1">
-                    <AlertTriangle className="w-3 h-3"/> Uđi na silu (Samo za Test)
-                </button>
-            </div>
-        )}
+        
+        <p className="text-xs text-red-500 mt-4">
+            Ako se zaglavi na "2. Pi Init OK", znači da URL nije dobar.
+        </p>
       </div>
     </div>
   )
