@@ -1,35 +1,50 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [status, setStatus] = useState("Spreman.")
+  const [status, setStatus] = useState("Tražim Pi Skriptu...")
+  const [piReady, setPiReady] = useState(false)
+
+  // 👇 OVO JE NOVO: Aktivno čekamo da se Pi pojavi
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+        if (window.Pi) {
+            setPiReady(true);
+            setStatus("✅ Pi SDK je SPREMAN!");
+            clearInterval(checkInterval);
+        } else {
+            setStatus("⏳ Učitavam Pi SDK... (Proveri layout.tsx)");
+        }
+    }, 500); // Proveravamo svakih pola sekunde
+
+    return () => clearInterval(checkInterval);
+  }, []);
 
   const login = async (withPayments: boolean) => {
+    if (!piReady) {
+        alert("Sačekaj da se Pi učita!");
+        return;
+    }
+
     setStatus("⏳ Povezujem se...");
     
     try {
-        if (!window.Pi) throw new Error("Pi Skripta nije učitana (Proveri layout.tsx)!");
-
-        // Pokušavamo inicijalizaciju
+        // Inicijalizacija
         try {
             await window.Pi.init({ version: "2.0", sandbox: true });
         } catch (err: any) {
-             // Ako je već inicijalizovan, samo nastavi, inače prijavi grešku
-             if (!err.message?.includes("already initialized")) {
-                 throw new Error("Init greška: " + err.message);
-             }
+             console.log("Init info:", err);
         }
         
-        // Definišemo dozvole
         const scopes = withPayments ? ['username', 'payments'] : ['username'];
         
-        setStatus(withPayments ? "⏳ Tražim dozvolu: NOVAC..." : "⏳ Tražim dozvolu: IME...");
+        setStatus(withPayments ? "⏳ Molim te ODOBRI DOZVOLU..." : "⏳ Prijavljujem se...");
 
-        // Autentifikacija
         const auth = await window.Pi.authenticate(scopes, (p: any) => {
             console.log("Nedovršeno plaćanje:", p);
         });
@@ -43,34 +58,52 @@ export default function LoginPage() {
         }));
 
         if(withPayments) {
-            alert("USPEH! Plaćanje odobreno. Prebacujem te...");
-            setTimeout(() => router.push('/'), 1000);
+            alert("USPEH! Plaćanje odobreno. Ulazim...");
+            router.push('/');
         } else {
-            alert("Ime je prošlo! Sada probaj drugo dugme.");
+            alert("Ime OK. Sad probaj dugme za PLAĆANJE.");
         }
 
     } catch (error: any) {
         console.error(error);
-        setStatus("❌ GREŠKA: " + (error.message || JSON.stringify(error)));
+        setStatus("❌ GREŠKA: " + error.message);
         alert("Greška: " + error.message);
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-gray-100 gap-4">
-        <h1 className="text-xl font-bold">SkillClick Login</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-gray-100 gap-6">
+        <h1 className="text-2xl font-bold text-purple-900">SkillClick Login</h1>
         
-        <div className="bg-white p-4 rounded-xl shadow w-full text-xs font-mono min-h-[60px] flex items-center justify-center border-2 border-purple-100 break-words">
+        {/* Status prozor */}
+        <div className={`p-4 rounded-xl shadow w-full text-sm font-bold border-2 ${piReady ? 'bg-green-50 border-green-200 text-green-700' : 'bg-yellow-50 border-yellow-200 text-yellow-700'}`}>
             {status}
         </div>
 
-        <Button onClick={() => login(false)} className="w-full bg-blue-600 h-14 text-lg shadow-lg">
-            1. Proveri Ime (Auth)
-        </Button>
+        {/* Dugmići su onemogućeni dok se Pi ne učita */}
+        <div className="space-y-4 w-full">
+            <Button 
+                onClick={() => login(false)} 
+                disabled={!piReady}
+                className="w-full bg-blue-600 h-14 text-lg shadow-md disabled:opacity-50"
+            >
+                1. Test: Samo Ime
+            </Button>
 
-        <Button onClick={() => login(true)} className="w-full bg-purple-600 h-14 text-lg font-bold shadow-xl border-2 border-purple-400">
-            2. ODOBRI PLAĆANJE (Klikni ovo!)
-        </Button>
+            <Button 
+                onClick={() => login(true)} 
+                disabled={!piReady}
+                className="w-full bg-purple-600 h-14 text-lg font-bold shadow-xl border-2 border-purple-400 disabled:opacity-50"
+            >
+                2. Test: IME + PLAĆANJE
+            </Button>
+        </div>
+        
+        {!piReady && (
+            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin"/> Čekam Pi Browser...
+            </div>
+        )}
     </div>
   )
 }
