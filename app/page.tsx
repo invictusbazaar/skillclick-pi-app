@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react"
 import { 
   Search, Layers, Heart, Star,  
-  Wrench, Car, ShieldCheck
+  Wrench, Car, ShieldCheck, LogOut, User as UserIcon, LogIn
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,8 +38,6 @@ function HomeContent() {
     "lifestyle": "catLifestyle"
   };
 
-  // --- POPRAVLJENA FUNKCIJA ZA BOJE ---
-  // Sada računa boju na osnovu slova u ID-u, ne dužine
   const getGradient = (id: string) => {
     if (!id) return "from-indigo-500 to-purple-600";
     const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -53,29 +51,32 @@ function HomeContent() {
     ];
     return gradients[sum % gradients.length];
   };
-  // ------------------------------------
 
+  // --- IZMENA: NEMA VIŠE AUTO-LOGINA SA PI MREŽOM OVDE ---
+  // Samo proveravamo da li je korisnik već sačuvan u telefonu
   useEffect(() => {
-    // ... (Pi login kod ostaje isti, ne diraj ga) ...
-    const startLogin = async () => {
-        if (!window.Pi) return;
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
         try {
-          await window.Pi.init({ version: "2.0", sandbox: false });
-          const auth = await window.Pi.authenticate(['username'], () => {});
-          const userData = { username: auth.user.username, role: auth.user.username === 'Ilija1969' ? 'admin' : 'user' };
-          setUser(userData);
-          localStorage.setItem("user", JSON.stringify(userData));
-        } catch (e) { console.error(e); }
-      };
-      const intId = setInterval(() => { if (window.Pi) { clearInterval(intId); startLogin(); } }, 500);
-      return () => clearInterval(intId);
+            setUser(JSON.parse(storedUser));
+        } catch (e) {
+            console.error("Greška pri čitanju korisnika", e);
+            localStorage.removeItem("user");
+        }
+    }
   }, []);
+
+  // --- NOVA FUNKCIJA ZA ODJAVU ---
+  const handleLogout = () => {
+      localStorage.clear(); // Brišemo sve podatke
+      setUser(null);
+      window.location.reload(); // Osvežavamo stranicu
+  };
 
   useEffect(() => {
     const fetchServices = async () => {
       setLoading(true);
       try {
-        // Dodajemo punu putanju za svaki slučaj, ali relativna bi trebala da radi na deploy-u
         const response = await fetch('/api/services', { cache: 'no-store' }); 
         let data = await response.json();
         
@@ -91,7 +92,7 @@ function HomeContent() {
         setFilteredServices(data);
       } catch (error) { 
           console.error("Fetch error:", error); 
-          setFilteredServices([]); // Fallback na prazan niz
+          setFilteredServices([]); 
       } finally { setLoading(false); }
     };
     fetchServices();
@@ -110,8 +111,30 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-10 md:py-32 overflow-hidden">
+         
+         {/* HEADER ZA LOGIN/LOGOUT */}
+         <div className="absolute top-4 right-4 z-50 flex gap-2">
+            {user ? (
+                <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md p-2 rounded-full pr-4">
+                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                        <UserIcon className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-bold">{user.username}</span>
+                    <button onClick={handleLogout} className="bg-red-500/80 p-2 rounded-full hover:bg-red-600 transition ml-2">
+                        <LogOut className="w-4 h-4 text-white" />
+                    </button>
+                </div>
+            ) : (
+                <Link href="/auth/login">
+                    <Button className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white font-bold rounded-full">
+                        <LogIn className="w-4 h-4 mr-2" /> Login
+                    </Button>
+                </Link>
+            )}
+         </div>
+
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
-            {user?.username === 'Ilija1969' && (
+            {user?.role === 'admin' && (
               <Link href="/profile" className="mb-8">
                 <Button className="bg-red-600 font-bold px-8 py-6 rounded-xl shadow-xl flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
                   <ShieldCheck className="w-6 h-6" /> ADMIN PANEL
@@ -141,7 +164,6 @@ function HomeContent() {
                 {currentServices.map((gig) => (
                     <div key={gig.id} className="group bg-white rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden flex flex-col h-full">
                         <Link href={`/services/${gig.id}`} className="block relative h-28 md:h-48">
-                            {/* KORISTIMO getGradient FUNKCIJU OVDE */}
                             <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(gig.id)} flex items-center justify-center`}>
                                 {gig.images && gig.images.length > 0 ? (
                                     <img src={gig.images[0]} alt={gig.title} className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity" />
@@ -153,7 +175,6 @@ function HomeContent() {
                                 <Heart className="h-3 w-3 md:h-4 md:w-4" />
                             </div>
                         </Link>
-                        {/* ... OSTATAK KARTICE (ISTI KAO PRE) ... */}
                         <div className="p-2.5 md:p-5 flex flex-col flex-grow relative">
                             <div className="absolute -top-5 left-3 md:-top-6 md:left-5">
                                 <div className="w-9 h-9 md:w-12 md:h-12 bg-white p-0.5 rounded-full shadow-md">
