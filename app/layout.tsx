@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import { LanguageProvider } from "@/components/LanguageContext";
-import Script from "next/script"; // 👈 OBAVEZNO OVO
+import Script from "next/script"; // 👈 OVO JE KLJUČNO!
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -31,8 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        {/* 👇 OVO JE KLJUČNO ZA FIX: beforeInteractive strategija */}
-        {/* Ovo učitava Pi Skriptu PRE nego što se aplikacija pokrene */}
+        {/* 👇 OVAKO SE PRAVILNO UČITAVA PI SKRIPTA U NEXT.JS 👇 */}
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
           strategy="beforeInteractive" 
