@@ -7,69 +7,65 @@ import { Button } from "@/components/ui/button"
 export default function LoginPage() {
   const router = useRouter()
   const [status, setStatus] = useState("Spreman.")
-  const [currentUrl, setCurrentUrl] = useState("")
 
-  useEffect(() => {
-    // Čistimo stare podatke
-    localStorage.clear();
-    // Prikazujemo trenutnu adresu
-    if (typeof window !== 'undefined') {
-        setCurrentUrl(window.location.href);
-    }
-  }, []);
-
-  const handlePiLogin = async () => {
-    setStatus("1. Inicijalizacija...");
+  const login = async (withPayments: boolean) => {
+    setStatus(withPayments ? "⏳ Probam: Ime + NOVAC..." : "⏳ Probam: Samo IME...");
     
     try {
-        if (!window.Pi) throw new Error("Pi Browser nije detektovan!");
+        if (!window.Pi) throw new Error("Nema Pi Browsera");
 
-        // Inicijalizacija
+        // 1. Inicijalizacija
         await window.Pi.init({ version: "2.0", sandbox: true });
-        setStatus("2. Pi Init OK. Tražim Auth...");
-
-        // Autentifikacija
-        const scopes = ['username', 'payments']; 
-        const auth = await window.Pi.authenticate(scopes, (p: any) => setStatus("Nedovršeno: " + p.paymentId));
         
-        setStatus("3. USPEH! " + auth.user.username);
+        // 2. Biramo dozvole
+        const scopes = withPayments ? ['username', 'payments'] : ['username'];
+        
+        // 3. Autentifikacija
+        const auth = await window.Pi.authenticate(scopes, (p: any) => console.log(p));
+        
+        setStatus("✅ USPEH! Ulogovan kao: " + auth.user.username);
         
         // Čuvanje
         localStorage.setItem("user", JSON.stringify({
             username: auth.user.username,
-            uid: auth.user.uid,
             role: "user",
             accessToken: auth.accessToken
         }));
 
-        setTimeout(() => router.push('/'), 1000);
+        if(withPayments) {
+            alert("To je to! Plaćanje je odobreno!");
+            setTimeout(() => router.push('/'), 1000);
+        } else {
+            alert("Ulogovan si (Samo ime). Sad probaj drugo dugme!");
+        }
 
     } catch (error: any) {
         console.error(error);
-        setStatus("GREŠKA: " + (error.message || JSON.stringify(error)));
+        setStatus("❌ GREŠKA: " + (error.message || "Unknown"));
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-gray-100">
-      <div className="bg-white p-6 rounded-xl shadow-lg w-full">
-        <h1 className="text-xl font-bold mb-4">Debug Login</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-gray-100 gap-4">
+        <h1 className="text-xl font-bold">Test Dozvola</h1>
         
-        <div className="bg-gray-800 text-green-400 p-4 rounded text-xs text-left mb-4 font-mono break-all">
-            <p>TRENUTNA ADRESA (Mora biti ista u Portalu):</p>
-            <p className="font-bold text-yellow-300 my-2">{currentUrl}</p>
-            <p className="border-t border-gray-600 pt-2">STATUS:</p>
-            <p>{status}</p>
+        <div className="bg-white p-4 rounded-xl shadow w-full text-sm font-mono min-h-[80px] flex items-center justify-center border-2 border-purple-100">
+            {status}
         </div>
 
-        <Button onClick={handlePiLogin} className="w-full bg-purple-600 h-12 text-lg font-bold">
-            POKRENI LOGIN
+        {/* DUGME 1: SAMO IME (Ovo mora da radi) */}
+        <Button onClick={() => login(false)} className="w-full bg-blue-600 h-14 text-lg">
+            1. TEST: Samo Ime
+        </Button>
+
+        {/* DUGME 2: IME + PARE (Ovo nas muči) */}
+        <Button onClick={() => login(true)} className="w-full bg-purple-600 h-14 text-lg">
+            2. TEST: Ime + Plaćanje
         </Button>
         
-        <p className="text-xs text-red-500 mt-4">
-            Ako se zaglavi na "2. Pi Init OK", znači da URL nije dobar.
+        <p className="text-xs text-gray-500 mt-4">
+            Prvo klikni plavo dugme. Ako prođe, onda probaj ljubičasto.
         </p>
-      </div>
     </div>
   )
 }
