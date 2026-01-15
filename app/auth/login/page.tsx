@@ -14,18 +14,15 @@ export default function LoginPage() {
     try {
         if (!window.Pi) throw new Error("Nema Pi Browsera");
 
-        // 1. Inicijalizacija
-        await window.Pi.init({ version: "2.0", sandbox: true });
+        // 👇 PROMENA: Stavili smo sandbox na FALSE da testiramo pravu mrežu
+        await window.Pi.init({ version: "2.0", sandbox: false });
         
-        // 2. Biramo dozvole
         const scopes = withPayments ? ['username', 'payments'] : ['username'];
         
-        // 3. Autentifikacija
         const auth = await window.Pi.authenticate(scopes, (p: any) => console.log(p));
         
         setStatus("✅ USPEH! Ulogovan kao: " + auth.user.username);
         
-        // Čuvanje
         localStorage.setItem("user", JSON.stringify({
             username: auth.user.username,
             role: "user",
@@ -53,18 +50,16 @@ export default function LoginPage() {
             {status}
         </div>
 
-        {/* DUGME 1: SAMO IME (Ovo mora da radi) */}
         <Button onClick={() => login(false)} className="w-full bg-blue-600 h-14 text-lg">
             1. TEST: Samo Ime
         </Button>
 
-        {/* DUGME 2: IME + PARE (Ovo nas muči) */}
         <Button onClick={() => login(true)} className="w-full bg-purple-600 h-14 text-lg">
             2. TEST: Ime + Plaćanje
         </Button>
         
         <p className="text-xs text-gray-500 mt-4">
-            Prvo klikni plavo dugme. Ako prođe, onda probaj ljubičasto.
+            Prvo klikni plavo dugme. Mora da radi!
         </p>
     </div>
   )
