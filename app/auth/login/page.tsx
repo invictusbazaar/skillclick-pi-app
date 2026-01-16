@@ -32,11 +32,21 @@ export default function LoginPage() {
         // Autentifikacija
         const authResults = await window.Pi.authenticate(scopes, onIncompletePaymentFound);
 
+        // --- ADMIN LOGIKA (NOVO) ---
+        const username = authResults.user.username;
+        let role = "user";
+        
+        // Provera da li si to ti
+        if (username === "Ilija1969" || username === "ilijabrdar") {
+            role = "admin";
+        }
+        // ---------------------------
+
         // Čuvanje korisnika
         const piUser = {
-            username: authResults.user.username,
+            username: username,
             uid: authResults.user.uid,
-            role: "user",
+            role: role, // Ovde sada upisujemo "admin" ako si to ti
             accessToken: authResults.accessToken
         };
 
