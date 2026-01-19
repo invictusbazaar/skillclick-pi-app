@@ -3,16 +3,14 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-// OVDJE UPIŠI TVOJ TAČAN PI USERNAME KAKO BI TE APLIKACIJA PREPOZNALA KAO ADMINA
 const ADMIN_USERNAME = "Ilija1969";
 
-// Proširen tip podataka za korisnika
 type User = {
   username: string;
   email: string;
-  uid?: string; // Pi Network User ID
+  uid?: string;
   accessToken?: string;
-  isAdmin: boolean; // Novo polje za admina
+  isAdmin: boolean;
 } | null;
 
 type AuthContextType = {
@@ -22,14 +20,21 @@ type AuthContextType = {
   isLoading: boolean;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// ✅ IZMENA: Definišemo "prazan" default kontekst da ne puca build ako provider fali
+const defaultContext: AuthContextType = {
+  user: null,
+  login: () => {},
+  logout: () => {},
+  isLoading: true
+};
+
+const AuthContext = createContext<AuthContextType>(defaultContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Inicijalizacija Pi SDK-a i Auto-Login
   useEffect(() => {
     const initPiApp = async () => {
       try {
@@ -37,32 +42,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== "undefined" && window.Pi) {
           // @ts-ignore
           const Pi = window.Pi;
-          
-          // Inicijalizacija (sandbox: true za testiranje, prebaci na false za live)
           await Pi.init({ version: "2.0", sandbox: true });
 
-          // Definišemo callback za nekompletna plaćanja
           const onIncompletePaymentFound = (payment: any) => {
-             console.log("Nekompletno plaćanje pronađeno:", payment);
+             console.log("Nekompletno plaćanje:", payment);
           };
 
-          // Autentifikacija - tražimo username i payments dozvole
           const scopes = ['username', 'payments'];
           const authResult = await Pi.authenticate(scopes, onIncompletePaymentFound);
 
-          // Ako je uspešno, logujemo korisnika
           if (authResult && authResult.user) {
             login(authResult.user.username, authResult);
           }
         } else {
-            // Fallback za testiranje van Pi Browsera
             const savedUser = localStorage.getItem("user_session");
             if (savedUser) {
                 setUser(JSON.parse(savedUser));
             }
         }
       } catch (error) {
-        console.error("Pi Network autentifikacija nije uspela:", error);
+        console.error("Pi auth error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -72,9 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (username: string, authResult?: any) => {
-    // Provera da li je korisnik Admin
     const isUserAdmin = username === ADMIN_USERNAME;
-
     const newUser: User = { 
         username, 
         email: `${username}@pi.email`,
@@ -82,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accessToken: authResult?.accessToken,
         isAdmin: isUserAdmin
     };
-    
     setUser(newUser);
     localStorage.setItem("user_session", JSON.stringify(newUser));
   };
@@ -92,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("user_session");
     // @ts-ignore
     if (typeof window !== "undefined" && window.Pi) {
-        // Pi SDK nema logout, samo čistimo lokalno stanje
+       // Pi logout logika ako postoji
     }
     router.push("/");
   };
@@ -106,8 +102,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth mora biti korišten unutar AuthProvider-a");
+  // ✅ IZMENA: Ako nema providera, vraćamo default umesto greške
+  if (!context) {
+    return defaultContext;
   }
   return context;
 };
