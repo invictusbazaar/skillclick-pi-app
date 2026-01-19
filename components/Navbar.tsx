@@ -75,14 +75,12 @@ function NavbarContent() {
 
           <Link href="/create" className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900`}>{t('navPostService')}</Link>
 
-          {/* ✅ SAMO ZA ADMINA (Ilija1969) */}
-          {user?.isAdmin && (
-            <Link href="/admin">
-                <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 rounded-lg flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
-                </Button>
-            </Link>
-          )}
+          {/* 🔴 ADMIN DUGME - BEZ USLOVA - MORA SE VIDETI */}
+          <Link href="/admin">
+            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 rounded-lg flex items-center gap-2 shadow-lg animate-pulse">
+                <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
+            </Button>
+          </Link>
 
           {/* PROFIL */}
           {user && (
@@ -102,12 +100,10 @@ function NavbarContent() {
                 <DropdownMenuTrigger className={iconBtnClass}> <Menu className="w-7 h-7 text-gray-700" /> </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 p-2 bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl">
                     
-                    {/* ✅ SAMO ZA ADMINA U MOBILNOM */}
-                    {user?.isAdmin && (
-                        <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/admin")} className={`${mobileItemClass} !bg-red-50 !text-red-600`}>
-                            <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
-                        </DropdownMenuItem>
-                    )}
+                    {/* 🔴 ADMIN LINK - BEZ USLOVA I U MOBILNOM */}
+                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/admin")} className={`${mobileItemClass} !bg-red-50 !text-red-600`}>
+                        <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
+                    </DropdownMenuItem>
 
                     <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/")} className={mobileItemClass}>
                         <Home className="w-4 h-4" /> {t('backHome')}
