@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
+// OVDJE UPIŠI TVOJ TAČAN PI USERNAME
 const ADMIN_USERNAME = "Ilija1969";
 
 type User = {
@@ -20,7 +21,7 @@ type AuthContextType = {
   isLoading: boolean;
 };
 
-// ✅ IZMENA: Definišemo "prazan" default kontekst da ne puca build ako provider fali
+// Default vrednosti da ne puca build
 const defaultContext: AuthContextType = {
   user: null,
   login: () => {},
@@ -36,34 +37,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 10; // Pokušavamo 5 sekundi (10 * 500ms)
+
     const initPiApp = async () => {
       try {
         // @ts-ignore
         if (typeof window !== "undefined" && window.Pi) {
           // @ts-ignore
           const Pi = window.Pi;
+          
+          // BITNO: Ako želiš pravo ime "Ilija1969", ovo mora biti false.
+          // Ako je true, dobijaš lažno ime. Ostavi true dok testiraš, ali vidi šta ti ispiše.
           await Pi.init({ version: "2.0", sandbox: true });
 
-          const onIncompletePaymentFound = (payment: any) => {
-             console.log("Nekompletno plaćanje:", payment);
-          };
-
           const scopes = ['username', 'payments'];
+          const onIncompletePaymentFound = (payment: any) => { console.log(payment); };
+
           const authResult = await Pi.authenticate(scopes, onIncompletePaymentFound);
 
           if (authResult && authResult.user) {
+            // Prikazujemo alert da vidimo šta Pi Browser tačno vidi
+            // alert(`Uspešan login! Tvoje ime je: ${authResult.user.username}`);
             login(authResult.user.username, authResult);
+          } else {
+             setIsLoading(false);
           }
         } else {
-            const savedUser = localStorage.getItem("user_session");
-            if (savedUser) {
-                setUser(JSON.parse(savedUser));
+            // Ako Pi nije pronađen, probaj ponovo za 500ms
+            if (attempts < maxAttempts) {
+                attempts++;
+                setTimeout(initPiApp, 500);
+            } else {
+                console.error("Pi SDK nije pronađen nakon čekanja.");
+                setIsLoading(false); // Prestani da vrtiš
             }
         }
       } catch (error) {
-        console.error("Pi auth error:", error);
-      } finally {
-        setIsLoading(false);
+        console.error("Pi auth greška:", error);
+        setIsLoading(false); // Obavezno prestani da vrtiš ako pukne greška
       }
     };
 
@@ -72,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (username: string, authResult?: any) => {
     const isUserAdmin = username === ADMIN_USERNAME;
+
     const newUser: User = { 
         username, 
         email: `${username}@pi.email`,
@@ -79,17 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accessToken: authResult?.accessToken,
         isAdmin: isUserAdmin
     };
+    
     setUser(newUser);
     localStorage.setItem("user_session", JSON.stringify(newUser));
+    setIsLoading(false);
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user_session");
-    // @ts-ignore
-    if (typeof window !== "undefined" && window.Pi) {
-       // Pi logout logika ako postoji
-    }
     router.push("/");
   };
 
@@ -102,9 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  // ✅ IZMENA: Ako nema providera, vraćamo default umesto greške
-  if (!context) {
-    return defaultContext;
-  }
+  if (!context) return defaultContext;
   return context;
 };
