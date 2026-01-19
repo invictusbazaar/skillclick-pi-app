@@ -1,49 +1,54 @@
-"use client"
-
-import { Inter } from "next/font/google";
+import type { Metadata } from "next";
+import { Inter, Poppins } from "next/font/google"; 
 import "./globals.css";
+import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
-import Script from 'next/script'; 
-import { useEffect } from "react";
+import { LanguageProvider } from "@/components/LanguageContext";
+import { AuthProvider } from "@/components/AuthContext"; // ✅ Uvezen AuthProvider
+import Script from "next/script";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const poppins = Poppins({ 
+  weight: ["400", "600", "700", "800"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
+});
+
+export const metadata: Metadata = {
+  title: "SkillClick - Pi Network Marketplace",
+  description: "Find skills, pay with Pi.",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  
   return (
     <html lang="en">
-      <head>
-        <title>SkillClick - Freelance Market</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-      </head>
-      
-      {/* --- PI SDK: OVO JE KLJUČNO --- */}
-      <Script
-        src="https://sdk.minepi.com/v2/pi.js"
-        strategy="beforeInteractive" 
-        onLoad={() => {
-            console.log("Pi SDK Loaded");
-            try {
-                // Pokušaj inicijalizacije
-                (window as any).Pi.init({ version: "2.0", sandbox: true });
-                console.log("Pi Init Success");
-            } catch (e) {
-                console.error("Pi Init Failed", e);
-            }
-        }}
-      />
-      
-      <body className={inter.className}>
-        <div className="flex flex-col min-h-screen">
-          <div className="flex-grow">
-            {children}
-          </div>
-          <Footer />
-        </div>
+      <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
+        
+        {/* Pi SDK Skripta */}
+        <Script 
+          src="https://sdk.minepi.com/pi-sdk.js" 
+          strategy="beforeInteractive" 
+        />
+
+        <LanguageProvider>
+          {/* ✅ AuthProvider mora biti ovde da bi cela aplikacija imala pristup korisniku */}
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+          </AuthProvider>
+        </LanguageProvider>
+
       </body>
     </html>
   );
