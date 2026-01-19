@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-// OVO TRENUTNO NIJE BITNO JER SAM DOLE UKLJUČIO DA SVAKO BUDE ADMIN ZBOG TESTA
+// TVOJE IME - KLJUČ ZA ADMINA
 const ADMIN_USERNAME = "Ilija1969";
 
 type User = {
@@ -21,12 +21,11 @@ type AuthContextType = {
   isLoading: boolean;
 };
 
-// Default vrednosti
 const defaultContext: AuthContextType = {
   user: null,
   login: () => {},
   logout: () => {},
-  isLoading: false 
+  isLoading: true
 };
 
 const AuthContext = createContext<AuthContextType>(defaultContext);
@@ -37,70 +36,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    let piFound = false;
-
-    // 1. Sigurnosna kočnica: Ako Pi ne odgovori za 5 sekundi, pusti korisnika kao gosta
-    const safetyTimeout = setTimeout(() => {
-        if (!piFound) {
-            // alert("PAŽNJA: Pi Mreža se nije javila na vreme (5s). Prikazujem aplikaciju kao GOST.");
-            setIsLoading(false);
-        }
-    }, 5000);
-
     const initPiApp = async () => {
       try {
         // @ts-ignore
         if (typeof window !== "undefined" && window.Pi) {
-          piFound = true;
           // @ts-ignore
           const Pi = window.Pi;
           
-          // alert("KORAK 1: Pi SDK Pronađen. Pokrećem init...");
-          
-          // INIT - Sandbox TRUE za testiranje
-          await Pi.init({ version: "2.0", sandbox: true });
+          // Originalno podešavanje koje je radilo
+          await Pi.init({ version: "2.0", sandbox: false });
 
-          // AUTHENTICATE
+          // Provera sesije
           const scopes = ['username', 'payments'];
           const onIncompletePaymentFound = (payment: any) => { console.log(payment); };
 
-          // alert("KORAK 2: Šaljem zahtev za autentifikaciju...");
-          
-          const authResult = await Pi.authenticate(scopes, onIncompletePaymentFound)
-            .catch((err: any) => {
-                alert("GREŠKA PRI LOGOVANJU: " + JSON.stringify(err));
-                setIsLoading(false);
-                return null;
-            });
+          const authResult = await Pi.authenticate(scopes, onIncompletePaymentFound);
 
           if (authResult && authResult.user) {
-            // alert("USPEH! Tvoje Test Ime je: " + authResult.user.username);
             login(authResult.user.username, authResult);
           } else {
-             // alert("Nije uspelo logovanje. AuthResult je prazan.");
              setIsLoading(false);
           }
         } else {
-            // Pokušaj ponovo za 0.5s ako Pi nije spreman
-            setTimeout(initPiApp, 500);
+           // Ako nije Pi browser (za testiranje na PC)
+           setIsLoading(false);
         }
       } catch (error) {
-        alert("CRITICAL ERROR: " + JSON.stringify(error));
+        console.error("Pi Auth Error:", error);
         setIsLoading(false);
       }
     };
 
     initPiApp();
-
-    return () => clearTimeout(safetyTimeout);
   }, []);
 
   const login = (username: string, authResult?: any) => {
-    // ⚠️⚠️⚠️ PAŽNJA: OVO JE PRIVREMENA IZMENA ⚠️⚠️⚠️
-    // Ignorišemo proveru imena i SVAKOM ulogovanom korisniku dajemo Admin prava
-    // Samo da bi ti video dugme. Kada završiš test, vrati na: const isUserAdmin = username === ADMIN_USERNAME;
-    
-    const isUserAdmin = true; 
+    // STROGA PROVERA: Samo Ilija1969 je admin
+    const isUserAdmin = username === ADMIN_USERNAME;
 
     const newUser: User = { 
         username, 
@@ -113,9 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser);
     localStorage.setItem("user_session", JSON.stringify(newUser));
     setIsLoading(false);
-    
-    // Opciono: Prebaci odmah na admin ako treba
-    // if (isUserAdmin) router.push("/admin");
   };
 
   const logout = () => {
