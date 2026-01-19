@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-// TVOJE KORISNIČKO IME (Mora biti tačno ovako)
+// OVO TRENUTNO NIJE BITNO JER SAM DOLE UKLJUČIO DA SVAKO BUDE ADMIN ZBOG TESTA
 const ADMIN_USERNAME = "Ilija1969";
 
 type User = {
@@ -39,13 +39,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let piFound = false;
 
-    // 1. Sigurnosna kočnica: Ako se ništa ne desi za 3 sekunde, ugasi loading
+    // 1. Sigurnosna kočnica: Ako Pi ne odgovori za 5 sekundi, pusti korisnika kao gosta
     const safetyTimeout = setTimeout(() => {
         if (!piFound) {
-            console.log("Pi SDK nije odgovorio na vreme. Gašenje loadinga.");
+            // alert("PAŽNJA: Pi Mreža se nije javila na vreme (5s). Prikazujem aplikaciju kao GOST.");
             setIsLoading(false);
         }
-    }, 3000);
+    }, 5000);
 
     const initPiApp = async () => {
       try {
@@ -55,30 +55,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // @ts-ignore
           const Pi = window.Pi;
           
-          // IZMENA: Stavili smo sandbox na FALSE da bi prepoznao tvoje pravo ime "Ilija1969"
-          // Ako ti aplikacija još nije verifikovana na portalu, možda ćeš morati da vratiš na true,
-          // ali onda moramo saznati koje ti lažno ime daje.
-          await Pi.init({ version: "2.0", sandbox: false });
+          // alert("KORAK 1: Pi SDK Pronađen. Pokrećem init...");
+          
+          // INIT - Sandbox TRUE za testiranje
+          await Pi.init({ version: "2.0", sandbox: true });
 
-          // Provera da li već imamo sesiju
+          // AUTHENTICATE
           const scopes = ['username', 'payments'];
           const onIncompletePaymentFound = (payment: any) => { console.log(payment); };
 
-          const authResult = await Pi.authenticate(scopes, onIncompletePaymentFound);
+          // alert("KORAK 2: Šaljem zahtev za autentifikaciju...");
+          
+          const authResult = await Pi.authenticate(scopes, onIncompletePaymentFound)
+            .catch((err: any) => {
+                alert("GREŠKA PRI LOGOVANJU: " + JSON.stringify(err));
+                setIsLoading(false);
+                return null;
+            });
 
           if (authResult && authResult.user) {
-            // Ako uspesno uloguje, odmah te logujemo u aplikaciju
+            // alert("USPEH! Tvoje Test Ime je: " + authResult.user.username);
             login(authResult.user.username, authResult);
           } else {
+             // alert("Nije uspelo logovanje. AuthResult je prazan.");
              setIsLoading(false);
           }
         } else {
-            // Ako window.Pi još nije spreman, probamo ponovo za kratko vreme
-            setTimeout(initPiApp, 300);
+            // Pokušaj ponovo za 0.5s ako Pi nije spreman
+            setTimeout(initPiApp, 500);
         }
       } catch (error) {
-        console.error("Pi Auth Greška:", error);
-        // Čak i ako pukne greška, moramo ugasiti loading da vidiš sajt
+        alert("CRITICAL ERROR: " + JSON.stringify(error));
         setIsLoading(false);
       }
     };
@@ -89,11 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (username: string, authResult?: any) => {
-    // Provera admina
-    const isUserAdmin = username === ADMIN_USERNAME;
-
-    // DEBUG: Otkomentariši ovo ako i dalje ne radi, da vidiš koje ime ti vidi sistem
-    // alert(`Ulogovan kao: ${username} | Admin pravo: ${isUserAdmin}`);
+    // ⚠️⚠️⚠️ PAŽNJA: OVO JE PRIVREMENA IZMENA ⚠️⚠️⚠️
+    // Ignorišemo proveru imena i SVAKOM ulogovanom korisniku dajemo Admin prava
+    // Samo da bi ti video dugme. Kada završiš test, vrati na: const isUserAdmin = username === ADMIN_USERNAME;
+    
+    const isUserAdmin = true; 
 
     const newUser: User = { 
         username, 
@@ -106,6 +113,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser);
     localStorage.setItem("user_session", JSON.stringify(newUser));
     setIsLoading(false);
+    
+    // Opciono: Prebaci odmah na admin ako treba
+    // if (isUserAdmin) router.push("/admin");
   };
 
   const logout = () => {
