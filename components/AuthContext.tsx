@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 // OVDJE UPIŠI TVOJ TAČAN PI USERNAME KAKO BI TE APLIKACIJA PREPOZNALA KAO ADMINA
-const ADMIN_USERNAME = "Ilija1969"; 
+const ADMIN_USERNAME = "Ilija1969";
 
 // Proširen tip podataka za korisnika
 type User = {
@@ -41,10 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Inicijalizacija (sandbox: true za testiranje, prebaci na false za live)
           await Pi.init({ version: "2.0", sandbox: true });
 
-          // Definišemo callback za nekompletna plaćanja (obavezno za Pi SDK)
+          // Definišemo callback za nekompletna plaćanja
           const onIncompletePaymentFound = (payment: any) => {
              console.log("Nekompletno plaćanje pronađeno:", payment);
-             // Ovde kasnije možemo dodati logiku za završetak plaćanja
           };
 
           // Autentifikacija - tražimo username i payments dozvole
@@ -56,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             login(authResult.user.username, authResult);
           }
         } else {
-            // Fallback za testiranje van Pi Browsera (opciono, čita iz local storage)
+            // Fallback za testiranje van Pi Browsera
             const savedUser = localStorage.getItem("user_session");
             if (savedUser) {
                 setUser(JSON.parse(savedUser));
@@ -78,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const newUser: User = { 
         username, 
-        email: `${username}@pi.email`, // Placeholder jer Pi ne daje pravi email
+        email: `${username}@pi.email`,
         uid: authResult?.user?.uid,
         accessToken: authResult?.accessToken,
         isAdmin: isUserAdmin
@@ -92,10 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem("user_session");
     // @ts-ignore
-    if (window.Pi) {
-        // Opciono: window.Pi.openShareDialog... ili slično, ali Pi nema striktni 'logout' iz SDK
+    if (typeof window !== "undefined" && window.Pi) {
+        // Pi SDK nema logout, samo čistimo lokalno stanje
     }
-    router.push("/"); // Vraćanje na početnu
+    router.push("/");
   };
 
   return (
