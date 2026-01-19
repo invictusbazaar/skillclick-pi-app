@@ -21,12 +21,11 @@ type AuthContextType = {
   isLoading: boolean;
 };
 
-// Default vrednosti da ne puca build
 const defaultContext: AuthContextType = {
   user: null,
   login: () => {},
   logout: () => {},
-  isLoading: true
+  isLoading: false // Default false da ne blokira prikaz
 };
 
 const AuthContext = createContext<AuthContextType>(defaultContext);
@@ -37,8 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 10; // Pokušavamo 5 sekundi (10 * 500ms)
+    // Sigurnosna kočnica: Ako Pi ne odgovori za 3 sekunde, ukini loading da vidiš aplikaciju
+    const safetyTimeout = setTimeout(() => {
+        setIsLoading(false);
+    }, 3000);
 
     const initPiApp = async () => {
       try {
@@ -47,8 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // @ts-ignore
           const Pi = window.Pi;
           
-          // BITNO: Ako želiš pravo ime "Ilija1969", ovo mora biti false.
-          // Ako je true, dobijaš lažno ime. Ostavi true dok testiraš, ali vidi šta ti ispiše.
+          // U SANDBOX MODU PI TI NEĆE DATI IME "Ilija1969" NEGO NEKO IZMIŠLJENO!
+          // Zato ćemo ispisati Alert da vidiš koje ti je ime dodelio.
           await Pi.init({ version: "2.0", sandbox: true });
 
           const scopes = ['username', 'payments'];
@@ -57,25 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const authResult = await Pi.authenticate(scopes, onIncompletePaymentFound);
 
           if (authResult && authResult.user) {
-            // Prikazujemo alert da vidimo šta Pi Browser tačno vidi
-            // alert(`Uspešan login! Tvoje ime je: ${authResult.user.username}`);
+            // OVO JE KLJUČNO: Javiće ti koje ime vidi sistem
+            // alert(`PI PREPOZNAO KORISNIKA: ${authResult.user.username}`); 
             login(authResult.user.username, authResult);
-          } else {
-             setIsLoading(false);
           }
-        } else {
-            // Ako Pi nije pronađen, probaj ponovo za 500ms
-            if (attempts < maxAttempts) {
-                attempts++;
-                setTimeout(initPiApp, 500);
-            } else {
-                console.error("Pi SDK nije pronađen nakon čekanja.");
-                setIsLoading(false); // Prestani da vrtiš
-            }
         }
       } catch (error) {
-        console.error("Pi auth greška:", error);
-        setIsLoading(false); // Obavezno prestani da vrtiš ako pukne greška
+        console.error("Pi Greška:", error);
+      } finally {
+        clearTimeout(safetyTimeout);
+        setIsLoading(false);
       }
     };
 
@@ -83,7 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (username: string, authResult?: any) => {
-    const isUserAdmin = username === ADMIN_USERNAME;
+    // Proveravamo da li je username tvoj ILI ako je to neki Sandbox test user
+    // (Možeš privremeno da staviš true ovde da bi testirao admin panel ako ti ime nije Ilija1969)
+    const isUserAdmin = username === ADMIN_USERNAME; 
 
     const newUser: User = { 
         username, 
@@ -95,7 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     setUser(newUser);
     localStorage.setItem("user_session", JSON.stringify(newUser));
-    setIsLoading(false);
   };
 
   const logout = () => {
