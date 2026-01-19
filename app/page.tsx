@@ -10,13 +10,16 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/components/LanguageContext" 
+import { useAuth } from "@/components/AuthContext" // ✅ Ubačen AuthContext
 
 // Pomoćna komponenta za sadržaj da bi Suspense radio
 function HomeContent() {
   const [searchQuery, setSearchQuery] = useState("") 
   const [filteredServices, setFilteredServices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null); 
+  const [dataLoading, setDataLoading] = useState(true); // Preimenovano da se ne meša sa auth loading
+  
+  // ✅ Koristimo AuthContext umesto lokalnog state-a
+  const { user, isLoading: authLoading } = useAuth();
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,18 +28,25 @@ function HomeContent() {
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
 
-  // Učitavanje korisnika iz memorije
+  // ✅ LOGIKA ZA ADMIN REDIRECT
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-        try { setUser(JSON.parse(storedUser)); } catch (e) {}
+    // Čekamo da se auth učita i proveravamo da li je korisnik admin
+    if (!authLoading && user?.isAdmin) {
+      // Proveravamo da li smo već uradili redirect u ovoj sesiji
+      const hasRedirected = sessionStorage.getItem("admin_auto_redirect_done");
+      
+      if (!hasRedirected) {
+        // Ako nismo, označi da jesmo i prebaci na admin panel
+        sessionStorage.setItem("admin_auto_redirect_done", "true");
+        router.push("/admin");
+      }
     }
-  }, []);
+  }, [user, authLoading, router]);
 
   // Učitavanje oglasa
   useEffect(() => {
     const fetchServices = async () => {
-      setLoading(true);
+      setDataLoading(true);
       try {
         const response = await fetch('/api/services'); 
         let data = await response.json();
@@ -55,7 +65,7 @@ function HomeContent() {
       } catch (error) { 
           console.error("Fetch error:", error); 
           setFilteredServices([]); 
-      } finally { setLoading(false); }
+      } finally { setDataLoading(false); }
     };
     fetchServices();
   }, [selectedCategory, searchTerm]);
@@ -85,9 +95,10 @@ function HomeContent() {
       <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-16 md:py-32 overflow-hidden">
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
             
-            {user?.role === 'admin' && (
-              <Link href="/profile" className="mb-8">
-                <Button className="bg-red-600 font-bold px-8 py-6 rounded-xl shadow-xl flex items-center gap-2">
+            {/* ✅ ADMIN DUGME - Vidljivo samo adminu */}
+            {!authLoading && user?.isAdmin && (
+              <Link href="/admin" className="mb-8">
+                <Button className="bg-red-600 font-bold px-8 py-6 rounded-xl shadow-xl flex items-center gap-2 hover:bg-red-700 transition-colors">
                   <ShieldCheck className="w-6 h-6" /> ADMIN PANEL
                 </Button>
               </Link>
@@ -116,7 +127,7 @@ function HomeContent() {
             {selectedCategory ? selectedCategory : t('adsTitle')}
         </h2>
 
-        {loading ? (
+        {dataLoading ? (
            <div className="text-center py-10 text-gray-500">Učitavanje...</div>
         ) : filteredServices.length === 0 ? (
            <div className="text-center py-10 text-gray-500">Nema oglasa.</div>
