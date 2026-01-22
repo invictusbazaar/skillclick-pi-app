@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation" 
 import { useLanguage } from "@/components/LanguageContext"
-import { useAuth } from "@/components/AuthContext"
+import { useAuth } from "@/components/AuthContext" // ✅ NOVI CONTEXT
 import { 
   ChevronDown, User as UserIcon, Menu, PlusCircle, ShieldCheck, Home 
 } from "lucide-react"
@@ -19,16 +19,13 @@ const iconBtnClass = "h-10 w-10 rounded-full p-0 hover:bg-purple-50 inline-flex 
 const mobileItemClass = "py-3 px-3 mb-1 font-bold cursor-pointer rounded-xl border-2 border-transparent transition-all duration-300 text-gray-700 flex items-center gap-3 w-full outline-none focus:!bg-purple-100 focus:!text-purple-900";
 
 function NavbarContent() {
-  const { user } = useAuth();
+  const { user } = useAuth(); // ✅ Uzimamo usera iz simulacije
   const { language, setLanguage, t } = useLanguage(); 
   const router = useRouter(); 
-  
-  const [isMobileLangOpen, setIsMobileLangOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
-
+  
   const languages: Record<string, { label: string; flag: string }> = {
     en: { label: "English", flag: "🇺🇸" },
     sr: { label: "Srpski", flag: "🇷🇸" },
@@ -49,7 +46,6 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
       <div className="container mx-auto px-4 h-20 flex items-center justify-between relative z-[60]">
         
-        {/* LOGO */}
         <div className="flex-shrink-0 absolute left-0 md:left-[90px] top-1/2 -translate-y-1/2 z-[70] -ml-[116px] md:-ml-[220px]">
            <Link href="/" className="block"> 
               <Image src="/skillclick_logo.png" alt="Logo" width={600} height={150} className="w-[360px] md:w-[400px] h-auto object-contain object-left" priority />
@@ -58,7 +54,6 @@ function NavbarContent() {
 
         {/* --- DESKTOP --- */}
         <div className="hidden md:flex items-center gap-4 ml-auto relative z-[80]">
-          
           <DropdownMenu>
             <DropdownMenuTrigger className={`${ghostBtnClass} rounded-full`}>
                 <span className="font-bold text-xs">{currentLangObj.flag} {currentLangObj.label.split(' ')[0]}</span>
@@ -75,14 +70,15 @@ function NavbarContent() {
 
           <Link href="/create" className={`${ghostBtnClass} !text-black !font-extrabold hover:!text-purple-900`}>{t('navPostService')}</Link>
 
-          {/* 🔴 ADMIN DUGME - BEZ USLOVA - MORA SE VIDETI */}
-          <Link href="/admin">
-            <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 rounded-lg flex items-center gap-2 shadow-lg animate-pulse">
-                <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
-            </Button>
-          </Link>
+          {/* ✅ ADMIN DUGME (Prikazuje se ako simulacija radi) */}
+          {user?.isAdmin && (
+            <Link href="/admin">
+                <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 rounded-lg flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
+                </Button>
+            </Link>
+          )}
 
-          {/* PROFIL */}
           {user && (
             <div className="flex items-center gap-4 border-l border-gray-200 pl-4">
                <Link href="/profile">
@@ -100,30 +96,22 @@ function NavbarContent() {
                 <DropdownMenuTrigger className={iconBtnClass}> <Menu className="w-7 h-7 text-gray-700" /> </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 p-2 bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl">
                     
-                    {/* 🔴 ADMIN LINK - BEZ USLOVA I U MOBILNOM */}
-                    <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/admin")} className={`${mobileItemClass} !bg-red-50 !text-red-600`}>
-                        <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
-                    </DropdownMenuItem>
-
+                    {user?.isAdmin && (
+                        <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/admin")} className={`${mobileItemClass} !bg-red-50 !text-red-600`}>
+                            <ShieldCheck className="w-4 h-4" /> ADMIN PANEL
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/")} className={mobileItemClass}>
                         <Home className="w-4 h-4" /> {t('backHome')}
                     </DropdownMenuItem>
-
                     <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/create")} className={`${mobileItemClass} !text-white !bg-purple-600`}>
                         <PlusCircle className="w-4 h-4" /> {t('navPostService')}
                     </DropdownMenuItem>
-
-                    {user && (
-                        <DropdownMenuItem onSelect={(e) => handleMobileNav(e, "/profile")} className={mobileItemClass}>
-                             <UserIcon className="w-4 h-4" /> {t('navProfile')}
-                        </DropdownMenuItem>
-                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
       </div>
       
-      {/* KATEGORIJE */}
       <div className="block border-t border-transparent relative z-[90]">
          <div className="container mx-auto px-4">
             <div className="flex items-center gap-6 overflow-x-auto py-1 [&::-webkit-scrollbar]:h-0">
