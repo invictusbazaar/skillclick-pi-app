@@ -21,25 +21,17 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const handlePayment = async () => {
     // 1. Provera logovanja
     if (!user) {
-      alert("❌ GREŠKA: Niste ulogovani. Molimo ulogujte se.");
+      alert("Greška: Niste ulogovani.");
       return;
     }
-
-    // 2. Provera da li kupuješ od samog sebe (ISKLJUČI OVO // AKO HOĆEŠ DA KUPIŠ SVOJE)
-    /*
-    if (user.username === sellerUsername) {
-       alert("🚫 Ne možete kupiti sopstvenu uslugu.");
-       return;
-    }
-    */
 
     setLoading(true);
 
     try {
-      // 3. PROVERA: Da li je Pi SDK učitan?
+      // 2. PROVERA: Da li je Pi SDK tu?
       // @ts-ignore
       if (typeof window === "undefined" || !window.Pi) {
-        alert("⚠️ Pi Browser nije detektovan! Ovorite aplikaciju preko Pi Browser-a.");
+        alert("Pi SDK nije detektovan. Otvorite u Pi Browseru.");
         setLoading(false);
         return;
       }
@@ -47,10 +39,10 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
       // @ts-ignore
       const Pi = window.Pi;
 
-      // 4. Podaci za plaćanje
+      // 3. Podaci za plaćanje
       const paymentData = {
         amount: amount,
-        memo: `SkillClick: ${title.substring(0, 20)}...`,
+        memo: `Kupovina: ${title.substring(0, 20)}...`,
         metadata: { 
             type: "service_purchase", 
             serviceId: serviceId, 
@@ -58,37 +50,30 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         },
       };
 
-      // 5. Callbacks
+      // 4. CALLBACK FUNKCIJE - OVO JE KLJUČNO ZA TVOJU GREŠKU
+      // Pi traži TAČNO ova 4 naziva, ni slovo drugačije.
       const callbacks = {
+        
+        // A) Spremno za odobrenje (Approve)
         onReadyForServerApproval: async (paymentId: string) => {
-          console.log("⏳ Šaljem zahtev za odobrenje (Approve)... ID:", paymentId);
+          console.log("⏳ APPROVE: Šaljem zahtev za ID:", paymentId);
           try {
              const res = await fetch('/api/payments/approve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ paymentId })
              });
-             
-             if (!res.ok) {
-                 const errTxt = await res.text();
-                 alert("❌ Server ODBIO plaćanje: " + errTxt);
-                 setLoading(false);
-             } else {
-                 console.log("✅ Server odobrio plaćanje!");
-             }
+             if (!res.ok) throw new Error("Server nije odobrio plaćanje");
           } catch (e: any) { 
               console.error(e);
-              alert("❌ Greška u komunikaciji sa serverom (Approve): " + e.message);
-              setLoading(false);
+              alert("Greška kod odobrenja: " + e.message);
           }
         },
         
-        onServerApproval: async (paymentId: string) => {
-          console.log("✅ Pi mreža primila odobrenje. Čekam potpis korisnika...");
-        },
-
-        onCompletion: async (paymentId: string, txid: string) => {
-            console.log("🏁 Završavam transakciju (Complete)...");
+        // B) Spremno za završetak (Complete) - OVO TI JE FALILO!
+        // Ranije smo ovo zvali 'onCompletion' ili 'onServerApproval', ali Pi traži baš OVO:
+        onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+            console.log("🏁 COMPLETE: Završavam transakciju...", txid);
             try {
                 const res = await fetch('/api/payments/complete', {
                     method: 'POST',
@@ -97,35 +82,36 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 });
                 
                 if (res.ok) {
-                    alert("🎉 USPEŠNO PLAĆENO! Hvala na kupovini.");
+                    alert("USPEŠNO PLAĆENO! 🎉");
                     router.push("/"); 
                 } else {
-                    alert("⚠️ Plaćanje prošlo, ali nije upisano u bazu.");
+                    alert("Greška pri finalizaciji na serveru.");
                 }
             } catch (e) {
                 console.error(e);
             }
         },
 
+        // C) Otkazano
         onCancel: (paymentId: string) => {
           console.log("Korisnik otkazao");
           setLoading(false);
         },
 
+        // D) Greška
         onError: (error: any, payment: any) => {
           console.error("Pi Greška:", error);
-          // Prikazujemo tačnu grešku korisniku da znamo šta nije u redu
-          alert("❌ PI GREŠKA: " + (error.message || JSON.stringify(error)));
+          alert("Greška: " + (error.message || JSON.stringify(error)));
           setLoading(false);
         },
       };
 
-      // 6. POKRETANJE
+      // 5. POKRETANJE
       await Pi.createPayment(paymentData, callbacks);
 
     } catch (e: any) {
       console.error("Glavna greška:", e);
-      alert("❌ Fatalna greška pri pokretanju: " + e.message);
+      alert("Fatalna greška: " + e.message);
       setLoading(false);
     }
   };
@@ -134,7 +120,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     <Button 
       onClick={handlePayment} 
       disabled={loading}
-      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg py-6 rounded-xl shadow-lg active:scale-95 transition-transform"
+      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg py-6 rounded-xl shadow-lg"
     >
       {loading ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2" />}
       Kupi za {amount} π
