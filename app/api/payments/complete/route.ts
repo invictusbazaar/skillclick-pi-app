@@ -1,64 +1,63 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client'; // ⚠️ Baza je privremeno isključena da ne pravi greške
 
-const prisma = global.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+// 👇 OVDE OBAVEZNO ZALEPI ISTI ONAJ DUGAČKI KLJUČ KAO U APPROVE FAJLU
+const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp"; 
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { paymentId, txid, serviceId } = body;
+    const { paymentId, txid } = body;
 
     console.log("🏁 COMPLETE ruta pogođena!", { paymentId, txid });
 
     if (!paymentId || !txid) {
-        return NextResponse.json({ error: "Fale podaci" }, { status: 400 });
+        return NextResponse.json({ error: "Fale podaci (paymentId ili txid)" }, { status: 400 });
     }
 
-    // 1. Javljamo Pi Networku da je gotovo (Complete)
+    // Provera ključa
+    if (PI_API_KEY === "OVDE_ZALEPI_TVOJ_DUGACKI_API_KEY" || !PI_API_KEY) {
+         console.error("❌ ZABORAVIO SI KLJUČ U COMPLETE FAJLU!");
+         return NextResponse.json({ error: "Fali API Key" }, { status: 500 });
+    }
+
+    // 1. Javljamo Pi Networku da je gotovo (NAJVAŽNIJI KORAK)
+    console.log("📡 Šaljem potvrdu ka Pi serveru...");
+    
     const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
       method: 'POST',
       headers: {
-        'Authorization': `Key ${process.env.PI_API_KEY}`,
+        'Authorization': `Key ${PI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ txid })
     });
 
     if (!response.ok) {
-        console.error("❌ Pi Complete Failed:", await response.text());
-        // Ne prekidamo ovde, jer želimo da probamo da sačuvamo u bazu ako je txid validan
+        const errorText = await response.text();
+        console.error("❌ Pi Complete Failed:", errorText);
+        return NextResponse.json({ error: `Pi Greška: ${errorText}` }, { status: 500 });
     }
 
-    // 2. Upisujemo u bazu (Order)
-    // Ovde nam treba buyerId. U pravoj app bi ga čitao iz sesije.
-    // Za sada ćemo naći servis da povežemo prodavca.
-    const service = await prisma.service.findUnique({
-        where: { id: serviceId },
-        include: { seller: true }
+    const data = await response.json();
+    console.log("✅ Pi transakcija uspešno kompletirana!");
+
+    // 2. Upis u bazu (Ostavljamo za kasnije, sada je bitno da Pi potvrdi)
+    /* const prisma = new PrismaClient();
+    await prisma.order.create({
+        data: {
+            paymentId,
+            txid,
+            status: 'paid',
+            // Ostali podaci...
+        }
     });
+    */
 
-    if (service) {
-        console.log("📦 Kreiram porudžbinu u bazi...");
-        await prisma.order.create({
-            data: {
-                paymentId,
-                txid,
-                amount: service.price,
-                status: 'paid',
-                serviceId: service.id,
-                sellerId: service.seller.id,
-                // PAŽNJA: Ovde privremeno stavljamo prodavca i kao kupca ako nemamo info o kupcu
-                // Kasnije ćemo ovo srediti da uzima pravog ulogovanog kupca
-                buyerId: service.seller.id 
-            }
-        });
-    }
-
-    return NextResponse.json({ message: "Order Completed" });
+    return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error("🔥 Greška u complete:", error);
+    console.error("🔥 Greška u complete ruti:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

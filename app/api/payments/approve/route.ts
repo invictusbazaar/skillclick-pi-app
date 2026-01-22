@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
-  try {
-    console.log("🚀 Approve ruta je pogođena!"); // Prvi znak da frontend radi
+// 👇 VAŽNO: Ovde između navodnika zalepi tvoj dugački API Key sa Pi Portala
+const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp"; 
 
-    const body = await request.json();
+export async function POST(req: Request) {
+  try {
+    console.log("🚀 Approve ruta je pogođena!"); 
+
+    const body = await req.json();
     const { paymentId } = body;
 
     console.log("💳 Primljen Payment ID:", paymentId);
@@ -13,22 +16,22 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Nema paymentId" }, { status: 400 });
     }
 
-    // Provera da li si uneo ključ u Vercel
-    if (!process.env.PI_API_KEY) {
-        console.error("❌ GREŠKA: Nedostaje PI_API_KEY u Vercel Environment Variables!");
-        return NextResponse.json({ error: "Server nije konfigurisan (fali API key)" }, { status: 500 });
+    // Provera da li je ključ unet
+    if (PI_API_KEY === "OVDE_ZALEPI_TVOJ_DUGACKI_API_KEY" || !PI_API_KEY) {
+        console.error("❌ GREŠKA: Nisi zamenio API Key u fajlu!");
+        return NextResponse.json({ error: "Fali API Key u kodu" }, { status: 500 });
     }
 
     console.log("📡 Šaljem zahtev ka Pi Network...");
 
-    // Poziv ka Pi Network serverima da odobrimo plaćanje
+    // Poziv ka Pi Network serverima
     const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
       method: 'POST',
       headers: {
-        'Authorization': `Key ${process.env.PI_API_KEY}`,
+        'Authorization': `Key ${PI_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}) // Nekad je potrebno poslati prazan objekat
+      body: JSON.stringify({}) 
     });
 
     if (!response.ok) {

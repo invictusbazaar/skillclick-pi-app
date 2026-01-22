@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageContext';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, CreditCard, Clock, PenTool, Car, Wrench, Palette, Code } from 'lucide-react';
+import { ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code } from 'lucide-react';
+import BuyButton from '@/components/BuyButton'; // ✅ UBACUJEMO NOVO DUGME
 
 // Definicija za TypeScript
 declare global { interface Window { Pi: any; } }
@@ -49,62 +49,10 @@ export default function ServiceDetail() {
       .catch(err => console.error("Greška:", err));
   }, [id]);
 
-  // Standardna funkcija za plaćanje
-  const handlePayment = async () => {
-    if (!window.Pi) {
-        alert("Pi Browser nije detektovan.");
-        return;
-    }
-    if (!service) return;
-
-    const amountNum = parseFloat(service.price);
-    if (isNaN(amountNum)) {
-        alert("Greška: Cena nije validna.");
-        return;
-    }
-
-    try {
-      const paymentData = {
-        amount: amountNum,
-        memo: `Order: ${service.title.substring(0, 15)}...`, 
-        metadata: { serviceId: service.id, type: 'service_order' }
-      };
-
-      const callbacks = {
-        onReadyForServerApproval: async (paymentId: string) => {
-          await fetch('/api/payments/approve', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId, serviceId: service.id }),
-          });
-        },
-        onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-          await fetch('/api/payments/complete', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId, txid, serviceId: service.id }),
-          });
-          alert("Plaćanje uspešno!");
-          router.push('/'); 
-        },
-        onCancel: () => { /* Korisnik odustao */ },
-        onError: (e: any) => {
-            console.error(e);
-            alert(`Greška: ${e.message || "Payment failed"}`);
-        }
-      };
-
-      // Pokretanje plaćanja
-      await window.Pi.createPayment(paymentData, callbacks);
-
-    } catch (e: any) { 
-        console.error("Payment Error:", e);
-        alert("Greška pri pokretanju plaćanja: " + e.message);
-    }
-  };
-
   if (!service) return <div className="p-20 text-center text-purple-600 font-bold">Učitavanje...</div>;
+  
   const getLocalized = (field: any) => (typeof field === 'string' ? field : field[lang] || field['en'] || "");
+  const currentTitle = getLocalized(service.title);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
@@ -138,7 +86,7 @@ export default function ServiceDetail() {
                     <div><p className="text-xs text-gray-400 font-bold uppercase">Seller</p><p className="font-bold text-gray-900 text-lg">@{service.author?.username || 'User'}</p></div>
                 </div>
 
-                <h1 className="text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{getLocalized(service.title)}</h1>
+                <h1 className="text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{currentTitle}</h1>
                 <div className="flex items-end justify-between mb-6">
                     <p className="text-4xl font-black text-purple-600 tracking-tighter">{service.price} π</p>
                     <div className="text-right text-xs font-bold text-gray-500 space-y-1">
@@ -146,9 +94,14 @@ export default function ServiceDetail() {
                     </div>
                 </div>
 
-                <Button onClick={handlePayment} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold h-12 rounded-xl shadow-lg shadow-purple-200 flex items-center justify-center gap-2 active:scale-95 transition-all">
-                    <CreditCard className="w-5 h-5" /> {t('hireSeller')}
-                </Button>
+                {/* ✅ OVDE KORISTIMO NOVO DUGME ZA PLAĆANJE */}
+                <BuyButton 
+                    amount={parseFloat(service.price)}
+                    serviceId={service.id}
+                    title={currentTitle}
+                    sellerUsername={service.author?.username || ""}
+                />
+
             </div>
           </div>
         </div>
