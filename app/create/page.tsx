@@ -13,14 +13,17 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/LanguageContext';
+import { useAuth } from '@/components/AuthContext'; // ✅ UBAČEN NOVI SISTEM
 
 export default function CreateServicePage() {
   const router = useRouter();
   const { t } = useLanguage();
+  
+  // ✅ KORISTIMO AUTH CONTEXT UMESTO LOCALSTORAGE
+  const { user, isLoading: authLoading } = useAuth();
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -44,30 +47,12 @@ export default function CreateServicePage() {
     { key: "catLifestyle", val: "Lifestyle" }
   ];
 
-  const [loggedInAuthor, setLoggedInAuthor] = useState<string | null>(null);
-
-  // Provera logovanja
+  // Ako nije ulogovan, vratimo ga na početnu (ali tek kad se učitavanje završi)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser) {
-            router.push("/auth/login?redirect=/create");
-            return;
-        }
-        try {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser.username) {
-                setLoggedInAuthor(parsedUser.username);
-                setIsAuthorized(true);
-            } else {
-                router.push("/auth/login");
-            }
-        } catch (e) {
-            console.error("Greška pri čitanju korisnika", e);
-            router.push("/auth/login");
-        }
+    if (!authLoading && !user) {
+        // router.push('/'); // Možeš ga vratiti ili samo ispisati poruku
     }
-  }, [router]);
+  }, [authLoading, user, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -78,27 +63,25 @@ export default function CreateServicePage() {
       setFormData(prev => ({ ...prev, category: value }));
   }
 
-  // --- GLAVNA IZMENA: DETALJNA PROVERA GREŠAKA ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
 
-    // 1. Provera autora
-    if (!loggedInAuthor) {
-        alert("Greška: Niste ulogovani. Molimo ulogujte se ponovo.");
-        setIsLoading(false);
+    // 1. Provera autora preko novog sistema
+    if (!user || !user.username) {
+        alert("Greška: Niste ulogovani.");
+        setIsSubmitting(false);
         return;
     }
 
-    // 2. Provera kategorije
     if (!formData.category) {
         alert("Molimo izaberite kategoriju.");
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
     }
 
     try {
-        console.log("🚀 Šaljem podatke na server...", { author: loggedInAuthor, title: formData.title });
+        console.log("🚀 Šaljem podatke...", { author: user.username, title: formData.title });
 
         const response = await fetch('/api/services/create', {
             method: 'POST',
@@ -110,35 +93,50 @@ export default function CreateServicePage() {
                 price: formData.price,
                 deliveryTime: formData.deliveryTime,
                 revisions: formData.revisions,
-                author: loggedInAuthor,
+                author: user.username, // ✅ Šaljemo username iz Contexta
                 images: [formData.image1, formData.image2, formData.image3].filter(img => img.length > 0)
             }),
         });
 
-        // Čitamo odgovor servera (bilo da je uspeh ili greška)
         const data = await response.json();
 
         if (!response.ok) {
-            // Ako server vrati grešku (npr. 400 ili 500), bacamo exception sa TAČNOM porukom
-            throw new Error(data.error || "Nepoznata greška na serveru");
+            throw new Error(data.error || "Greška na serveru");
         }
 
-        // Ako je sve OK
         setIsSuccess(true);
         setTimeout(() => {
             router.push('/'); 
         }, 1500);
 
     } catch (error: any) {
-        console.error("❌ Greška pri slanju:", error);
-        // Prikazujemo pravu poruku korisniku
+        console.error("❌ Greška:", error);
         alert(`Greška: ${error.message}`);
     } finally {
-        setIsLoading(false);
+        setIsSubmitting(false);
     }
   };
 
-  if (!isAuthorized) return null; 
+  // ✅ PRIKAZ DOK SE UČITAVA AUTH
+  if (authLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
+        </div>
+      );
+  }
+
+  // ✅ AKO KORISNIK NIJE ULOGOVAN
+  if (!user) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Morate biti ulogovani</h2>
+            <Link href="/">
+                <Button>Vrati se na početnu</Button>
+            </Link>
+        </div>
+      );
+  }
 
   const inputClass = "rounded-xl border-gray-200 focus:!border-purple-500 focus:!ring-purple-500 focus:ring-2 outline-none transition-all h-12 bg-white";
   const labelClass = "text-xs font-bold text-gray-700 uppercase ml-1 mb-1.5 block";
@@ -157,7 +155,7 @@ export default function CreateServicePage() {
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900">{t('createTitle')}</h1>
             <p className="text-gray-500 text-sm mt-1">
-              {t('welcomeBack')}: <span className="font-semibold text-purple-600">{loggedInAuthor}</span>
+              {t('welcomeBack')}: <span className="font-semibold text-purple-600">{user.username}</span>
             </p>
           </div>
           
@@ -223,9 +221,9 @@ export default function CreateServicePage() {
                     <Textarea id="description" name="description" placeholder={t('placeholderDesc')} value={formData.description} onChange={handleChange} required rows={5} className="rounded-xl border-gray-200 focus:ring-purple-500 h-32 resize-none" />
                 </div>
 
-              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg h-14 rounded-xl shadow-lg" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
-                {isLoading ? t('loading') : t('btnPublish')} 
+              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg h-14 rounded-xl shadow-lg" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
+                {isSubmitting ? t('loading') : t('btnPublish')} 
               </Button>
             </form>
             )}

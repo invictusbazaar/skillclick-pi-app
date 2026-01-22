@@ -4,7 +4,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import { LanguageProvider } from "@/components/LanguageContext";
-import Script from "next/script"; // NOVO: Uvozimo Next.js Script komponentu
+import { AuthProvider } from "@/components/AuthContext"; // ✅ OVO JE FALILO
+import Script from "next/script";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -31,18 +32,21 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        {/* NOVO: Brzo učitavanje Pi SDK-a pre interaktivnog dela */}
+        {/* Pi SDK */}
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
           strategy="beforeInteractive" 
         />
 
         <LanguageProvider>
+          {/* ✅ AuthProvider mora obuhvatiti sve da bi login radio */}
+          <AuthProvider>
             <Navbar />
             <main className="flex-grow">
               {children}
             </main>
             <Footer />
+          </AuthProvider>
         </LanguageProvider>
 
       </body>
