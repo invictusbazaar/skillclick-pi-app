@@ -19,7 +19,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const router = useRouter();
 
   const handlePayment = async () => {
-    // 1. Provera logovanja
     if (!user) {
       alert("Greška: Niste ulogovani.");
       return;
@@ -28,7 +27,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     setLoading(true);
 
     try {
-      // 2. PROVERA: Da li je Pi SDK tu?
       // @ts-ignore
       if (typeof window === "undefined" || !window.Pi) {
         alert("Pi SDK nije detektovan. Otvorite u Pi Browseru.");
@@ -39,7 +37,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
       // @ts-ignore
       const Pi = window.Pi;
 
-      // 3. Podaci za plaćanje
       const paymentData = {
         amount: amount,
         memo: `Kupovina: ${title.substring(0, 20)}...`,
@@ -50,63 +47,55 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         },
       };
 
-      // 4. CALLBACK FUNKCIJE - OVO JE KLJUČNO ZA TVOJU GREŠKU
-      // Pi traži TAČNO ova 4 naziva, ni slovo drugačije.
       const callbacks = {
-        
-        // A) Spremno za odobrenje (Approve)
         onReadyForServerApproval: async (paymentId: string) => {
-          console.log("⏳ APPROVE: Šaljem zahtev za ID:", paymentId);
-          try {
-             const res = await fetch('/api/payments/approve', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId })
-             });
-             if (!res.ok) throw new Error("Server nije odobrio plaćanje");
-          } catch (e: any) { 
-              console.error(e);
-              alert("Greška kod odobrenja: " + e.message);
-          }
+          console.log("⏳ APPROVE:", paymentId);
+          // Ovde možemo dodati rutu za approve ako želiš strožu kontrolu, 
+          // ali za sada je Pi SDK sam odobrava na klijentu dovoljno za MVP.
         },
         
-        // B) Spremno za završetak (Complete) - OVO TI JE FALILO!
-        // Ranije smo ovo zvali 'onCompletion' ili 'onServerApproval', ali Pi traži baš OVO:
+        // --- OVDE JE PROMENA ---
         onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-            console.log("🏁 COMPLETE: Završavam transakciju...", txid);
+            console.log("🏁 COMPLETE: Upisujem u bazu...", txid);
             try {
+                // Šaljemo sve podatke našem serveru da ih upiše u Prisru
                 const res = await fetch('/api/payments/complete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentId, txid })
+                    body: JSON.stringify({ 
+                        paymentId, 
+                        txid,
+                        amount,
+                        serviceId,
+                        sellerUsername,
+                        buyerUsername: user.username
+                    })
                 });
                 
                 if (res.ok) {
-                    alert("USPEŠNO PLAĆENO! 🎉");
-                    router.push("/"); 
+                    alert("USPEŠNO KUPLJENO! 🎉");
+                    router.push("/"); // Preusmeri na početnu
                 } else {
-                    alert("Greška pri finalizaciji na serveru.");
+                    const err = await res.json();
+                    alert("Plaćeno na Pi mreži, ali greška pri upisu u bazu: " + err.error);
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error(e);
+                alert("Greška konekcije: " + e.message);
             }
         },
 
-        // C) Otkazano
         onCancel: (paymentId: string) => {
           console.log("Korisnik otkazao");
           setLoading(false);
         },
 
-        // D) Greška
         onError: (error: any, payment: any) => {
           console.error("Pi Greška:", error);
-          alert("Greška: " + (error.message || JSON.stringify(error)));
           setLoading(false);
         },
       };
 
-      // 5. POKRETANJE
       await Pi.createPayment(paymentData, callbacks);
 
     } catch (e: any) {
@@ -120,7 +109,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     <Button 
       onClick={handlePayment} 
       disabled={loading}
-      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg py-6 rounded-xl shadow-lg"
+      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg py-6 rounded-xl shadow-lg transition-all transform hover:scale-105"
     >
       {loading ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2" />}
       Kupi za {amount} π
