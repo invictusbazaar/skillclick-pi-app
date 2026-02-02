@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// 👇 PROMENA: Koristimo 'require' da nasilno učitamo celu biblioteku
-// Ovo zaobilazi problem sa importima koji prave grešku "not a constructor"
-const StellarSdk = require("stellar-sdk");
+// Stari dobri require koji uvek radi sa v10
+var StellarSdk = require('stellar-sdk');
 
 const PI_HORIZON_URL = "https://api.testnet.minepi.com";
 
@@ -12,34 +11,22 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { amount, sellerWalletAddress, orderId } = body;
 
-    console.log("💸 POKUŠAJ ISPLATE (REQUIRE VERZIJA):", { amount, sellerWalletAddress });
+    console.log("💸 Payout Start (v10.4.1):", { amount, sellerWalletAddress });
 
-    // 1. Učitavanje tajnog ključa
     const secretKey = process.env.PI_WALLET_SECRET;
-    if (!secretKey) {
-        return NextResponse.json({ error: "Fali S-Key u .env fajlu!" }, { status: 500 });
-    }
+    if (!secretKey) return NextResponse.json({ error: "No Secret Key" }, { status: 500 });
 
-    // 2. Kreiranje Servera (Sada preko StellarSdk objekta)
-    // Ovo je linija koja je pucala, sada bi trebalo da radi
+    // Instanciranje servera (ovo je pravilo problem u v13)
     const server = new StellarSdk.Server(PI_HORIZON_URL);
 
-    // 3. Učitavanje tvog novčanika
     const sourceKeypair = StellarSdk.Keypair.fromSecret(secretKey);
-    const sourcePublicKey = sourceKeypair.publicKey();
+    const account = await server.loadAccount(sourceKeypair.publicKey());
 
-    console.log("🔐 Wallet prepoznat:", sourcePublicKey);
-
-    // 4. Provera računa
-    const account = await server.loadAccount(sourcePublicKey);
-
-    // 5. Iznos (Stellar traži string)
     const payoutAmount = (amount * 0.95).toFixed(7); 
 
-    // 6. Kreiranje Transakcije
     const transaction = new StellarSdk.TransactionBuilder(account, {
         fee: StellarSdk.BASE_FEE,
-        networkPassphrase: "Pi Testnet" // ⚠️ Za testiranje na Pi Browseru
+        networkPassphrase: "Pi Testnet" // "Pi Network" za Mainnet
     })
     .addOperation(StellarSdk.Operation.payment({
         destination: sellerWalletAddress,
@@ -49,36 +36,26 @@ export async function POST(req: Request) {
     .setTimeout(30)
     .build();
 
-    // 7. Potpisivanje
     transaction.sign(sourceKeypair);
 
-    // 8. Slanje
-    console.log("🚀 Šaljem transakciju na Pi mrežu...");
+    console.log("🚀 Slanje transakcije...");
     const result = await server.submitTransaction(transaction);
-    console.log("✅ ISPLATA USPEŠNA! Hash:", result.hash);
+    console.log("✅ Uspeh! Hash:", result.hash);
 
-    // 9. Ažuriranje baze
     await prisma.order.update({
         where: { id: orderId },
         data: { status: "completed" }
     });
 
-    return NextResponse.json({ 
-        success: true, 
-        txHash: result.hash, 
-        paidAmount: payoutAmount 
-    });
+    return NextResponse.json({ success: true, txHash: result.hash, paidAmount: payoutAmount });
 
   } catch (error: any) {
-    console.error("❌ Payout Greška:", error);
-    
-    // Detaljniji ispis greške ako je od Stellara
-    let errorMsg = error.message;
-    if (error.response && error.response.data) {
-        console.error("Detalji Stellar greške:", JSON.stringify(error.response.data));
-        errorMsg = JSON.stringify(error.response.data.extras?.result_codes || error.response.data);
+    console.error("❌ Payout Error:", error);
+    // Siguran ispis greške
+    let msg = error.message;
+    if(error.response && error.response.data) {
+        msg = JSON.stringify(error.response.data);
     }
-
-    return NextResponse.json({ error: errorMsg }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
