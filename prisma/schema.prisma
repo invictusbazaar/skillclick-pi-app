@@ -4,21 +4,26 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // 👇 MORA BITI DATABASE_URL JER SAMO NJEGA IMAŠ U VERCELU
   url      = env("DATABASE_URL")
 }
+
 // --- MODELI (TABELE) ---
 
 model User {
   id        String    @id @default(cuid())
   username  String    @unique // Pi Network username
   role      String    @default("user") // "user" ili "admin"
+  isBanned  Boolean   @default(false)  // ✨ NOVO: Za banovanje korisnika
   createdAt DateTime  @default(now())
   
-  services  Service[] // Usluge koje prodaje
-  orders    Order[]   @relation("BuyerOrders") // Porudžbine koje je kupio
-  sales     Order[]   @relation("SellerOrders") // Porudžbine koje je prodao
+  services  Service[] 
+  orders    Order[]   @relation("BuyerOrders") 
+  sales     Order[]   @relation("SellerOrders") 
   reviews   Review[]
+
+  // ✨ NOVO: Chat relacije
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 }
 
 model Service {
@@ -27,7 +32,7 @@ model Service {
   description String
   price       Float
   category    String
-  images      String[] // Niz linkova ka slikama
+  images      String[] 
   createdAt   DateTime @default(now())
   
   userId      String
@@ -44,7 +49,7 @@ model Order {
   createdAt DateTime @default(now())
 
   // --- POLJA ZA PI NETWORK ---
-  paymentId String?   @unique
+  paymentId String? @unique
   txid      String?
   // ---------------------------
 
@@ -56,6 +61,9 @@ model Order {
 
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
+
+  // ✨ NOVO: Jedna porudžbina može imati jednu recenziju
+  review    Review?
 }
 
 model Review {
@@ -69,4 +77,22 @@ model Review {
 
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
+
+  // ✨ NOVO: Povezivanje sa Orderom (verifikovana kupovina)
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+
+// ✨ NOVO: Model za Chat
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
