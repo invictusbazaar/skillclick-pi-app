@@ -48,17 +48,32 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
       };
 
       const callbacks = {
+        // 1. APPROVE KORAK (Ovo je falilo i zato se vrtelo!)
         onReadyForServerApproval: async (paymentId: string) => {
-          console.log("⏳ APPROVE:", paymentId);
-          // Ovde možemo dodati rutu za approve ako želiš strožu kontrolu, 
-          // ali za sada je Pi SDK sam odobrava na klijentu dovoljno za MVP.
+          console.log("⏳ APPROVE: Šaljem zahtev za ID:", paymentId);
+          try {
+             const res = await fetch('/api/payments/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId })
+             });
+             
+             if (!res.ok) {
+                 const err = await res.json();
+                 throw new Error(err.error || "Server nije odobrio plaćanje");
+             }
+             console.log("✅ Server odobrio, Pi nastavlja...");
+          } catch (e: any) { 
+              console.error(e);
+              alert("Greška kod odobrenja: " + e.message);
+              setLoading(false); 
+          }
         },
         
-        // --- OVDE JE PROMENA ---
+        // 2. COMPLETE KORAK (Upis u bazu)
         onReadyForServerCompletion: async (paymentId: string, txid: string) => {
             console.log("🏁 COMPLETE: Upisujem u bazu...", txid);
             try {
-                // Šaljemo sve podatke našem serveru da ih upiše u Prisru
                 const res = await fetch('/api/payments/complete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -74,10 +89,10 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 
                 if (res.ok) {
                     alert("USPEŠNO KUPLJENO! 🎉");
-                    router.push("/"); // Preusmeri na početnu
+                    router.push("/"); 
                 } else {
                     const err = await res.json();
-                    alert("Plaćeno na Pi mreži, ali greška pri upisu u bazu: " + err.error);
+                    alert("Plaćeno, ali greška baze: " + err.error);
                 }
             } catch (e: any) {
                 console.error(e);
@@ -92,6 +107,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
 
         onError: (error: any, payment: any) => {
           console.error("Pi Greška:", error);
+          // alert("Greška: " + (error.message || JSON.stringify(error)));
           setLoading(false);
         },
       };
