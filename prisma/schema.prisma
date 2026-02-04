@@ -13,15 +13,17 @@ model User {
   id        String    @id @default(cuid())
   username  String    @unique // Pi Network username
   role      String    @default("user") // "user" ili "admin"
-  isBanned  Boolean   @default(false)  // ✨ NOVO: Za banovanje korisnika
+  isBanned  Boolean   @default(false)
   createdAt DateTime  @default(now())
+  
+  // 👇 OVO SMO DODALI (Upitnik znači da može biti prazno na početku)
+  piWallet  String?  
   
   services  Service[] 
   orders    Order[]   @relation("BuyerOrders") 
   sales     Order[]   @relation("SellerOrders") 
   reviews   Review[]
 
-  // ✨ NOVO: Chat relacije
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
 }
@@ -44,14 +46,12 @@ model Service {
 
 model Order {
   id        String   @id @default(cuid())
-  status    String   @default("pending") // pending, active, completed, cancelled
+  status    String   @default("pending")
   amount    Float
   createdAt DateTime @default(now())
 
-  // --- POLJA ZA PI NETWORK ---
-  paymentId String? @unique
+  paymentId String?    @unique
   txid      String?
-  // ---------------------------
 
   buyerId   String
   buyer     User     @relation("BuyerOrders", fields: [buyerId], references: [id])
@@ -62,7 +62,6 @@ model Order {
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
 
-  // ✨ NOVO: Jedna porudžbina može imati jednu recenziju
   review    Review?
 }
 
@@ -78,12 +77,10 @@ model Review {
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
 
-  // ✨ NOVO: Povezivanje sa Orderom (verifikovana kupovina)
   orderId   String   @unique
   order     Order    @relation(fields: [orderId], references: [id])
 }
 
-// ✨ NOVO: Model za Chat
 model Message {
   id        String   @id @default(cuid())
   content   String
