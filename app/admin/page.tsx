@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma"; // Proveri putanju do prisma klijenta
+import { prisma } from "@/lib/prisma"; 
 import { revalidatePath } from "next/cache";
-import ReleaseFundsButton from "@/components/ReleaseFundsButton"; // Tvoja postojeća komponenta
+import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
 import { ShieldCheck, Users, Layers, ArrowRight, Banknote, AlertCircle } from "lucide-react";
 
-// --- 1. SERVER ACTION: BANOVANJE (Mora biti u ovom fajlu ili odvojenom fajlu) ---
+// --- 1. SERVER ACTION: BANOVANJE ---
 async function toggleBan(formData: FormData) {
   "use server";
 
@@ -16,7 +16,7 @@ async function toggleBan(formData: FormData) {
       where: { id: userId },
       data: { isBanned: !currentStatus },
     });
-    revalidatePath("/admin"); // Osvežava podatke na stranici
+    revalidatePath("/admin"); 
   } catch (error) {
     console.error("Greška pri banovanju:", error);
   }
@@ -33,16 +33,16 @@ export default async function AdminDashboard() {
     orderBy: { createdAt: "desc" },
     include: {
       buyer: true,
-      seller: true,
+      seller: true, // Ovo sada automatski hvata i polje 'piWallet'
       service: true,
     },
   });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans">
-      <div className="max-w-6xl mx-auto"> {/* Povećao sam širinu zbog tabela */}
+      <div className="max-w-6xl mx-auto"> 
         
-        {/* --- TVOJ POSTOJEĆI HEADER (Bez useAuth, jer je ovo Server Component) --- */}
+        {/* ZAGLAVLJE */}
         <div className="mb-8 flex items-center gap-4 border-b border-gray-200 pb-6">
              <div className="p-3 bg-red-100 text-red-600 rounded-xl">
                 <ShieldCheck className="h-8 w-8" />
@@ -55,7 +55,7 @@ export default async function AdminDashboard() {
              </div>
         </div>
 
-        {/* --- TVOJE POSTOJEĆE KARTICE (Linkovi) --- */}
+        {/* LINKOVI / KARTICE */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             <Link href="/admin/services" className="group">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-purple-500 hover:shadow-md transition-all cursor-pointer h-full">
@@ -84,7 +84,7 @@ export default async function AdminDashboard() {
             </Link>
         </div>
 
-        {/* --- NOVO: SEKCIJA TRANSAKCIJE (Sa Release dugmetom) --- */}
+        {/* SEKCIJA TRANSAKCIJE */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-10">
           <div className="p-6 border-b border-gray-100 flex items-center gap-3">
             <div className="p-2 bg-green-50 text-green-600 rounded-lg">
@@ -131,7 +131,8 @@ export default async function AdminDashboard() {
                           <ReleaseFundsButton 
                             orderId={order.id} 
                             amount={order.amount}
-                            sellerWallet={order.seller.username} 
+                            // 👇 OVO JE GLAVNA PROMENA: Šaljemo wallet iz baze
+                            sellerWallet={order.seller.piWallet || order.seller.username} 
                           />
                        ) : (
                           <span className="text-gray-400 text-xs flex items-center gap-1">
@@ -149,7 +150,7 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* --- NOVO: TABELA KORISNIKA (Brzi pregled i BAN) --- */}
+        {/* TABELA KORISNIKA */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center gap-3">
             <div className="p-2 bg-red-50 text-red-600 rounded-lg">
