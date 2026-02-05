@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthContext"; // ✅ Povezujemo sa glavnim sistemom
 import { getUserProfile, updateWalletAddress } from "@/app/actions/getProfile";
 import CompleteOrderButton from "@/components/CompleteOrderButton";
 import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save } from "lucide-react";
@@ -8,45 +9,45 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function UserProfilePage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user: authUser, loading: authLoading } = useAuth(); // ✅ Uzimamo korisnika iz Context-a
+  const [fullProfile, setFullProfile] = useState<any>(null); // Ovde čuvamo podatke o prodajama/kupovinama
+  const [loadingData, setLoadingData] = useState(true);
+  
   const [activeTab, setActiveTab] = useState("orders"); // orders, sales, settings
   const [walletInput, setWalletInput] = useState("");
   const [savingWallet, setSavingWallet] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. POKUŠAJ DA NAĐEŠ ULOGOVANOG KORISNIKA IZ LOCALSTORAGE
-    let foundUser = localStorage.getItem("user");
-    
-    // Ako je JSON, parsiraj ga
-    if (foundUser) {
+    // Ako se auth još učitava, čekamo
+    if (authLoading) return;
+
+    // Ako nema korisnika u auth-u, prekidamo učitavanje
+    if (!authUser || !authUser.username) {
+        setLoadingData(false);
+        return;
+    }
+
+    // Ako imamo korisnika, povlačimo njegove detaljne podatke (narudžbine, prodaje...)
+    const fetchProfileData = async () => {
         try {
-            const parsed = JSON.parse(foundUser);
-            if (parsed.username) foundUser = parsed.username;
-        } catch(e) { console.log("User nije json"); }
-    }
-
-    // ⚠️ AKO TESTIRAŠ NA KOMPJUTERU (GDE NEMA PI BROWSERA), OTKOMENTARIŠI OVO:
-    // foundUser = "Ilija1969"; 
-
-    setUsername(foundUser);
-
-    if (foundUser) {
-        getUserProfile(foundUser).then((data) => {
-            setUser(data);
+            const data = await getUserProfile(authUser.username);
+            setFullProfile(data);
             if (data?.piWallet) setWalletInput(data.piWallet);
-            setLoading(false);
-        });
-    } else {
-        setLoading(false);
-    }
-  }, []);
+        } catch (error) {
+            console.error("Greška pri učitavanju profila:", error);
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
+    fetchProfileData();
+  }, [authUser, authLoading]);
 
   const handleSaveWallet = async () => {
+      if (!fullProfile) return;
       setSavingWallet(true);
       try {
-          await updateWalletAddress(user.username, walletInput);
+          await updateWalletAddress(fullProfile.username, walletInput);
           alert("✅ Adresa sačuvana! Sada ti zarada leže automatski.");
       } catch (e: any) {
           alert("Greška: " + e.message);
@@ -55,17 +56,29 @@ export default function UserProfilePage() {
       }
   };
 
-  if (loading) return <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto h-10 w-10 text-purple-600"/></div>;
+  // 1. Prikaz dok se proverava ko je ulogovan
+  if (authLoading || (authUser && loadingData)) {
+      return <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto h-10 w-10 text-purple-600"/></div>;
+  }
   
-  if (!username || !user) return (
-      <div className="p-10 text-center bg-gray-50 min-h-screen flex flex-col items-center justify-center">
-          <User className="h-16 w-16 text-gray-300 mb-4"/>
-          <h2 className="text-xl font-bold text-gray-800">Nisi ulogovan</h2>
-          <p className="text-gray-500 mt-2 mb-6">Moraš se ulogovati kroz Pi Browser da bi video profil.</p>
-          <Button onClick={() => window.location.href = "/"} variant="outline">Nazad na Početnu</Button>
-      </div>
-  );
+  // 2. Prikaz ako korisnik NIJE ulogovan (a auth je završio proveru)
+  if (!authUser) {
+      return (
+        <div className="p-10 text-center bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+            <User className="h-16 w-16 text-gray-300 mb-4"/>
+            <h2 className="text-xl font-bold text-gray-800">Nisi ulogovan</h2>
+            <p className="text-gray-500 mt-2 mb-6">Moraš se ulogovati kroz Pi Browser da bi video profil.</p>
+            <Button onClick={() => window.location.href = "/auth/login"} variant="outline">Prijavi se</Button>
+        </div>
+      );
+  }
 
+  // Ako podaci profila nisu stigli (greška servera), ali je user tu
+  if (!fullProfile) {
+      return <div className="p-20 text-center">Greška pri učitavanju podataka profila. Osveži stranicu.</div>;
+  }
+
+  // 3. GLAVNI PRIKAZ PROFILA
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
@@ -76,12 +89,12 @@ export default function UserProfilePage() {
                 <User className="h-10 w-10" />
             </div>
             <div className="text-center md:text-left flex-1">
-                <h1 className="text-2xl font-bold text-gray-900">{user.username}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{fullProfile.username}</h1>
                 <p className="text-gray-500 text-sm">Član platforme SkillClick</p>
             </div>
             <div className="flex flex-col items-end gap-2">
                  <div className="bg-green-50 text-green-700 px-4 py-2 rounded-xl font-bold border border-green-100 flex items-center gap-2">
-                    💰 Zarada: {user.sales.reduce((acc:any, sale:any) => acc + (sale.status==='completed'?sale.amount:0), 0).toFixed(2)} π
+                    💰 Zarada: {fullProfile.sales.reduce((acc:any, sale:any) => acc + (sale.status==='completed'?sale.amount:0), 0).toFixed(2)} π
                 </div>
             </div>
         </div>
@@ -104,8 +117,8 @@ export default function UserProfilePage() {
         {/* 1. KUPOVINE (Ono što si ti platio) */}
         {activeTab === "orders" && (
             <div className="space-y-4">
-                {user.orders.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">Nemaš kupovina.</div>}
-                {user.orders.map((order: any) => (
+                {fullProfile.orders.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">Nemaš kupovina.</div>}
+                {fullProfile.orders.map((order: any) => (
                     <div key={order.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition">
                         <div className="flex-1">
                             <h3 className="font-bold text-gray-800 text-lg">{order.service.title}</h3>
@@ -139,8 +152,8 @@ export default function UserProfilePage() {
         {/* 2. PRODAJE (Ono što si ti zaradio) */}
         {activeTab === "sales" && (
             <div className="space-y-4">
-                 {user.sales.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">Nemaš prodaja.</div>}
-                 {user.sales.map((sale: any) => (
+                 {fullProfile.sales.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">Nemaš prodaja.</div>}
+                 {fullProfile.sales.map((sale: any) => (
                     <div key={sale.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center hover:shadow-md transition">
                         <div>
                             <h3 className="font-bold text-gray-800">{sale.service.title}</h3>
