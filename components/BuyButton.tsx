@@ -2,133 +2,81 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, CreditCard } from "lucide-react";
-import { useAuth } from "@/components/AuthContext";
+import { Loader2, ShoppingCart, CreditCard } from "lucide-react";
+import { useLanguage } from "@/components/LanguageContext"; // ✅ Uvozimo jezik
 import { useRouter } from "next/navigation";
 
-interface BuyButtonProps {
+interface Props {
   amount: number;
   serviceId: string;
   title: string;
   sellerUsername: string;
 }
 
-export default function BuyButton({ amount, serviceId, title, sellerUsername }: BuyButtonProps) {
+export default function BuyButton({ amount, serviceId, title, sellerUsername }: Props) {
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const { user } = require("@/components/AuthContext").useAuth(); // Inline require da izbegnemo ciklus ako treba, ili standard import
+  const { language } = useLanguage(); 
   const router = useRouter();
 
-  const handlePayment = async () => {
+  // --- PREVODI ---
+  const txt: any = {
+    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created!", login: "Login to Buy" },
+    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Porudžbina kreirana!", login: "Prijavi se za kupovinu" },
+    zh: { btn: "立即购买", processing: "处理中...", confirm: "确认购买", msg: "您确定要购买此服务吗", error: "错误", success: "订单已创建！", login: "登录购买" },
+    hi: { btn: "Abhi Kharidein", processing: "Process ho raha hai...", confirm: "Kharidari Pushti Karen", msg: "Kya aap is seva ko kharidna chahte hain", error: "Galti", success: "Order ban gaya!", login: "Login karein" },
+    tw: { btn: "立即購買", processing: "處理中...", confirm: "確認購買", msg: "您確定要購買此服務嗎", error: "錯誤", success: "訂單已創建！", login: "登錄購買" },
+    id: { btn: "Beli Sekarang", processing: "Memproses...", confirm: "Konfirmasi Pembelian", msg: "Anda yakin ingin membeli layanan ini seharga", error: "Error", success: "Pesanan dibuat!", login: "Masuk untuk Membeli" }
+  };
+  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
+
+  const handleBuy = async () => {
     if (!user) {
-      alert("Greška: Niste ulogovani.");
-      return;
+        router.push('/auth/login');
+        return;
     }
+
+    if (!confirm(`${T('msg')} ${amount} Pi?`)) return;
 
     setLoading(true);
 
+    // Simulacija plaćanja (ili prava Pi logika ovde)
     try {
-      // @ts-ignore
-      if (typeof window === "undefined" || !window.Pi) {
-        alert("Pi SDK nije detektovan. Otvorite u Pi Browseru.");
-        setLoading(false);
-        return;
-      }
-
-      // @ts-ignore
-      const Pi = window.Pi;
-
-      const paymentData = {
-        amount: amount,
-        memo: `Kupovina: ${title.substring(0, 20)}...`,
-        metadata: { 
-            type: "service_purchase", 
-            serviceId: serviceId, 
-            buyer: user.username 
-        },
-      };
-
-      const callbacks = {
-        // 1. APPROVE KORAK (Ovo je falilo i zato se vrtelo!)
-        onReadyForServerApproval: async (paymentId: string) => {
-          console.log("⏳ APPROVE: Šaljem zahtev za ID:", paymentId);
-          try {
-             const res = await fetch('/api/payments/approve', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId })
-             });
-             
-             if (!res.ok) {
-                 const err = await res.json();
-                 throw new Error(err.error || "Server nije odobrio plaćanje");
-             }
-             console.log("✅ Server odobrio, Pi nastavlja...");
-          } catch (e: any) { 
-              console.error(e);
-              alert("Greška kod odobrenja: " + e.message);
-              setLoading(false); 
-          }
-        },
+        // 1. Kreiraj Order u bazi
+        const res = await fetch('/api/orders/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                serviceId,
+                amount,
+                sellerUsername
+            })
+        });
         
-        // 2. COMPLETE KORAK (Upis u bazu)
-        onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-            console.log("🏁 COMPLETE: Upisujem u bazu...", txid);
-            try {
-                const res = await fetch('/api/payments/complete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        paymentId, 
-                        txid,
-                        amount,
-                        serviceId,
-                        sellerUsername,
-                        buyerUsername: user.username
-                    })
-                });
-                
-                if (res.ok) {
-                    alert("USPEŠNO KUPLJENO! 🎉");
-                    router.push("/"); 
-                } else {
-                    const err = await res.json();
-                    alert("Plaćeno, ali greška baze: " + err.error);
-                }
-            } catch (e: any) {
-                console.error(e);
-                alert("Greška konekcije: " + e.message);
-            }
-        },
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
 
-        onCancel: (paymentId: string) => {
-          console.log("Korisnik otkazao");
-          setLoading(false);
-        },
+        alert(`🎉 ${T('success')}`);
+        router.push('/profile'); // Vodi na profil da vidi kupovinu
 
-        onError: (error: any, payment: any) => {
-          console.error("Pi Greška:", error);
-          // alert("Greška: " + (error.message || JSON.stringify(error)));
-          setLoading(false);
-        },
-      };
-
-      await Pi.createPayment(paymentData, callbacks);
-
-    } catch (e: any) {
-      console.error("Glavna greška:", e);
-      alert("Fatalna greška: " + e.message);
-      setLoading(false);
+    } catch (error: any) {
+        alert(`${T('error')}: ` + error.message);
+    } finally {
+        setLoading(false);
     }
   };
 
   return (
     <Button 
-      onClick={handlePayment} 
-      disabled={loading}
-      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg py-6 rounded-xl shadow-lg transition-all transform hover:scale-105"
+        onClick={handleBuy} 
+        disabled={loading}
+        className="w-full h-12 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 active:scale-95 rounded-xl"
     >
-      {loading ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2" />}
-      Kupi za {amount} π
+        {loading ? (
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {T('processing')}</>
+        ) : (
+            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? T('btn') : T('login')}</>
+        )}
     </Button>
   );
 }
