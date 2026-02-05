@@ -27,10 +27,13 @@ function NavbarContent() {
 
   const handleLangClick = () => {
     setLangAnim(true);
-    // Efekat traje 500ms (pola sekunde)
+    // Efekat traje 500ms (pola sekunde) da se jasno vidi
     setTimeout(() => setLangAnim(false), 500);
   };
   
+  // Prevod za "Moj Profil" direktno ovde da ne menjamo context fajl
+  const profileLabel = language === 'sr' ? 'Moj Profil' : 'My Profile';
+
   const languages: Record<string, { label: string; flag: string }> = {
     en: { label: "English", flag: "🇺🇸" },
     sr: { label: "Srpski", flag: "🇷🇸" },
@@ -61,12 +64,12 @@ function NavbarContent() {
         {/* DESNA STRANA (Jezik + Meni) */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           
-          {/* 🌍 JEZIK - SA ANIMACIJOM I LJUBIČASTIM STILOM */}
+          {/* 🌍 JEZIK - NOVI DIZAJN I EFEKTI */}
           <DropdownMenu>
             <DropdownMenuTrigger 
                 onPointerDown={handleLangClick} // Pokreće animaciju na dodir
                 className={`flex items-center gap-1 px-3 py-2 rounded-full text-purple-900 transition-all duration-500 outline-none border border-purple-200 
-                ${langAnim ? "scale-110 bg-purple-300 ring-4 ring-purple-100 shadow-lg" : "bg-purple-100 hover:bg-purple-200"}`}
+                ${langAnim ? "scale-110 bg-purple-300 ring-4 ring-purple-200 shadow-lg" : "bg-purple-100 hover:bg-purple-200"}`}
             >
                 <span className="text-xl md:text-2xl">{currentLangObj.flag}</span> 
                 <span className="hidden md:inline font-bold text-sm ml-1">{currentLangObj.label}</span>
@@ -74,12 +77,12 @@ function NavbarContent() {
             </DropdownMenuTrigger>
             
             {/* Padajući meni sa ljubičastim poljima */}
-            <DropdownMenuContent align="end" className="w-48 bg-purple-50 border-purple-100 shadow-xl z-[100] p-2 rounded-xl">
+            <DropdownMenuContent align="end" className="w-48 bg-white border-purple-100 shadow-xl z-[100] p-2 rounded-xl">
               {Object.entries(languages).map(([key, { label, flag }]) => (
                 <DropdownMenuItem 
                     key={key} 
                     onSelect={() => setLanguage(key)} 
-                    className="cursor-pointer py-3 mb-1 font-bold text-base text-purple-900 bg-purple-100/50 hover:bg-purple-200 rounded-lg border border-transparent hover:border-purple-300 transition-colors"
+                    className="cursor-pointer py-3 mb-1 font-bold text-base text-gray-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 focus:bg-purple-100 rounded-lg transition-colors border border-transparent hover:border-purple-200"
                 >
                   <span className="mr-3 text-xl">{flag}</span> {label}
                 </DropdownMenuItem>
@@ -133,10 +136,10 @@ function NavbarContent() {
                           )}
                       </div>
 
-                      {/* 👇👇👇 MOJ PROFIL (SADA NA PRVOM MESTU) 👇👇👇 */}
+                      {/* ✅ "MOJ PROFIL" MENJA JEZIK I PRVI JE NA LISTI */}
                       {user && (
-                        <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base bg-purple-600 text-white hover:bg-purple-700 hover:text-white rounded-lg mb-2 shadow-sm">
-                            <User className="w-5 h-5 mr-3" /> Moj Profil
+                        <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base bg-purple-600 text-white hover:bg-purple-700 hover:text-white focus:bg-purple-700 focus:text-white rounded-lg mb-2 shadow-sm">
+                            <User className="w-5 h-5 mr-3" /> {profileLabel}
                         </DropdownMenuItem>
                       )}
                       
