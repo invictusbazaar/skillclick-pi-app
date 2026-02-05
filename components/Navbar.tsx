@@ -18,20 +18,18 @@ function NavbarContent() {
   const { user } = useAuth(); 
   const { language, setLanguage, t } = useLanguage(); 
   const router = useRouter(); 
+  
+  // State za otvaranje menija
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  
+  // State za vizuelni efekat izbora jezika
+  const [animatingLang, setAnimatingLang] = useState<string | null>(null);
+
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
   
-  // State za animaciju klika na jezik
-  const [langAnim, setLangAnim] = useState(false);
-
-  const handleLangClick = () => {
-    setLangAnim(true);
-    // Efekat traje 500ms (pola sekunde) da se jasno vidi
-    setTimeout(() => setLangAnim(false), 500);
-  };
-  
-  // Prevod za "Moj Profil" direktno ovde da ne menjamo context fajl
+  // Dinamički label za profil
   const profileLabel = language === 'sr' ? 'Moj Profil' : 'My Profile';
 
   const languages: Record<string, { label: string; flag: string }> = {
@@ -43,7 +41,29 @@ function NavbarContent() {
     id: { label: "Indonesia", flag: "🇮🇩" }
   };
   const currentLangObj = languages[language] || languages['en'];
-  const categories = [{ key: "catDesign", slug: "design" }, { key: "catMarketing", slug: "marketing" }, { key: "catWriting", slug: "writing" }, { key: "catVideo", slug: "video" }, { key: "catTech", slug: "tech" }, { key: "catBusiness", slug: "business" }, { key: "catLifestyle", slug: "lifestyle" }];
+  
+  const categories = [
+    { key: "catDesign", slug: "design" }, 
+    { key: "catMarketing", slug: "marketing" }, 
+    { key: "catWriting", slug: "writing" }, 
+    { key: "catVideo", slug: "video" }, 
+    { key: "catTech", slug: "tech" }, 
+    { key: "catBusiness", slug: "business" }, 
+    { key: "catLifestyle", slug: "lifestyle" }
+  ];
+
+  // Funkcija koja upravlja efektom klika na jezik
+  const handleLanguageClick = (e: Event, key: string) => {
+    e.preventDefault(); // Sprečavamo da se meni odmah zatvori
+    setAnimatingLang(key); // Palimo efekat (ljubičasto + uvećanje)
+
+    // Čekamo pola sekunde (500ms) da se efekat vidi
+    setTimeout(() => {
+        setLanguage(key);      // Menjamo jezik
+        setAnimatingLang(null); // Gasimo efekat
+        setIsLangMenuOpen(false); // Zatvaramo meni
+    }, 500);
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
@@ -64,27 +84,30 @@ function NavbarContent() {
         {/* DESNA STRANA (Jezik + Meni) */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           
-          {/* 🌍 JEZIK - NOVI DIZAJN I EFEKTI */}
-          <DropdownMenu>
+          {/* 🌍 JEZIK - SA EFEKTIMA */}
+          <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
             <DropdownMenuTrigger 
-                onPointerDown={handleLangClick} // Pokreće animaciju na dodir
-                className={`flex items-center gap-1 px-3 py-2 rounded-full text-purple-900 transition-all duration-500 outline-none border border-purple-200 
-                ${langAnim ? "scale-110 bg-purple-300 ring-4 ring-purple-200 shadow-lg" : "bg-purple-100 hover:bg-purple-200"}`}
+                className="flex items-center gap-1 px-3 py-2 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95"
             >
                 <span className="text-xl md:text-2xl">{currentLangObj.flag}</span> 
                 <span className="hidden md:inline font-bold text-sm ml-1">{currentLangObj.label}</span>
                 <ChevronDown className="w-3 h-3 text-purple-700" />
             </DropdownMenuTrigger>
             
-            {/* Padajući meni sa ljubičastim poljima */}
-            <DropdownMenuContent align="end" className="w-48 bg-white border-purple-100 shadow-xl z-[100] p-2 rounded-xl">
+            <DropdownMenuContent align="end" className="w-52 bg-white border-purple-100 shadow-2xl z-[100] p-2 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
               {Object.entries(languages).map(([key, { label, flag }]) => (
                 <DropdownMenuItem 
                     key={key} 
-                    onSelect={() => setLanguage(key)} 
-                    className="cursor-pointer py-3 mb-1 font-bold text-base text-gray-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 focus:bg-purple-100 rounded-lg transition-colors border border-transparent hover:border-purple-200"
+                    onSelect={(e) => handleLanguageClick(e, key)}
+                    className={`
+                        cursor-pointer py-3 mb-1 font-bold text-base rounded-xl border transition-all duration-300 flex items-center
+                        ${animatingLang === key 
+                            ? "bg-purple-900 text-white scale-110 shadow-lg border-purple-900 z-10" // EFEKAT KAD SE KLIKNE
+                            : "text-gray-700 bg-purple-50/50 hover:bg-purple-100 hover:text-purple-900 border-transparent hover:border-purple-200" // OBIČNO STANJE
+                        }
+                    `}
                 >
-                  <span className="mr-3 text-xl">{flag}</span> {label}
+                  <span className="mr-3 text-2xl">{flag}</span> {label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -136,7 +159,7 @@ function NavbarContent() {
                           )}
                       </div>
 
-                      {/* ✅ "MOJ PROFIL" MENJA JEZIK I PRVI JE NA LISTI */}
+                      {/* MOJ PROFIL - Prvi na listi */}
                       {user && (
                         <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base bg-purple-600 text-white hover:bg-purple-700 hover:text-white focus:bg-purple-700 focus:text-white rounded-lg mb-2 shadow-sm">
                             <User className="w-5 h-5 mr-3" /> {profileLabel}
