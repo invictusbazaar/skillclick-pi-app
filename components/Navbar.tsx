@@ -29,9 +29,6 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
   
-  // Dinamički label za profil
-  const profileLabel = language === 'sr' ? 'Moj Profil' : 'My Profile';
-
   const languages: Record<string, { label: string; flag: string }> = {
     en: { label: "English", flag: "🇺🇸" },
     sr: { label: "Srpski", flag: "🇷🇸" },
@@ -159,10 +156,10 @@ function NavbarContent() {
                           )}
                       </div>
 
-                      {/* MOJ PROFIL - Prvi na listi */}
+                      {/* ✅ POPRAVLJENO: Sada koristi t('navProfile') za ispravan prevod na SVE jezike */}
                       {user && (
                         <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base bg-purple-600 text-white hover:bg-purple-700 hover:text-white focus:bg-purple-700 focus:text-white rounded-lg mb-2 shadow-sm">
-                            <User className="w-5 h-5 mr-3" /> {profileLabel}
+                            <User className="w-5 h-5 mr-3" /> {t('navProfile')}
                         </DropdownMenuItem>
                       )}
                       
