@@ -48,8 +48,8 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     setLoading(true);
 
     try {
-        // ✅ GAĐAMO STANDARDNU RUTU /api/orders
-        const res = await fetch('/api/orders', {
+        // ✅ ISPRAVKA: Sada gađamo tačnu putanju gde si kreirao fajl
+        const res = await fetch('/api/orders', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -60,20 +60,19 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             })
         });
         
-        // Čitamo odgovor
         const text = await res.text();
         let data;
         try {
             data = JSON.parse(text);
         } catch (e) {
-            throw new Error("Server error (Invalid JSON): " + text);
+            throw new Error("Server error: " + text);
         }
 
         if (!res.ok) throw new Error(data.error || "Došlo je do greške.");
 
         alert(`🎉 ${T('success')}`);
         
-        // Preusmeravanje na profil da vidiš porudžbinu
+        // Preusmeravanje na profil
         router.push('/profile'); 
         router.refresh();
 
