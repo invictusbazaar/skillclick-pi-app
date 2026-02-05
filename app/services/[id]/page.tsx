@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageContext';
-import { ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code } from 'lucide-react';
-import BuyButton from '@/components/BuyButton'; // ✅ UBACUJEMO NOVO DUGME
+import { ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, MapPin } from 'lucide-react';
+import BuyButton from '@/components/BuyButton'; 
+import ChatSystem from '@/components/ChatSystem'; 
 
 // Definicija za TypeScript
 declare global { interface Window { Pi: any; } }
@@ -16,7 +17,6 @@ export default function ServiceDetail() {
   const [service, setService] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
 
-  // Pomoćne funkcije za izgled
   const getGradient = (id: string) => {
     if (!id) return "from-indigo-500 to-purple-600";
     const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -35,7 +35,6 @@ export default function ServiceDetail() {
     return <Code className={iconClass} />;
   };
 
-  // Učitavanje podataka o servisu
   useEffect(() => {
     fetch('/api/services')
       .then(res => res.json())
@@ -49,10 +48,11 @@ export default function ServiceDetail() {
       .catch(err => console.error("Greška:", err));
   }, [id]);
 
-  if (!service) return <div className="p-20 text-center text-purple-600 font-bold">Učitavanje...</div>;
+  if (!service) return <div className="p-20 text-center text-purple-600 font-bold">...</div>;
   
   const getLocalized = (field: any) => (typeof field === 'string' ? field : field[lang] || field['en'] || "");
   const currentTitle = getLocalized(service.title);
+  const sellerUsername = service.author?.username || service.seller?.username || "";
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
@@ -60,50 +60,81 @@ export default function ServiceDetail() {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 px-4 py-4 shadow-sm">
           <div className="container mx-auto flex items-center justify-between">
             <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 font-bold hover:text-purple-600"><ArrowLeft className="w-5 h-5" /> {t('back')}</button>
-            <div className="text-sm font-bold text-purple-600 uppercase">{service.category}</div>
+            <div className="text-sm font-bold text-purple-600 uppercase bg-purple-50 px-3 py-1 rounded-full">{service.category}</div>
           </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-12 gap-8 items-start">
-          {/* Leva strana: Slika i opis */}
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        {/* ✅ NOVI GRID RASPORED */}
+        <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+          
+          {/* 1. SLIKA (Prva na mobilnom, Levo na Desktopu) */}
           <div className="lg:col-span-8 flex flex-col gap-6">
-            <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-xl bg-white border border-gray-100">
-                {mainImage ? <img src={mainImage} className="w-full h-full object-cover"/> : <div className={`w-full h-full bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center`}>{getSmartIcon(service)}</div>}
-            </div>
-            
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                <h3 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-2"><span className="bg-purple-100 p-2 rounded-lg text-purple-600"><PenTool className="w-5 h-5"/></span>{t('aboutService')}</h3>
-                <div className="prose prose-purple text-gray-600 leading-relaxed whitespace-pre-wrap font-medium">{getLocalized(service.description)}</div>
+            <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-xl bg-white border border-gray-100 group">
+                {mainImage ? (
+                    <img src={mainImage} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/> 
+                ) : (
+                    <div className={`w-full h-full bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center`}>{getSmartIcon(service)}</div>
+                )}
             </div>
           </div>
 
-          {/* Desna strana: Kartica za kupovinu */}
-          <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-24">
+          {/* 2. SIDEBAR: CENA, DUGME, CHAT (Druga na mobilnom, Desno na Desktopu) */}
+          {/* row-span-2 omogućava da na desktopu ovo stoji sa strane dok opis ide ispod slike */}
+          <div className="lg:col-span-4 lg:row-span-2 flex flex-col gap-6 lg:sticky lg:top-24">
+            
+            {/* KARTICA ZA KUPOVINU */}
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-purple-900/5">
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                    <div className="w-16 h-16 bg-gradient-to-tr from-purple-500 to-indigo-500 text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-purple-200">{service.author?.username?.[0].toUpperCase() || 'U'}</div>
-                    <div><p className="text-xs text-gray-400 font-bold uppercase">Seller</p><p className="font-bold text-gray-900 text-lg">@{service.author?.username || 'User'}</p></div>
-                </div>
-
-                <h1 className="text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{currentTitle}</h1>
-                <div className="flex items-end justify-between mb-6">
-                    <p className="text-4xl font-black text-purple-600 tracking-tighter">{service.price} π</p>
-                    <div className="text-right text-xs font-bold text-gray-500 space-y-1">
-                         <div><Clock className="w-3 h-3 inline mr-1"/> {service.deliveryTime} {t('days')}</div>
+                <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
+                    <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black text-xl">
+                        {sellerUsername[0]?.toUpperCase() || 'U'}
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Seller</p>
+                        <p className="font-bold text-gray-900 text-base">@{sellerUsername || 'User'}</p>
                     </div>
                 </div>
 
-                {/* ✅ OVDE KORISTIMO NOVO DUGME ZA PLAĆANJE */}
+                <h1 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{currentTitle}</h1>
+                
+                <div className="flex items-end justify-between mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div>
+                        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Price</p>
+                        <p className="text-3xl font-black text-purple-600 tracking-tighter">{service.price} π</p>
+                    </div>
+                    <div className="text-right">
+                         <div className="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm flex items-center gap-1">
+                            <Clock className="w-3 h-3"/> {service.deliveryTime} {t('days')}
+                         </div>
+                    </div>
+                </div>
+
+                {/* DUGME KOJE MENJA JEZIK */}
                 <BuyButton 
                     amount={parseFloat(service.price)}
                     serviceId={service.id}
                     title={currentTitle}
-                    sellerUsername={service.author?.username || ""}
+                    sellerUsername={sellerUsername}
                 />
+            </div>
 
+            {/* CHAT SISTEM (Sada odmah ispod dugmeta za kupovinu) */}
+            <ChatSystem sellerUsername={sellerUsername} />
+          </div>
+
+          {/* 3. OPIS (Treći na mobilnom, Levo ispod slike na Desktopu) */}
+          <div className="lg:col-span-8">
+            <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="bg-purple-100 p-2 rounded-lg text-purple-600"><PenTool className="w-5 h-5"/></span>
+                    {t('aboutService')}
+                </h3>
+                <div className="prose prose-purple text-gray-600 leading-relaxed whitespace-pre-wrap font-medium text-base">
+                    {getLocalized(service.description)}
+                </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
