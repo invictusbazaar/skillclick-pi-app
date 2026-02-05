@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/components/LanguageContext"
 import { useAuth } from "@/components/AuthContext"
 import { 
-  ChevronDown, Menu, ShieldCheck, Home, PlusCircle 
+  ChevronDown, Menu, ShieldCheck, Home, PlusCircle, User 
 } from "lucide-react"
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -37,7 +37,7 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
       <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
         
-        {/* LOGO - LEVO (Vraćen stari izgled) */}
+        {/* LOGO - LEVO */}
         <Link href="/" className="flex-shrink-0"> 
           <Image 
             src="/skillclick_logo.png" 
@@ -52,12 +52,12 @@ function NavbarContent() {
         {/* DESNA STRANA (Jezik + Meni) */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           
-          {/* 🌍 JEZIK (Uvek vidljiv) */}
+          {/* 🌍 JEZIK - NOVI DIZAJN */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-gray-100 transition-colors outline-none border border-gray-200">
+            <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-2 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-800 transition-all duration-500 active:scale-110 outline-none border border-purple-200">
                 <span className="text-xl md:text-2xl">{currentLangObj.flag}</span> 
-                <span className="hidden md:inline font-bold text-gray-700 text-sm ml-1">{currentLangObj.label}</span>
-                <ChevronDown className="w-3 h-3 text-gray-400" />
+                <span className="hidden md:inline font-bold text-sm ml-1">{currentLangObj.label}</span>
+                <ChevronDown className="w-3 h-3 text-purple-500" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-white border-gray-100 shadow-xl z-[100]">
               {Object.entries(languages).map(([key, { label, flag }]) => (
@@ -96,7 +96,7 @@ function NavbarContent() {
           {/* MOBILNI MENI (Hamburger) */}
           <div className="flex md:hidden">
               <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                  <DropdownMenuTrigger className="p-2"> <Menu className="w-8 h-8 text-gray-800" /> </DropdownMenuTrigger>
+                  <DropdownMenuTrigger className="p-2 transition-transform active:scale-95"> <Menu className="w-8 h-8 text-gray-800" /> </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-64 bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl p-2 mr-2">
                       <div className="p-3 border-b border-gray-100 mb-2 bg-gray-50 rounded-lg">
                           {user ? (
@@ -117,6 +117,13 @@ function NavbarContent() {
                       <DropdownMenuItem onSelect={() => router.push("/")} className="py-3 font-bold text-base"><Home className="w-5 h-5 mr-3"/> {t('backHome')}</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => router.push("/create")} className="py-3 font-bold text-base text-purple-600"><PlusCircle className="w-5 h-5 mr-3"/> {t('navPostService')}</DropdownMenuItem>
                       
+                      {/* ✅ NOVO: MOJ PROFIL LINK U MOBILNOM MENIJU */}
+                      {user && (
+                        <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                            <User className="w-5 h-5 mr-3" /> Moj Profil
+                        </DropdownMenuItem>
+                      )}
+
                       {user?.isAdmin && (
                           <DropdownMenuItem onSelect={() => router.push("/admin")} className="py-3 font-bold text-base text-red-600 bg-red-50 rounded-lg mt-2"><ShieldCheck className="w-5 h-5 mr-3"/> Admin Panel</DropdownMenuItem>
                       )}
