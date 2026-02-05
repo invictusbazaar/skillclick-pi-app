@@ -11,12 +11,20 @@ export async function getUserProfile(username: string) {
     include: {
       // Šta sam kupio
       orders: {
-        include: { service: true, seller: true },
+        include: { 
+            service: true, 
+            seller: true,
+            reviews: true // 👈 DODATO: Da vidimo da li sam već ostavio ocenu
+        },
         orderBy: { createdAt: 'desc' }
       },
       // Šta sam prodao (Moji klijenti)
       sales: {
-        include: { service: true, buyer: true },
+        include: { 
+            service: true, 
+            buyer: true,
+            reviews: true // 👈 DODATO: Da vidimo da li sam već ocenio kupca
+        },
         orderBy: { createdAt: 'desc' }
       },
       // Moje usluge koje nudim
