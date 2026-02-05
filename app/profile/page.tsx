@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/AuthContext"; // ✅ Povezujemo sa glavnim sistemom
+import { useAuth } from "@/components/AuthContext";
+import { useLanguage } from "@/components/LanguageContext"; // ✅ Uvozimo jezik
 import { getUserProfile, updateWalletAddress } from "@/app/actions/getProfile";
 import CompleteOrderButton from "@/components/CompleteOrderButton";
 import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save } from "lucide-react";
@@ -9,32 +10,116 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function UserProfilePage() {
-  const { user: authUser, loading: authLoading } = useAuth(); // ✅ Uzimamo korisnika iz Context-a
-  const [fullProfile, setFullProfile] = useState<any>(null); // Ovde čuvamo podatke o prodajama/kupovinama
-  const [loadingData, setLoadingData] = useState(true);
+  const { user: authUser, loading: authLoading } = useAuth();
+  const { language, t } = useLanguage(); // ✅ Koristimo jezik
   
-  const [activeTab, setActiveTab] = useState("orders"); // orders, sales, settings
+  const [fullProfile, setFullProfile] = useState<any>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  const [activeTab, setActiveTab] = useState("orders");
   const [walletInput, setWalletInput] = useState("");
   const [savingWallet, setSavingWallet] = useState(false);
 
+  // --- LOKALNI PREVODI ZA PROFIL ---
+  const txt: any = {
+    en: {
+        earnings: "Earnings",
+        member: "Member of SkillClick",
+        tabOrders: "My Purchases",
+        tabSales: "My Sales",
+        tabWallet: "Wallet & Info",
+        noPurchases: "No purchases yet.",
+        noSales: "No sales yet.",
+        seller: "Seller",
+        buyer: "Buyer",
+        date: "Date",
+        statusPaid: "PAID",
+        statusPending: "PENDING",
+        statusWaiting: "Waiting for buyer",
+        walletTitle: "Your Pi Payout Wallet",
+        walletDesc: "Enter your Public Key (starts with 'G'). Earnings will be sent here automatically.",
+        labelWallet: "Pi Wallet Address (G...)",
+        btnSave: "Save Address",
+        savedMsg: "✅ Address saved! Earnings will arrive automatically.",
+        notLogged: "Not Logged In",
+        loginReq: "You must login via Pi Browser to view your profile.",
+        backHome: "Back to Home",
+        error: "Error loading profile data."
+    },
+    sr: {
+        earnings: "Zarada",
+        member: "Član platforme SkillClick",
+        tabOrders: "Moje Kupovine",
+        tabSales: "Moje Prodaje",
+        tabWallet: "Novčanik & Info",
+        noPurchases: "Nemaš kupovina.",
+        noSales: "Nemaš prodaja.",
+        seller: "Prodavac",
+        buyer: "Kupac",
+        date: "Datum",
+        statusPaid: "ISPLAĆENO",
+        statusPending: "NA ČEKANJU",
+        statusWaiting: "Čeka se kupac",
+        walletTitle: "Tvoj Pi Novčanik za Isplatu",
+        walletDesc: "Ovde unesi svoju Javnu Adresu (Public Key). Tu ti leže zarada automatski.",
+        labelWallet: "Pi Wallet Adresa (G...)",
+        btnSave: "Sačuvaj Adresu",
+        savedMsg: "✅ Adresa sačuvana! Sada ti zarada leže automatski.",
+        notLogged: "Nisi ulogovan",
+        loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
+        backHome: "Nazad na Početnu",
+        error: "Greška pri učitavanju podataka profila."
+    },
+    zh: {
+        earnings: "收入",
+        member: "SkillClick 会员",
+        tabOrders: "我的购买",
+        tabSales: "我的销售",
+        tabWallet: "钱包 & 信息",
+        noPurchases: "暂无购买记录。",
+        noSales: "暂无销售记录。",
+        seller: "卖家",
+        buyer: "买家",
+        date: "日期",
+        statusPaid: "已支付",
+        statusPending: "待处理",
+        statusWaiting: "等待买家",
+        walletTitle: "您的 Pi 收款钱包",
+        walletDesc: "输入您的公钥（以 'G' 开头）。收入将自动发送到此处。",
+        labelWallet: "Pi 钱包地址 (G...)",
+        btnSave: "保存地址",
+        savedMsg: "✅ 地址已保存！收入将自动到账。",
+        notLogged: "未登录",
+        loginReq: "您必须通过 Pi 浏览器登录才能查看个人资料。",
+        backHome: "返回首页",
+        error: "加载个人资料数据时出错。"
+    },
+    // Fallback za ostale jezike na Engleski
+    hi: { earnings: "Kamai", member: "Member", tabOrders: "My Purchases", tabSales: "My Sales", tabWallet: "Wallet", noPurchases: "No purchases.", noSales: "No sales.", seller: "Seller", buyer: "Buyer", date: "Date", statusPaid: "PAID", statusPending: "PENDING", statusWaiting: "Waiting", walletTitle: "Pi Payout Wallet", walletDesc: "Enter Public Key.", labelWallet: "Wallet Address", btnSave: "Save", savedMsg: "Saved!", notLogged: "Not Logged In", loginReq: "Login required.", backHome: "Back", error: "Error." },
+    tw: { earnings: "收入", member: "SkillClick 會員", tabOrders: "我的購買", tabSales: "我的銷售", tabWallet: "錢包 & 信息", noPurchases: "暫無購買記錄。", noSales: "暫無銷售記錄。", seller: "賣家", buyer: "買家", date: "日期", statusPaid: "已支付", statusPending: "待處理", statusWaiting: "等待買家", walletTitle: "您的 Pi 收款錢包", walletDesc: "輸入您的公鑰（以 'G' 開頭）。收入將自動發送到此處。", labelWallet: "Pi 錢包地址 (G...)", btnSave: "保存地址", savedMsg: "✅ 地址已保存！", notLogged: "未登錄", loginReq: "需登錄。", backHome: "返回首頁", error: "錯誤。" },
+    id: { earnings: "Pendapatan", member: "Anggota", tabOrders: "Pembelian Saya", tabSales: "Penjualan Saya", tabWallet: "Dompet", noPurchases: "Belum ada pembelian.", noSales: "Belum ada penjualan.", seller: "Penjual", buyer: "Pembeli", date: "Tanggal", statusPaid: "DIBAYAR", statusPending: "TERTUNDA", statusWaiting: "Menunggu", walletTitle: "Dompet Pi Anda", walletDesc: "Masukkan Kunci Publik.", labelWallet: "Alamat Dompet", btnSave: "Simpan", savedMsg: "Tersimpan!", notLogged: "Belum Masuk", loginReq: "Wajib login.", backHome: "Kembali", error: "Error." }
+  };
+
+  // Helper funkcija za izbor teksta
+  const T = (key: string) => {
+    const currentDict = txt[language] || txt['en'];
+    return currentDict[key] || txt['en'][key];
+  };
+
   useEffect(() => {
-    // Ako se auth još učitava, čekamo
     if (authLoading) return;
 
-    // Ako nema korisnika u auth-u, prekidamo učitavanje
     if (!authUser || !authUser.username) {
         setLoadingData(false);
         return;
     }
 
-    // Ako imamo korisnika, povlačimo njegove detaljne podatke (narudžbine, prodaje...)
     const fetchProfileData = async () => {
         try {
             const data = await getUserProfile(authUser.username);
             setFullProfile(data);
             if (data?.piWallet) setWalletInput(data.piWallet);
         } catch (error) {
-            console.error("Greška pri učitavanju profila:", error);
+            console.error(error);
         } finally {
             setLoadingData(false);
         }
@@ -48,37 +133,33 @@ export default function UserProfilePage() {
       setSavingWallet(true);
       try {
           await updateWalletAddress(fullProfile.username, walletInput);
-          alert("✅ Adresa sačuvana! Sada ti zarada leže automatski.");
+          alert(T('savedMsg'));
       } catch (e: any) {
-          alert("Greška: " + e.message);
+          alert("Error: " + e.message);
       } finally {
           setSavingWallet(false);
       }
   };
 
-  // 1. Prikaz dok se proverava ko je ulogovan
   if (authLoading || (authUser && loadingData)) {
       return <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto h-10 w-10 text-purple-600"/></div>;
   }
   
-  // 2. Prikaz ako korisnik NIJE ulogovan (a auth je završio proveru)
   if (!authUser) {
       return (
         <div className="p-10 text-center bg-gray-50 min-h-screen flex flex-col items-center justify-center">
             <User className="h-16 w-16 text-gray-300 mb-4"/>
-            <h2 className="text-xl font-bold text-gray-800">Nisi ulogovan</h2>
-            <p className="text-gray-500 mt-2 mb-6">Moraš se ulogovati kroz Pi Browser da bi video profil.</p>
-            <Button onClick={() => window.location.href = "/auth/login"} variant="outline">Prijavi se</Button>
+            <h2 className="text-xl font-bold text-gray-800">{T('notLogged')}</h2>
+            <p className="text-gray-500 mt-2 mb-6">{T('loginReq')}</p>
+            <Button onClick={() => window.location.href = "/"} variant="outline">{T('backHome')}</Button>
         </div>
       );
   }
 
-  // Ako podaci profila nisu stigli (greška servera), ali je user tu
   if (!fullProfile) {
-      return <div className="p-20 text-center">Greška pri učitavanju podataka profila. Osveži stranicu.</div>;
+      return <div className="p-20 text-center">{T('error')}</div>;
   }
 
-  // 3. GLAVNI PRIKAZ PROFILA
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
@@ -90,11 +171,11 @@ export default function UserProfilePage() {
             </div>
             <div className="text-center md:text-left flex-1">
                 <h1 className="text-2xl font-bold text-gray-900">{fullProfile.username}</h1>
-                <p className="text-gray-500 text-sm">Član platforme SkillClick</p>
+                <p className="text-gray-500 text-sm">{T('member')}</p>
             </div>
             <div className="flex flex-col items-end gap-2">
                  <div className="bg-green-50 text-green-700 px-4 py-2 rounded-xl font-bold border border-green-100 flex items-center gap-2">
-                    💰 Zarada: {fullProfile.sales.reduce((acc:any, sale:any) => acc + (sale.status==='completed'?sale.amount:0), 0).toFixed(2)} π
+                    💰 {T('earnings')}: {fullProfile.sales.reduce((acc:any, sale:any) => acc + (sale.status==='completed'?sale.amount:0), 0).toFixed(2)} π
                 </div>
             </div>
         </div>
@@ -102,28 +183,28 @@ export default function UserProfilePage() {
         {/* MENI (TABS) */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
             <button onClick={() => setActiveTab("orders")} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition whitespace-nowrap ${activeTab==="orders" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
-                <ShoppingBag className="h-4 w-4"/> Moje Kupovine
+                <ShoppingBag className="h-4 w-4"/> {T('tabOrders')}
             </button>
             <button onClick={() => setActiveTab("sales")} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition whitespace-nowrap ${activeTab==="sales" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
-                <LayoutGrid className="h-4 w-4"/> Moje Prodaje
+                <LayoutGrid className="h-4 w-4"/> {T('tabSales')}
             </button>
             <button onClick={() => setActiveTab("settings")} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition whitespace-nowrap ${activeTab==="settings" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
-                <Wallet className="h-4 w-4"/> Novčanik & Info
+                <Wallet className="h-4 w-4"/> {T('tabWallet')}
             </button>
         </div>
 
         {/* SADRŽAJ */}
         
-        {/* 1. KUPOVINE (Ono što si ti platio) */}
+        {/* 1. KUPOVINE */}
         {activeTab === "orders" && (
             <div className="space-y-4">
-                {fullProfile.orders.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">Nemaš kupovina.</div>}
+                {fullProfile.orders.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noPurchases')}</div>}
                 {fullProfile.orders.map((order: any) => (
                     <div key={order.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition">
                         <div className="flex-1">
                             <h3 className="font-bold text-gray-800 text-lg">{order.service.title}</h3>
                             <div className="text-sm text-gray-500 mt-1">
-                                <span className="mr-3">🛒 Prodavac: <b>{order.seller.username}</b></span>
+                                <span className="mr-3">🛒 {T('seller')}: <b>{order.seller.username}</b></span>
                                 <span>📅 {new Date(order.createdAt).toLocaleDateString()}</span>
                             </div>
                             <div className="mt-2 font-bold text-purple-600">{order.amount} π</div>
@@ -132,7 +213,7 @@ export default function UserProfilePage() {
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
                              {/* STATUS BADGE */}
                             <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>
-                                {order.status === 'completed' ? 'ISPLAĆENO' : 'NA ČEKANJU'}
+                                {order.status === 'completed' ? T('statusPaid') : T('statusPending')}
                             </span>
 
                             {/* DUGME ZA ISPLATU (Samo ako nije završeno) */}
@@ -149,20 +230,20 @@ export default function UserProfilePage() {
             </div>
         )}
 
-        {/* 2. PRODAJE (Ono što si ti zaradio) */}
+        {/* 2. PRODAJE */}
         {activeTab === "sales" && (
             <div className="space-y-4">
-                 {fullProfile.sales.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">Nemaš prodaja.</div>}
+                 {fullProfile.sales.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noSales')}</div>}
                  {fullProfile.sales.map((sale: any) => (
                     <div key={sale.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center hover:shadow-md transition">
                         <div>
                             <h3 className="font-bold text-gray-800">{sale.service.title}</h3>
-                            <p className="text-sm text-gray-500">Kupac: {sale.buyer.username}</p>
+                            <p className="text-sm text-gray-500">{T('buyer')}: {sale.buyer.username}</p>
                         </div>
                         <div className="text-right">
                             <p className="font-bold text-green-600 text-lg">+{sale.amount} π</p>
                             <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed'?'bg-green-100 text-green-600':'bg-gray-100 text-gray-500'}`}>
-                                {sale.status === 'completed' ? 'Isplaćeno' : 'Čeka se kupac'}
+                                {sale.status === 'completed' ? T('statusPaid') : T('statusWaiting')}
                             </span>
                         </div>
                     </div>
@@ -174,15 +255,13 @@ export default function UserProfilePage() {
         {activeTab === "settings" && (
             <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
-                    <Wallet className="text-purple-600 h-5 w-5"/> Tvoj Pi Novčanik za Isplatu
+                    <Wallet className="text-purple-600 h-5 w-5"/> {T('walletTitle')}
                 </h2>
                 <div className="bg-blue-50 p-4 rounded-lg text-blue-800 text-sm mb-6 border border-blue-100">
-                    <strong>Kako ovo radi?</strong><br/>
-                    Ovde unesi svoju <b>Javnu Adresu (Public Key)</b>. To je ona dugačka adresa koja počinje sa slovom <b>"G"</b>.
-                    Kada nešto prodaš, a kupac potvrdi prijem, novac automatski stiže na ovu adresu.
+                    {T('walletDesc')}
                 </div>
 
-                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Pi Wallet Adresa (G...)</label>
+                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">{T('labelWallet')}</label>
                 <div className="flex flex-col md:flex-row gap-3">
                     <Input 
                         placeholder="GD4K..." 
@@ -192,7 +271,7 @@ export default function UserProfilePage() {
                     />
                     <Button onClick={handleSaveWallet} disabled={savingWallet} className="bg-purple-600 hover:bg-purple-700 text-white">
                         {savingWallet ? <Loader2 className="animate-spin mr-2 h-4 w-4"/> : <Save className="h-4 w-4 mr-2"/>}
-                        Sačuvaj Adresu
+                        {T('btnSave')}
                     </Button>
                 </div>
             </div>
