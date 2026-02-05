@@ -16,7 +16,6 @@ model User {
   isBanned  Boolean   @default(false)
   createdAt DateTime  @default(now())
   
-  // 👇 OVO SMO DODALI (Upitnik znači da može biti prazno na početku)
   piWallet  String?  
   
   services  Service[] 
@@ -62,7 +61,8 @@ model Order {
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
 
-  review    Review?
+  // 👇 IZMENA 1: Sada je ovo niz (niz recenzija), a ne samo jedna
+  reviews   Review[]
 }
 
 model Review {
@@ -77,7 +77,8 @@ model Review {
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
 
-  orderId   String   @unique
+  // 👇 IZMENA 2: Sklonili smo @unique, sada više ljudi može oceniti isti Order
+  orderId   String   
   order     Order    @relation(fields: [orderId], references: [id])
 }
 
