@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthContext";
-import { useLanguage } from "@/components/LanguageContext"; // ✅ Uvozimo jezik
+import { useLanguage } from "@/components/LanguageContext";
 import { getUserProfile, updateWalletAddress } from "@/app/actions/getProfile";
 import CompleteOrderButton from "@/components/CompleteOrderButton";
-import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save } from "lucide-react";
+import ReviewModal from "@/components/ReviewModal"; // ✅ UVOZIMO MODAL ZA OCENE
+import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function UserProfilePage() {
   const { user: authUser, loading: authLoading } = useAuth();
-  const { language, t } = useLanguage(); // ✅ Koristimo jezik
+  const { language, t } = useLanguage(); 
   
   const [fullProfile, setFullProfile] = useState<any>(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -43,7 +44,8 @@ export default function UserProfilePage() {
         notLogged: "Not Logged In",
         loginReq: "You must login via Pi Browser to view your profile.",
         backHome: "Back to Home",
-        error: "Error loading profile data."
+        error: "Error loading profile data.",
+        rated: "Rated" // ✅ NOVO
     },
     sr: {
         earnings: "Zarada",
@@ -67,7 +69,8 @@ export default function UserProfilePage() {
         notLogged: "Nisi ulogovan",
         loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
         backHome: "Nazad na Početnu",
-        error: "Greška pri učitavanju podataka profila."
+        error: "Greška pri učitavanju podataka profila.",
+        rated: "Ocenjeno" // ✅ NOVO
     },
     zh: {
         earnings: "收入",
@@ -91,12 +94,9 @@ export default function UserProfilePage() {
         notLogged: "未登录",
         loginReq: "您必须通过 Pi 浏览器登录才能查看个人资料。",
         backHome: "返回首页",
-        error: "加载个人资料数据时出错。"
-    },
-    // Fallback za ostale jezike na Engleski
-    hi: { earnings: "Kamai", member: "Member", tabOrders: "My Purchases", tabSales: "My Sales", tabWallet: "Wallet", noPurchases: "No purchases.", noSales: "No sales.", seller: "Seller", buyer: "Buyer", date: "Date", statusPaid: "PAID", statusPending: "PENDING", statusWaiting: "Waiting", walletTitle: "Pi Payout Wallet", walletDesc: "Enter Public Key.", labelWallet: "Wallet Address", btnSave: "Save", savedMsg: "Saved!", notLogged: "Not Logged In", loginReq: "Login required.", backHome: "Back", error: "Error." },
-    tw: { earnings: "收入", member: "SkillClick 會員", tabOrders: "我的購買", tabSales: "我的銷售", tabWallet: "錢包 & 信息", noPurchases: "暫無購買記錄。", noSales: "暫無銷售記錄。", seller: "賣家", buyer: "買家", date: "日期", statusPaid: "已支付", statusPending: "待處理", statusWaiting: "等待買家", walletTitle: "您的 Pi 收款錢包", walletDesc: "輸入您的公鑰（以 'G' 開頭）。收入將自動發送到此處。", labelWallet: "Pi 錢包地址 (G...)", btnSave: "保存地址", savedMsg: "✅ 地址已保存！", notLogged: "未登錄", loginReq: "需登錄。", backHome: "返回首頁", error: "錯誤。" },
-    id: { earnings: "Pendapatan", member: "Anggota", tabOrders: "Pembelian Saya", tabSales: "Penjualan Saya", tabWallet: "Dompet", noPurchases: "Belum ada pembelian.", noSales: "Belum ada penjualan.", seller: "Penjual", buyer: "Pembeli", date: "Tanggal", statusPaid: "DIBAYAR", statusPending: "TERTUNDA", statusWaiting: "Menunggu", walletTitle: "Dompet Pi Anda", walletDesc: "Masukkan Kunci Publik.", labelWallet: "Alamat Dompet", btnSave: "Simpan", savedMsg: "Tersimpan!", notLogged: "Belum Masuk", loginReq: "Wajib login.", backHome: "Kembali", error: "Error." }
+        error: "加载个人资料数据时出错。",
+        rated: "已评价" // ✅ NOVO
+    }
   };
 
   // Helper funkcija za izbor teksta
@@ -139,6 +139,13 @@ export default function UserProfilePage() {
       } finally {
           setSavingWallet(false);
       }
+  };
+
+  // ✅ NOVA FUNKCIJA: Da li sam već ocenio ovu porudžbinu?
+  const hasReviewed = (order: any) => {
+    if (!fullProfile || !order.reviews) return false;
+    // Proveravamo da li postoji recenzija čiji je autor (userId) jednak mom ID-u
+    return order.reviews.some((r: any) => r.userId === fullProfile.id);
   };
 
   if (authLoading || (authUser && loadingData)) {
@@ -195,7 +202,7 @@ export default function UserProfilePage() {
 
         {/* SADRŽAJ */}
         
-        {/* 1. KUPOVINE */}
+        {/* 1. KUPOVINE (Ocenjujem Prodavca) */}
         {activeTab === "orders" && (
             <div className="space-y-4">
                 {fullProfile.orders.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noPurchases')}</div>}
@@ -224,27 +231,51 @@ export default function UserProfilePage() {
                                     sellerWallet={order.seller.piWallet || ""} 
                                 />
                             )}
+
+                            {/* ✅ DUGME ZA OCENU (Samo ako je plaćeno I nisam ocenio) */}
+                            {order.status === 'completed' && !hasReviewed(order) && (
+                                <ReviewModal orderId={order.id} myUsername={authUser.username} targetRole="Seller" />
+                            )}
+                            
+                            {/* ✅ ZNAČKICA: OCENJENO */}
+                            {hasReviewed(order) && (
+                                <span className="text-xs text-yellow-600 font-bold flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-md">
+                                    <CheckCircle className="w-3 h-3"/> {T('rated')}
+                                </span>
+                            )}
                         </div>
                     </div>
                 ))}
             </div>
         )}
 
-        {/* 2. PRODAJE */}
+        {/* 2. PRODAJE (Ocenjujem Kupca) */}
         {activeTab === "sales" && (
             <div className="space-y-4">
                  {fullProfile.sales.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noSales')}</div>}
                  {fullProfile.sales.map((sale: any) => (
-                    <div key={sale.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center hover:shadow-md transition">
-                        <div>
+                    <div key={sale.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:shadow-md transition">
+                        <div className="flex-1">
                             <h3 className="font-bold text-gray-800">{sale.service.title}</h3>
                             <p className="text-sm text-gray-500">{T('buyer')}: {sale.buyer.username}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex flex-col items-end gap-2">
                             <p className="font-bold text-green-600 text-lg">+{sale.amount} π</p>
                             <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed'?'bg-green-100 text-green-600':'bg-gray-100 text-gray-500'}`}>
                                 {sale.status === 'completed' ? T('statusPaid') : T('statusWaiting')}
                             </span>
+
+                            {/* ✅ DUGME ZA OCENU KUPCA */}
+                            {sale.status === 'completed' && !hasReviewed(sale) && (
+                                <ReviewModal orderId={sale.id} myUsername={authUser.username} targetRole="Buyer" />
+                            )}
+                            
+                            {/* ✅ ZNAČKICA: OCENJENO */}
+                            {hasReviewed(sale) && (
+                                <span className="text-xs text-yellow-600 font-bold flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-md">
+                                    <CheckCircle className="w-3 h-3"/> {T('rated')}
+                                </span>
+                            )}
                         </div>
                     </div>
                  ))}
