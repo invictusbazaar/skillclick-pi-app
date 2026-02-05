@@ -118,7 +118,7 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
                <PlusCircle className="w-5 h-5 text-purple-500" /> Objavi Uslugu
              </Link>
 
-             {/* 👇👇👇 OVO JE DUGME KOJE TI FALI 👇👇👇 */}
+             {/* MOJ PROFIL - Istaknuto dugme */}
              {isLoggedIn && (
                 <Link 
                     href="/profile" 
@@ -128,7 +128,6 @@ export default function Header({ sessionKeyProp }: { sessionKeyProp?: string | n
                     <User className="w-5 h-5" /> MOJ PROFIL
                 </Link>
              )}
-             {/* 👆👆👆 ----------------------------- 👆👆👆 */}
 
              {/* Admin Panel (Samo za tebe) */}
              {(isLoggedIn && (username === 'Ilija1969' || username === 'admin')) && (
