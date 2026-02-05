@@ -22,6 +22,15 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
   
+  // State za animaciju klika na jezik
+  const [langAnim, setLangAnim] = useState(false);
+
+  const handleLangClick = () => {
+    setLangAnim(true);
+    // Efekat traje 500ms (pola sekunde)
+    setTimeout(() => setLangAnim(false), 500);
+  };
+  
   const languages: Record<string, { label: string; flag: string }> = {
     en: { label: "English", flag: "🇺🇸" },
     sr: { label: "Srpski", flag: "🇷🇸" },
@@ -52,23 +61,33 @@ function NavbarContent() {
         {/* DESNA STRANA (Jezik + Meni) */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           
-          {/* 🌍 JEZIK - NOVI DIZAJN */}
+          {/* 🌍 JEZIK - SA ANIMACIJOM I LJUBIČASTIM STILOM */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-2 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-800 transition-all duration-500 active:scale-110 outline-none border border-purple-200">
+            <DropdownMenuTrigger 
+                onPointerDown={handleLangClick} // Pokreće animaciju na dodir
+                className={`flex items-center gap-1 px-3 py-2 rounded-full text-purple-900 transition-all duration-500 outline-none border border-purple-200 
+                ${langAnim ? "scale-110 bg-purple-300 ring-4 ring-purple-100 shadow-lg" : "bg-purple-100 hover:bg-purple-200"}`}
+            >
                 <span className="text-xl md:text-2xl">{currentLangObj.flag}</span> 
                 <span className="hidden md:inline font-bold text-sm ml-1">{currentLangObj.label}</span>
-                <ChevronDown className="w-3 h-3 text-purple-500" />
+                <ChevronDown className="w-3 h-3 text-purple-700" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white border-gray-100 shadow-xl z-[100]">
+            
+            {/* Padajući meni sa ljubičastim poljima */}
+            <DropdownMenuContent align="end" className="w-48 bg-purple-50 border-purple-100 shadow-xl z-[100] p-2 rounded-xl">
               {Object.entries(languages).map(([key, { label, flag }]) => (
-                <DropdownMenuItem key={key} onSelect={() => setLanguage(key)} className="cursor-pointer py-3 font-medium text-base hover:bg-purple-50">
+                <DropdownMenuItem 
+                    key={key} 
+                    onSelect={() => setLanguage(key)} 
+                    className="cursor-pointer py-3 mb-1 font-bold text-base text-purple-900 bg-purple-100/50 hover:bg-purple-200 rounded-lg border border-transparent hover:border-purple-300 transition-colors"
+                >
                   <span className="mr-3 text-xl">{flag}</span> {label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* DESKTOP LINKOVI (Samo na PC) */}
+          {/* DESKTOP LINKOVI (PC) */}
           <div className="hidden md:flex items-center gap-4">
              <Link href="/create" className="text-sm font-bold text-gray-600 hover:text-purple-600 flex items-center gap-2">
                 <PlusCircle className="w-5 h-5" /> {t('navPostService')}
@@ -113,17 +132,17 @@ function NavbarContent() {
                               <span className="text-gray-500 font-medium">Dobrodošli (Gost)</span>
                           )}
                       </div>
-                      
-                      <DropdownMenuItem onSelect={() => router.push("/")} className="py-3 font-bold text-base"><Home className="w-5 h-5 mr-3"/> {t('backHome')}</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push("/create")} className="py-3 font-bold text-base text-purple-600"><PlusCircle className="w-5 h-5 mr-3"/> {t('navPostService')}</DropdownMenuItem>
-                      
-                      {/* ✅ NOVO: MOJ PROFIL LINK U MOBILNOM MENIJU */}
+
+                      {/* 👇👇👇 MOJ PROFIL (SADA NA PRVOM MESTU) 👇👇👇 */}
                       {user && (
-                        <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base text-gray-700 hover:bg-purple-50 hover:text-purple-700">
+                        <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base bg-purple-600 text-white hover:bg-purple-700 hover:text-white rounded-lg mb-2 shadow-sm">
                             <User className="w-5 h-5 mr-3" /> Moj Profil
                         </DropdownMenuItem>
                       )}
-
+                      
+                      <DropdownMenuItem onSelect={() => router.push("/")} className="py-3 font-bold text-base text-gray-600"><Home className="w-5 h-5 mr-3"/> {t('backHome')}</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => router.push("/create")} className="py-3 font-bold text-base text-gray-600"><PlusCircle className="w-5 h-5 mr-3"/> {t('navPostService')}</DropdownMenuItem>
+                      
                       {user?.isAdmin && (
                           <DropdownMenuItem onSelect={() => router.push("/admin")} className="py-3 font-bold text-base text-red-600 bg-red-50 rounded-lg mt-2"><ShieldCheck className="w-5 h-5 mr-3"/> Admin Panel</DropdownMenuItem>
                       )}
