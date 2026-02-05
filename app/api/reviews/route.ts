@@ -1,61 +1,63 @@
 import { NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 
-const reviewsFilePath = path.join(process.cwd(), 'data', 'reviews.json');
+const prisma = new PrismaClient();
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const serviceId = searchParams.get('serviceId');
-
-    try {
-        if (!fs.existsSync(reviewsFilePath)) {
-            fs.writeFileSync(reviewsFilePath, '[]', 'utf-8'); // Kreiraj ako nema
-            return NextResponse.json([], { status: 200 });
-        }
-
-        const fileContents = fs.readFileSync(reviewsFilePath, 'utf-8');
-        const allReviews = JSON.parse(fileContents);
-        
-        if (serviceId) {
-            const filtered = allReviews.filter((r: any) => r.serviceId === parseInt(serviceId));
-            return NextResponse.json(filtered, { status: 200 });
-        }
-        return NextResponse.json(allReviews, { status: 200 });
-    } catch (e) {
-        return NextResponse.json([], { status: 200 });
-    }
-}
-
-export async function POST(request: Request) {
+// POST: Kreiranje nove recenzije
+export async function POST(req: Request) {
   try {
-    const reviewData = await request.json();
-    const { serviceId, rating, comment, author } = reviewData;
+    const body = await req.json();
+    const { orderId, rating, comment, authorUsername } = body;
 
-    let reviews = [];
-    if (fs.existsSync(reviewsFilePath)) {
-        reviews = JSON.parse(fs.readFileSync(reviewsFilePath, 'utf-8'));
+    // 1. Provera podataka
+    if (!orderId || !rating || !authorUsername) {
+      return NextResponse.json({ error: 'Nedostaju podaci.' }, { status: 400 });
     }
 
-    const newReview = {
-        id: Date.now(),
-        serviceId: parseInt(serviceId),
+    // 2. Nađi korisnika koji ostavlja ocenu
+    const author = await prisma.user.findUnique({ where: { username: authorUsername } });
+    if (!author) {
+        return NextResponse.json({ error: 'Korisnik nije pronađen.' }, { status: 404 });
+    }
+
+    // 3. Nađi porudžbinu
+    const order = await prisma.order.findUnique({ 
+        where: { id: orderId },
+        include: { reviews: true } // Učitaj postojeće recenzije da vidimo da li je već ocenio
+    });
+
+    if (!order) {
+        return NextResponse.json({ error: 'Porudžbina ne postoji.' }, { status: 404 });
+    }
+
+    // 4. Provera: Da li je ovaj korisnik VEĆ ocenio?
+    // (Baza sada dozvoljava više ocena za isti Order, ali jedna osoba sme samo jednom da oceni)
+    const alreadyReviewed = order.reviews.some((r: any) => r.userId === author.id);
+    
+    if (alreadyReviewed) {
+        return NextResponse.json({ error: 'Već ste ocenili ovu transakciju.' }, { status: 400 });
+    }
+
+    // 5. Odredi ID usluge (ako postoji)
+    if (!order.serviceId) {
+        return NextResponse.json({ error: 'Greška: Porudžbina nije vezana za uslugu.' }, { status: 400 });
+    }
+
+    // 6. Kreiraj Recenziju u BAZI
+    const newReview = await prisma.review.create({
+      data: {
         rating: parseInt(rating),
-        comment,
-        author,
-        date: new Date().toISOString().split('T')[0]
-    };
+        comment: comment || "",
+        userId: author.id,       // Ko je ocenio
+        serviceId: order.serviceId, // Koju uslugu
+        orderId: orderId         // Za koju porudžbinu
+      }
+    });
 
-    reviews.push(newReview);
+    return NextResponse.json(newReview);
 
-    // Proveri da li folder postoji
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
-
-    fs.writeFileSync(reviewsFilePath, JSON.stringify(reviews, null, 2), 'utf-8');
-
-    return NextResponse.json({ message: "Review added", review: newReview }, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ message: "Error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Review error:", error);
+    return NextResponse.json({ error: error.message || "Greška na serveru" }, { status: 500 });
   }
 }
