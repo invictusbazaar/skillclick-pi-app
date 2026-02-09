@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { 
-  Star, Wrench, Car, ShieldCheck, Layers
+  Star, Wrench, Car, ShieldCheck, Layers, User
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ function HomeContent() {
   const [filteredServices, setFilteredServices] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   
-  const { user } = useAuth(); // Koristimo auth samo za prikaz dugmića, NE za redirect
+  const { user } = useAuth(); 
   const router = useRouter();
   
   const searchParams = useSearchParams();
@@ -24,9 +24,6 @@ function HomeContent() {
 
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
-
-  // ❌ UKLONJEN JE AUTOMATSKI REDIRECT
-  // Sada možeš slobodno da gledaš početnu stranicu čak i kao admin.
 
   // Učitavanje oglasa
   useEffect(() => {
@@ -37,6 +34,7 @@ function HomeContent() {
         let data = await response.json();
         if (!Array.isArray(data)) data = [];
 
+        // Filtriranje
         if (selectedCategory) {
           const cat = selectedCategory.toLowerCase();
           data = data.filter((s: any) => s.category.toLowerCase().includes(cat));
@@ -67,12 +65,29 @@ function HomeContent() {
     return <Layers className={iconClass} />;
   };
 
+  // ✅ NOVA FUNKCIJA ZA PRIKAZ ZVEZDICA
+  const renderRating = (rating: number, count: number) => {
+    if (!count || count === 0) {
+      return (
+        <div className="flex items-center gap-1 text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full w-fit">
+           <span>🆕 Novi prodavac</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-1 text-sm font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-full w-fit border border-amber-100">
+        <Star className="w-3.5 h-3.5 fill-current" />
+        <span>{rating.toFixed(1)}</span>
+        <span className="text-xs text-gray-400 font-normal">({count})</span>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-16 md:py-32 overflow-hidden">
          <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
             
-            {/* Admin dugme na Hero sekciji - Ostavili smo ga jer je korisno */}
             {user?.isAdmin && (
               <Link href="/admin" className="mb-8 animate-bounce">
                 <Button className="bg-red-600 font-bold px-8 py-6 rounded-xl shadow-xl flex items-center gap-2 border-2 border-white">
@@ -111,13 +126,24 @@ function HomeContent() {
                             <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(gig.id)} flex items-center justify-center`}>
                                 {gig.images && gig.images.length > 0 ? ( <img src={gig.images[0]} alt={gig.title} className="w-full h-full object-cover" /> ) : ( getSmartIcon(gig) )}
                             </div>
+                            {/* ✅ CENA PREBAČENA GORE RADI BOLJEG IZGLEDA */}
+                            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold text-purple-700 shadow-sm">
+                                {gig.price} π
+                            </div>
                         </Link>
-                        <div className="p-5 flex flex-col flex-grow relative">
-                            <h3 className="text-gray-900 font-bold mb-1 text-lg line-clamp-2">
+                        <div className="p-4 flex flex-col flex-grow relative gap-2">
+                            {/* ✅ PRIKAZ ZVEZDICA IZNAD NASLOVA */}
+                            <div className="flex justify-between items-start">
+                                {renderRating(gig.sellerRating || 0, gig.reviewCount || 0)}
+                            </div>
+
+                            <h3 className="text-gray-900 font-bold text-md leading-tight line-clamp-2 hover:text-purple-600 transition-colors">
                               {typeof gig.title === 'object' ? (gig.title[lang] || gig.title['en']) : gig.title}
                             </h3>
-                            <div className="mt-auto pt-4 border-t flex items-center justify-between">
-                                <span className="text-lg font-bold text-purple-700">{gig.price} π</span>
+                            
+                            <div className="mt-auto pt-3 border-t flex items-center gap-2 text-xs text-gray-500">
+                                <User className="w-3 h-3" />
+                                <span className="truncate">{gig.seller?.username || "Prodavac"}</span>
                             </div>
                         </div>
                     </div>

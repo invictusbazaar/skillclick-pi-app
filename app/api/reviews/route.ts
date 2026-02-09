@@ -3,11 +3,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// POST: Kreiranje nove recenzije
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { orderId, rating, comment, authorUsername } = body;
+    // ✅ Dodali smo 'language' u listu varijabli koje čitamo
+    const { orderId, rating, comment, authorUsername, language } = body;
 
     // 1. Provera podataka
     if (!orderId || !rating || !authorUsername) {
@@ -23,34 +23,33 @@ export async function POST(req: Request) {
     // 3. Nađi porudžbinu
     const order = await prisma.order.findUnique({ 
         where: { id: orderId },
-        include: { reviews: true } // Učitaj postojeće recenzije da vidimo da li je već ocenio
+        include: { reviews: true } 
     });
 
     if (!order) {
         return NextResponse.json({ error: 'Porudžbina ne postoji.' }, { status: 404 });
     }
 
-    // 4. Provera: Da li je ovaj korisnik VEĆ ocenio?
-    // (Baza sada dozvoljava više ocena za isti Order, ali jedna osoba sme samo jednom da oceni)
+    // 4. Provera da li je već ocenio
     const alreadyReviewed = order.reviews.some((r: any) => r.userId === author.id);
-    
     if (alreadyReviewed) {
         return NextResponse.json({ error: 'Već ste ocenili ovu transakciju.' }, { status: 400 });
     }
 
-    // 5. Odredi ID usluge (ako postoji)
     if (!order.serviceId) {
         return NextResponse.json({ error: 'Greška: Porudžbina nije vezana za uslugu.' }, { status: 400 });
     }
 
-    // 6. Kreiraj Recenziju u BAZI
+    // 5. Kreiraj Recenziju u BAZI
     const newReview = await prisma.review.create({
       data: {
         rating: parseInt(rating),
         comment: comment || "",
-        userId: author.id,       // Ko je ocenio
-        serviceId: order.serviceId, // Koju uslugu
-        orderId: orderId         // Za koju porudžbinu
+        // ✅ Čuvamo jezik! Ako nije poslat, default je "en"
+        language: language || "en", 
+        userId: author.id,       
+        serviceId: order.serviceId, 
+        orderId: orderId         
       }
     });
 
