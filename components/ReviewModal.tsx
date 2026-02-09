@@ -19,6 +19,7 @@ export default function ReviewModal({ orderId, myUsername, targetRole }: Props) 
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   
+  // ✅ Uzimamo trenutni jezik aplikacije
   const { language } = useLanguage();
   const router = useRouter();
 
@@ -44,7 +45,8 @@ export default function ReviewModal({ orderId, myUsername, targetRole }: Props) 
                 orderId,
                 rating,
                 comment,
-                authorUsername: myUsername
+                authorUsername: myUsername,
+                language: language // ✅ Šaljemo trenutni jezik serveru (npr. 'sr')
             })
         });
 
@@ -76,8 +78,8 @@ export default function ReviewModal({ orderId, myUsername, targetRole }: Props) 
       </Button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                 
                 <div className="bg-yellow-50 p-4 border-b border-yellow-100 flex justify-between items-center">
                     <h3 className="font-bold text-yellow-800 text-lg flex items-center gap-2">
@@ -115,7 +117,7 @@ export default function ReviewModal({ orderId, myUsername, targetRole }: Props) 
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             placeholder={T('placeholder')}
-                            className="w-full pl-10 p-3 min-h-[100px] rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none resize-none bg-gray-50 font-medium text-gray-900"
+                            className="w-full pl-10 p-3 min-h-[100px] rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none resize-none bg-gray-50 font-medium"
                         />
                     </div>
 
