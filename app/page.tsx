@@ -141,9 +141,16 @@ function HomeContent() {
                               {typeof gig.title === 'object' ? (gig.title[lang] || gig.title['en']) : gig.title}
                             </h3>
                             
-                            <div className="mt-auto pt-3 border-t flex items-center gap-2 text-xs text-gray-500">
+                            <div className="mt-auto pt-3 border-t flex items-center gap-2 text-xs text-gray-500 relative z-20">
                                 <User className="w-3 h-3" />
-                                <span className="truncate">{gig.seller?.username || "Prodavac"}</span>
+                                {/* 👇 JEDINA IZMENA: Link ka profilu prodavca */}
+                                <Link 
+                                  href={`/seller/${gig.seller?.username}`} 
+                                  className="truncate hover:text-purple-600 hover:underline font-medium cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()} 
+                                >
+                                    {gig.seller?.username || "Prodavac"}
+                                </Link>
                             </div>
                         </div>
                     </div>
