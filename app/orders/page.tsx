@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingBag, Briefcase, CheckCircle, Clock, Send } from "lucide-react";
+import { ShoppingBag, Briefcase, CheckCircle, Clock } from "lucide-react";
 import ReviewModal from "@/components/ReviewModal"; 
-import StatusButton from "@/components/StatusButton"; // Ovo dugme pravimo u sledećem koraku, ne brini ako pocrveni
+import StatusButton from "@/components/StatusButton";
 
-// ⚠️ PRIVREMENO: Hardkodovan korisnik dok ne sredimo pravi login
-// Kasnije ćemo ovde staviti: const session = await getSession();
+// ⚠️ PRIVREMENO: Hardkodovan korisnik
 const CURRENT_USER_USERNAME = "Ilija1969"; 
 
 export default async function MyOrdersPage() {
@@ -16,14 +15,14 @@ export default async function MyOrdersPage() {
 
   if (!user) return <div className="p-10">Molim vas ulogujte se.</div>;
 
-  // 1. KUPOVINE (Šta čekam da mi stigne)
+  // 1. KUPOVINE
   const myPurchases = await prisma.order.findMany({
     where: { buyerId: user.id },
     include: { service: true, seller: true },
     orderBy: { createdAt: 'desc' }
   });
 
-  // 2. PRODAJE (Šta treba da odradim)
+  // 2. PRODAJE
   const mySales = await prisma.order.findMany({
     where: { sellerId: user.id },
     include: { service: true, buyer: true },
@@ -60,7 +59,6 @@ export default async function MyOrdersPage() {
                             {order.status === 'delivered' ? (
                                 <div className="flex flex-col items-end gap-2">
                                     <span className="text-xs text-green-600 font-bold">Stiglo je!</span>
-                                    {/* OVDE SE OTVARA ONAJ TVOJ REVIEW MODAL */}
                                     <ReviewModal 
                                         orderId={order.id} 
                                         myUsername={user.username}
@@ -104,7 +102,6 @@ export default async function MyOrdersPage() {
                         {/* DUGMIĆI ZA PRODAVCA */}
                         <div>
                             {order.status === 'pending' ? (
-                                // OVDE TREBA STATUS BUTTON (Poslaću ti ga ako ga nemaš)
                                 <StatusButton 
                                     orderId={order.id} 
                                     newStatus="delivered" 
