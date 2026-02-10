@@ -25,6 +25,25 @@ function HomeContent() {
   const selectedCategory = searchParams.get('category');
   const searchTerm = searchParams.get('search');
 
+  // ✅ NOVA FUNKCIJA: Prevodi naslov kategorije
+  const getCategoryTitle = () => {
+    // 1. Ako nema kategorije, vrati naslov za "Sve oglase"
+    if (!selectedCategory) return t('adsTitle');
+
+    // 2. Ako postoji pretraga, napiši šta tražimo
+    if (searchTerm) return `Rezultati za: "${searchTerm}"`;
+
+    // 3. Pretvaramo slug iz URL-a (npr. "design") u ključ za prevod (npr. "catDesign")
+    const slug = selectedCategory.toLowerCase();
+    const translationKey = 'cat' + slug.charAt(0).toUpperCase() + slug.slice(1);
+    
+    const translated = t(translationKey);
+
+    // 4. Ako prevod ne postoji (vratio nam je isti ključ), vrati original na velikim slovima
+    // Ovo sprečava da piše "catDesign" ako fali prevod
+    return translated === translationKey ? selectedCategory.toUpperCase() : translated;
+  };
+
   // Učitavanje oglasa
   useEffect(() => {
     const fetchServices = async () => {
@@ -65,7 +84,6 @@ function HomeContent() {
     return <Layers className={iconClass} />;
   };
 
-  // ✅ NOVA FUNKCIJA ZA PRIKAZ ZVEZDICA
   const renderRating = (rating: number, count: number) => {
     if (!count || count === 0) {
       return (
@@ -114,11 +132,17 @@ function HomeContent() {
       </main>
 
       <section className="container mx-auto px-4 py-16 flex-grow bg-gray-50">
-        <h2 className="text-3xl font-bold text-gray-900 mb-6 uppercase tracking-tight">
-            {selectedCategory ? selectedCategory : t('adsTitle')}
-        </h2>
+        
+        {/* ✅ OVDE JE BILA IZMENA: Sada koristimo funkciju za naslov */}
+        <div className="mb-8">
+            <h2 className="text-4xl font-black text-gray-900 mb-2 uppercase tracking-tight">
+                {getCategoryTitle()}
+            </h2>
+            <div className="h-1.5 w-20 bg-purple-600 rounded-full"></div>
+        </div>
+
         {dataLoading ? ( <div className="text-center py-10 text-gray-500">Učitavanje...</div> ) : 
-        filteredServices.length === 0 ? ( <div className="text-center py-10 text-gray-500">Nema oglasa.</div> ) : (
+        filteredServices.length === 0 ? ( <div className="text-center py-10 text-gray-500">Nema oglasa u ovoj kategoriji.</div> ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                 {filteredServices.map((gig) => (
                     <div key={gig.id} className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden flex flex-col h-full">
@@ -126,13 +150,11 @@ function HomeContent() {
                             <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(gig.id)} flex items-center justify-center`}>
                                 {gig.images && gig.images.length > 0 ? ( <img src={gig.images[0]} alt={gig.title} className="w-full h-full object-cover" /> ) : ( getSmartIcon(gig) )}
                             </div>
-                            {/* ✅ CENA PREBAČENA GORE RADI BOLJEG IZGLEDA */}
                             <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold text-purple-700 shadow-sm">
                                 {gig.price} π
                             </div>
                         </Link>
                         <div className="p-4 flex flex-col flex-grow relative gap-2">
-                            {/* ✅ PRIKAZ ZVEZDICA IZNAD NASLOVA */}
                             <div className="flex justify-between items-start">
                                 {renderRating(gig.sellerRating || 0, gig.reviewCount || 0)}
                             </div>
@@ -143,7 +165,6 @@ function HomeContent() {
                             
                             <div className="mt-auto pt-3 border-t flex items-center gap-2 text-xs text-gray-500 relative z-20">
                                 <User className="w-3 h-3" />
-                                {/* 👇 JEDINA IZMENA: Link ka profilu prodavca */}
                                 <Link 
                                   href={`/seller/${gig.seller?.username}`} 
                                   className="truncate hover:text-purple-600 hover:underline font-medium cursor-pointer"
