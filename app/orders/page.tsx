@@ -9,6 +9,7 @@ const CURRENT_USER_USERNAME = "Ilija1969";
 
 export default async function MyOrdersPage() {
   
+  // 1. Provera korisnika
   const user = await prisma.user.findUnique({
     where: { username: CURRENT_USER_USERNAME }
   });
@@ -17,25 +18,27 @@ export default async function MyOrdersPage() {
     return <div className="p-10">Molim vas ulogujte se.</div>;
   }
 
-  // 1. KUPOVINE
+  // 2. KUPOVINE (Ono što si ti platio)
   const myPurchases = await prisma.order.findMany({
     where: { buyerId: user.id },
     include: { service: true, seller: true },
     orderBy: { createdAt: 'desc' }
   });
 
-  // 2. PRODAJE
+  // 3. PRODAJE (Ono što ti prodaješ)
   const mySales = await prisma.order.findMany({
     where: { sellerId: user.id },
     include: { service: true, buyer: true },
     orderBy: { createdAt: 'desc' }
   });
 
+  // --- OVDE JE BILA GREŠKA RANIJE, SADA JE SVE ZATVORENO KAKO TREBA ---
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-12">
         
-        {/* --- DEO 1: MOJE KUPOVINE --- */}
+        {/* --- SEKCIJA 1: MOJE KUPOVINE --- */}
         <div>
             <h1 className="text-2xl font-bold mb-6 flex items-center gap-2 text-gray-800 border-b pb-2">
                 <ShoppingBag className="text-purple-600"/> Moje Kupovine
@@ -84,7 +87,7 @@ export default async function MyOrdersPage() {
             </div>
         </div>
 
-        {/* --- DEO 2: MOJE PRODAJE --- */}
+        {/* --- SEKCIJA 2: MOJI POSLOVI (PRODAJA) --- */}
         <div>
             <h1 className="text-2xl font-bold mb-6 flex items-center gap-2 text-gray-800 border-b pb-2">
                 <Briefcase className="text-blue-600"/> Moji Poslovi (Prodaja)
