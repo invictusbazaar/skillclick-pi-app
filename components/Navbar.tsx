@@ -18,9 +18,14 @@ function NavbarContent() {
   const { user } = useAuth(); 
   const { language, setLanguage, t } = useLanguage(); 
   const router = useRouter(); 
+  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  
+  // State za animacije (koji element se trenutno "pali")
   const [animatingLang, setAnimatingLang] = useState<string | null>(null);
+  const [animatingLink, setAnimatingLink] = useState<string | null>(null);
+
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
   
@@ -44,6 +49,7 @@ function NavbarContent() {
     { key: "catLifestyle", slug: "lifestyle" }
   ];
 
+  // 1. EFEKAT ZA JEZIKE
   const handleLanguageClick = (e: Event, key: string) => {
     e.preventDefault();
     setAnimatingLang(key);
@@ -51,15 +57,35 @@ function NavbarContent() {
         setLanguage(key);
         setAnimatingLang(null);
         setIsLangMenuOpen(false);
-    }, 500);
+    }, 400);
   };
+
+  // 2. EFEKAT ZA MOBILNI MENI (Isti kao za jezike)
+  const handleMobileClick = (e: Event, path: string) => {
+    e.preventDefault();
+    setAnimatingLink(path); // Palimo ljubičastu boju
+    setTimeout(() => {
+        router.push(path);
+        setAnimatingLink(null);
+        setIsMobileMenuOpen(false);
+    }, 400);
+  };
+
+  // Helper funkcija za stil mobilnog linka
+  const getMobileLinkStyle = (path: string) => `
+    cursor-pointer py-3 mb-1 font-bold text-sm rounded-xl transition-all duration-300 flex items-center
+    ${animatingLink === path 
+        ? "bg-purple-900 text-white scale-105 shadow-lg z-10" // TAMNO LJUBIČASTA KAD SE KLIKNE
+        : "text-gray-600 hover:bg-gray-100" 
+    }
+  `;
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
       <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
         
-        {/* LOGO - LEVO (IZMENJENO: JOŠ 50px LEVO) */}
-        <Link href="/" className="flex-shrink-0 ml-[-100px]"> {/* ⬅️ Promenjeno sa -50px na -100px */}
+        {/* LOGO - Pomeren ulevo */}
+        <Link href="/" className="flex-shrink-0 ml-[-100px]"> 
           <Image 
             src="/skillclick_logo.png" 
             alt="SkillClick" 
@@ -70,31 +96,33 @@ function NavbarContent() {
           />
         </Link>
 
-        {/* DESNA STRANA (Jezik + Meni) */}
+        {/* DESNA STRANA */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           
-          {/* 🌍 JEZIK */}
+          {/* 🌍 JEZIK (SMANJEN FONT) */}
           <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
-            <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-2 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95">
-                <span className="text-xl md:text-2xl">{currentLangObj.flag}</span> 
-                <span className="hidden md:inline font-bold text-sm ml-1">{currentLangObj.label}</span>
+            <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95">
+                {/* Smanjen font zastavice i teksta */}
+                <span className="text-lg md:text-xl">{currentLangObj.flag}</span> 
+                <span className="hidden md:inline font-bold text-xs ml-1">{currentLangObj.label}</span>
                 <ChevronDown className="w-3 h-3 text-purple-700" />
             </DropdownMenuTrigger>
             
-            <DropdownMenuContent align="end" className="w-52 bg-white border-purple-100 shadow-2xl z-[100] p-2 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
+            <DropdownMenuContent align="end" className="w-48 bg-white border-purple-100 shadow-2xl z-[100] p-2 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
               {Object.entries(languages).map(([key, { label, flag }]) => (
                 <DropdownMenuItem 
                     key={key} 
                     onSelect={(e) => handleLanguageClick(e, key)}
-                    className={`cursor-pointer py-3 mb-1 font-bold text-base rounded-xl border transition-all duration-300 flex items-center ${animatingLang === key ? "bg-purple-900 text-white scale-110 shadow-lg border-purple-900 z-10" : "text-gray-700 bg-purple-50/50 hover:bg-purple-100 hover:text-purple-900 border-transparent hover:border-purple-200"}`}
+                    // Smanjen font (text-sm) i tamno ljubičasta boja (bg-purple-900)
+                    className={`cursor-pointer py-2 mb-1 font-bold text-sm rounded-xl border transition-all duration-300 flex items-center ${animatingLang === key ? "bg-purple-900 text-white scale-105 shadow-lg border-purple-900 z-10" : "text-gray-700 bg-purple-50/50 hover:bg-purple-100 hover:text-purple-900 border-transparent hover:border-purple-200"}`}
                 >
-                  <span className="mr-3 text-2xl">{flag}</span> {label}
+                  <span className="mr-3 text-xl">{flag}</span> {label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* DESKTOP LINKOVI (PC) */}
+          {/* DESKTOP LINKOVI */}
           <div className="hidden md:flex items-center gap-4">
              <Link href="/create" className="text-sm font-bold text-gray-600 hover:text-purple-600 flex items-center gap-2">
                 <PlusCircle className="w-5 h-5" /> {t('navPostService')}
@@ -119,38 +147,69 @@ function NavbarContent() {
              )}
           </div>
 
-          {/* MOBILNI MENI (Hamburger) */}
+          {/* MOBILNI MENI - HAMBURGER (SA EFEKTIMA I SMANJENIM FONTOM) */}
           <div className="flex md:hidden">
               <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                  <DropdownMenuTrigger className="p-2 transition-transform active:scale-95"> <Menu className="w-8 h-8 text-gray-800" /> </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl p-2 mr-2">
+                  <DropdownMenuTrigger className="p-2 transition-transform active:scale-95"> <Menu className="w-7 h-7 text-gray-800" /> </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60 bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl p-2 mr-2">
+                      
+                      {/* Zaglavlje menija */}
                       <div className="p-3 border-b border-gray-100 mb-2 bg-gray-50 rounded-lg">
                           {user ? (
                               <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold">
+                                  <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-sm">
                                       {user.username ? user.username[0].toUpperCase() : "U"}
                                   </div>
                                   <div className="flex flex-col">
-                                    <span className="font-bold text-gray-800 text-sm">Zdravo,</span>
-                                    <span className="font-bold text-purple-600">{user.username}</span>
+                                    <span className="font-bold text-gray-800 text-xs">Zdravo,</span>
+                                    <span className="font-bold text-purple-600 text-sm">{user.username}</span>
                                   </div>
                               </div>
                           ) : (
-                              <span className="text-gray-500 font-medium">Dobrodošli (Gost)</span>
+                              <span className="text-gray-500 font-bold text-sm">Dobrodošli (Gost)</span>
                           )}
                       </div>
+
+                      {/* STAVKE MENIJA SA EFEKTOM */}
                       {user && (
-                        <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base bg-purple-600 text-white hover:bg-purple-700 hover:text-white focus:bg-purple-700 focus:text-white rounded-lg mb-2 shadow-sm">
-                            <User className="w-5 h-5 mr-3" /> {t('navProfile')}
+                        <DropdownMenuItem 
+                            onSelect={(e) => handleMobileClick(e, "/profile")} 
+                            className={getMobileLinkStyle("/profile")}
+                        >
+                            <User className="w-4 h-4 mr-3" /> {t('navProfile')}
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem onSelect={() => router.push("/")} className="py-3 font-bold text-base text-gray-600"><Home className="w-5 h-5 mr-3"/> {t('backHome')}</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push("/create")} className="py-3 font-bold text-base text-gray-600"><PlusCircle className="w-5 h-5 mr-3"/> {t('navPostService')}</DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                            onSelect={(e) => handleMobileClick(e, "/")} 
+                            className={getMobileLinkStyle("/")}
+                      >
+                            <Home className="w-4 h-4 mr-3"/> {t('backHome')}
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                            onSelect={(e) => handleMobileClick(e, "/create")} 
+                            className={getMobileLinkStyle("/create")}
+                      >
+                            <PlusCircle className="w-4 h-4 mr-3"/> {t('navPostService')}
+                      </DropdownMenuItem>
+                      
                       {user?.isAdmin && (
-                          <DropdownMenuItem onSelect={() => router.push("/admin")} className="py-3 font-bold text-base text-red-600 bg-red-50 rounded-lg mt-2"><ShieldCheck className="w-5 h-5 mr-3"/> Admin Panel</DropdownMenuItem>
+                          <DropdownMenuItem 
+                                onSelect={(e) => handleMobileClick(e, "/admin")} 
+                                className={`py-3 mb-1 font-bold text-sm rounded-xl flex items-center ${animatingLink === "/admin" ? "bg-red-700 text-white scale-105" : "text-red-600 bg-red-50 hover:bg-red-100"}`}
+                          >
+                                <ShieldCheck className="w-4 h-4 mr-3"/> Admin Panel
+                          </DropdownMenuItem>
                       )}
+                      
                       {!user && (
-                         <DropdownMenuItem onSelect={() => router.push("/auth/login")} className="py-3 font-bold text-base justify-center bg-gray-900 text-white rounded-lg mt-2">Login</DropdownMenuItem>
+                         <DropdownMenuItem 
+                            onSelect={(e) => handleMobileClick(e, "/auth/login")} 
+                            className={`justify-center py-3 mb-1 font-bold text-sm rounded-xl flex items-center mt-2 ${animatingLink === "/auth/login" ? "bg-black text-white scale-105" : "bg-gray-900 text-white hover:bg-gray-800"}`}
+                         >
+                            Login
+                         </DropdownMenuItem>
                       )}
                   </DropdownMenuContent>
               </DropdownMenu>
@@ -159,7 +218,7 @@ function NavbarContent() {
         </div>
       </div>
       
-      {/* KATEGORIJE */}
+      {/* KATEGORIJE - BEZ PROMENA */}
       <div className="block border-t border-gray-100 bg-white/95 backdrop-blur-md shadow-sm">
          <div className="container mx-auto px-4">
             <div className="flex items-center gap-6 overflow-x-auto py-3 scrollbar-hide no-scrollbar">
