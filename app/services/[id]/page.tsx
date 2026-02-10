@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageContext';
-import { ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, MapPin } from 'lucide-react';
+import { ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, ExternalLink, UserCircle } from 'lucide-react'; // Dodate ikonice
+import Link from 'next/link';
 import BuyButton from '@/components/BuyButton'; 
 import ChatSystem from '@/components/ChatSystem'; 
 
-// Definicija za TypeScript
 declare global { interface Window { Pi: any; } }
 
 export default function ServiceDetail() {
@@ -65,10 +65,10 @@ export default function ServiceDetail() {
       </div>
 
       <div className="container mx-auto px-4 py-6 md:py-8">
-        {/* ✅ NOVI GRID RASPORED */}
+        
         <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
-          {/* 1. SLIKA (Prva na mobilnom, Levo na Desktopu) */}
+          {/* 1. SLIKA */}
           <div className="lg:col-span-8 flex flex-col gap-6">
             <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-xl bg-white border border-gray-100 group">
                 {mainImage ? (
@@ -79,27 +79,36 @@ export default function ServiceDetail() {
             </div>
           </div>
 
-          {/* 2. SIDEBAR: CENA, DUGME, CHAT (Druga na mobilnom, Desno na Desktopu) */}
-          {/* row-span-2 omogućava da na desktopu ovo stoji sa strane dok opis ide ispod slike */}
+          {/* 2. SIDEBAR */}
           <div className="lg:col-span-4 lg:row-span-2 flex flex-col gap-6 lg:sticky lg:top-24">
             
-            {/* KARTICA ZA KUPOVINU */}
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-purple-900/5">
-                <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
-                    <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black text-xl">
-                        {sellerUsername[0]?.toUpperCase() || 'U'}
+                
+                {/* ✅ IZMENA: UOČLJIV KARTICA-LINK KA PROFILU */}
+                <Link 
+                  href={`/seller/${sellerUsername}`} 
+                  className="flex items-center gap-3 mb-5 p-3 bg-purple-50 border-2 border-purple-100 hover:border-purple-400 hover:bg-purple-100 rounded-2xl transition-all cursor-pointer group shadow-sm"
+                >
+                    {/* Avatar sa ikonicom */}
+                    <div className="w-12 h-12 bg-white text-purple-600 rounded-xl flex items-center justify-center font-black text-xl shadow-sm border border-purple-100 group-hover:scale-110 transition-transform">
+                        {sellerUsername[0]?.toUpperCase() || <UserCircle />}
                     </div>
-                    <div>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Seller</p>
-                        <p className="font-bold text-gray-900 text-base">@{sellerUsername || 'User'}</p>
+                    
+                    {/* Tekst */}
+                    <div className="flex-grow">
+                        <p className="text-[10px] text-purple-500 font-bold uppercase tracking-wider mb-0.5">Prodavac</p>
+                        <p className="font-bold text-gray-900 text-lg group-hover:text-purple-700 transition-colors">@{sellerUsername || 'User'}</p>
                     </div>
-                </div>
+
+                    {/* Ikonica strelice desno */}
+                    <ExternalLink className="w-5 h-5 text-purple-300 group-hover:text-purple-600" />
+                </Link>
 
                 <h1 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{currentTitle}</h1>
                 
                 <div className="flex items-end justify-between mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                     <div>
-                        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Price</p>
+                        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Cena</p>
                         <p className="text-3xl font-black text-purple-600 tracking-tighter">{service.price} π</p>
                     </div>
                     <div className="text-right">
@@ -109,7 +118,6 @@ export default function ServiceDetail() {
                     </div>
                 </div>
 
-                {/* DUGME KOJE MENJA JEZIK */}
                 <BuyButton 
                     amount={parseFloat(service.price)}
                     serviceId={service.id}
@@ -118,11 +126,10 @@ export default function ServiceDetail() {
                 />
             </div>
 
-            {/* CHAT SISTEM (Sada odmah ispod dugmeta za kupovinu) */}
             <ChatSystem sellerUsername={sellerUsername} />
           </div>
 
-          {/* 3. OPIS (Treći na mobilnom, Levo ispod slike na Desktopu) */}
+          {/* 3. OPIS */}
           <div className="lg:col-span-8">
             <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
                 <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
