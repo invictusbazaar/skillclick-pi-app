@@ -4,7 +4,7 @@ import { ShoppingBag, Briefcase, CheckCircle, Clock } from "lucide-react";
 import ReviewModal from "@/components/ReviewModal"; 
 import StatusButton from "@/components/StatusButton";
 
-// ⚠️ PRIVREMENO: Hardkodovan korisnik
+// Tvoj username
 const CURRENT_USER_USERNAME = "Ilija1969"; 
 
 export default async function MyOrdersPage() {
@@ -13,7 +13,9 @@ export default async function MyOrdersPage() {
     where: { username: CURRENT_USER_USERNAME }
   });
 
-  if (!user) return <div className="p-10">Molim vas ulogujte se.</div>;
+  if (!user) {
+    return <div className="p-10">Molim vas ulogujte se.</div>;
+  }
 
   // 1. KUPOVINE
   const myPurchases = await prisma.order.findMany({
@@ -40,43 +42,45 @@ export default async function MyOrdersPage() {
             </h1>
             
             <div className="space-y-4">
-                {myPurchases.length === 0 && <p className="text-gray-400">Nema kupovina.</p>}
-                
-                {myPurchases.map((order) => (
-                    <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="flex-1">
-                            <h3 className="font-bold text-lg text-gray-900">{order.service.title}</h3>
-                            <p className="text-sm text-gray-500">Prodavac: @{order.seller.username}</p>
-                            <div className="mt-2">
-                                {order.status === 'pending' && <Badge className="bg-yellow-100 text-yellow-700">U izradi</Badge>}
-                                {order.status === 'delivered' && <Badge className="bg-blue-100 text-blue-700">Isporučeno - Potvrdi prijem</Badge>}
-                                {order.status === 'completed' && <Badge className="bg-green-100 text-green-700">Završeno</Badge>}
+                {myPurchases.length === 0 ? (
+                    <p className="text-gray-400">Nema kupovina.</p>
+                ) : (
+                    myPurchases.map((order) => (
+                        <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg text-gray-900">{order.service.title}</h3>
+                                <p className="text-sm text-gray-500">Prodavac: @{order.seller.username}</p>
+                                <div className="mt-2">
+                                    {order.status === 'pending' && <Badge className="bg-yellow-100 text-yellow-700">U izradi</Badge>}
+                                    {order.status === 'delivered' && <Badge className="bg-blue-100 text-blue-700">Isporučeno - Potvrdi prijem</Badge>}
+                                    {order.status === 'completed' && <Badge className="bg-green-100 text-green-700">Završeno</Badge>}
+                                </div>
+                            </div>
+
+                            {/* DUGMIĆI ZA KUPCA */}
+                            <div>
+                                {order.status === 'delivered' ? (
+                                    <div className="flex flex-col items-end gap-2">
+                                        <span className="text-xs text-green-600 font-bold">Stiglo je!</span>
+                                        <ReviewModal 
+                                            orderId={order.id} 
+                                            myUsername={user.username}
+                                            targetRole="Seller" 
+                                        />
+                                    </div>
+                                ) : order.status === 'completed' ? (
+                                    <div className="flex items-center text-green-600 font-bold">
+                                        <CheckCircle className="w-5 h-5 mr-1"/> Ocenjeno
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center text-gray-400 text-sm">
+                                        <Clock className="w-4 h-4 mr-1"/> Čeka se isporuka...
+                                    </div>
+                                )}
                             </div>
                         </div>
-
-                        {/* DUGMIĆI ZA KUPCA */}
-                        <div>
-                            {order.status === 'delivered' ? (
-                                <div className="flex flex-col items-end gap-2">
-                                    <span className="text-xs text-green-600 font-bold">Stiglo je!</span>
-                                    <ReviewModal 
-                                        orderId={order.id} 
-                                        myUsername={user.username}
-                                        targetRole="Seller" 
-                                    />
-                                </div>
-                            ) : order.status === 'completed' ? (
-                                <div className="flex items-center text-green-600 font-bold">
-                                    <CheckCircle className="w-5 h-5 mr-1"/> Ocenjeno
-                                </div>
-                            ) : (
-                                <div className="flex items-center text-gray-400 text-sm">
-                                    <Clock className="w-4 h-4 mr-1"/> Čeka se isporuka...
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
 
@@ -87,38 +91,40 @@ export default async function MyOrdersPage() {
             </h1>
 
             <div className="space-y-4">
-                {mySales.length === 0 && <p className="text-gray-400">Nemaš aktivnih poslova.</p>}
+                {mySales.length === 0 ? (
+                    <p className="text-gray-400">Nemaš aktivnih poslova.</p>
+                ) : (
+                    mySales.map((order) => (
+                        <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-blue-100 flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                            
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg text-gray-900">{order.service.title}</h3>
+                                <p className="text-sm text-gray-500">Kupac: @{order.buyer.username}</p>
+                                <p className="font-bold text-green-600 mt-1">Zarada: {order.amount} π</p>
+                            </div>
 
-                {mySales.map((order) => (
-                    <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-blue-100 flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                        
-                        <div className="flex-1">
-                            <h3 className="font-bold text-lg text-gray-900">{order.service.title}</h3>
-                            <p className="text-sm text-gray-500">Kupac: @{order.buyer.username}</p>
-                            <p className="font-bold text-green-600 mt-1">Zarada: {order.amount} π</p>
+                            {/* DUGMIĆI ZA PRODAVCA */}
+                            <div>
+                                {order.status === 'pending' ? (
+                                    <StatusButton 
+                                        orderId={order.id} 
+                                        newStatus="delivered" 
+                                        label="Označi kao Isporučeno" 
+                                    />
+                                ) : order.status === 'delivered' ? (
+                                    <span className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">
+                                        Čeka se potvrda kupca
+                                    </span>
+                                ) : (
+                                    <div className="flex items-center text-green-600 font-bold">
+                                        <CheckCircle className="w-5 h-5 mr-1"/> Novac legao
+                                    </div>
+                                )}
+                            </div>
                         </div>
-
-                        {/* DUGMIĆI ZA PRODAVCA */}
-                        <div>
-                            {order.status === 'pending' ? (
-                                <StatusButton 
-                                    orderId={order.id} 
-                                    newStatus="delivered" 
-                                    label="Označi kao Isporučeno" 
-                                />
-                            ) : order.status === 'delivered' ? (
-                                <span className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-1 rounded-full">
-                                    Čeka se potvrda kupca
-                                </span>
-                            ) : (
-                                <div className="flex items-center text-green-600 font-bold">
-                                    <CheckCircle className="w-5 h-5 mr-1"/> Novac legao
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
 
       </div>
