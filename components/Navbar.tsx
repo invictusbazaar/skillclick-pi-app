@@ -18,14 +18,9 @@ function NavbarContent() {
   const { user } = useAuth(); 
   const { language, setLanguage, t } = useLanguage(); 
   const router = useRouter(); 
-  
-  // State za otvaranje menija
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
-  
-  // State za vizuelni efekat izbora jezika
   const [animatingLang, setAnimatingLang] = useState<string | null>(null);
-
   const searchParams = useSearchParams();
   const activeCategory = searchParams.get('category');
   
@@ -49,16 +44,13 @@ function NavbarContent() {
     { key: "catLifestyle", slug: "lifestyle" }
   ];
 
-  // Funkcija koja upravlja efektom klika na jezik
   const handleLanguageClick = (e: Event, key: string) => {
-    e.preventDefault(); // Sprečavamo da se meni odmah zatvori
-    setAnimatingLang(key); // Palimo efekat (ljubičasto + uvećanje)
-
-    // Čekamo pola sekunde (500ms) da se efekat vidi
+    e.preventDefault();
+    setAnimatingLang(key);
     setTimeout(() => {
-        setLanguage(key);      // Menjamo jezik
-        setAnimatingLang(null); // Gasimo efekat
-        setIsLangMenuOpen(false); // Zatvaramo meni
+        setLanguage(key);
+        setAnimatingLang(null);
+        setIsLangMenuOpen(false);
     }, 500);
   };
 
@@ -66,14 +58,14 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
       <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
         
-        {/* LOGO - LEVO */}
-        <Link href="/" className="flex-shrink-0"> 
+        {/* LOGO - LEVO (IZMENJENO: JOŠ 50px LEVO) */}
+        <Link href="/" className="flex-shrink-0 ml-[-100px]"> {/* ⬅️ Promenjeno sa -50px na -100px */}
           <Image 
             src="/skillclick_logo.png" 
             alt="SkillClick" 
-            width={220} 
-            height={60} 
-            className="w-[160px] md:w-[200px] h-auto object-contain" 
+            width={440} 
+            height={120} 
+            className="w-[320px] md:w-[400px] h-auto object-contain" 
             priority 
           />
         </Link>
@@ -81,11 +73,9 @@ function NavbarContent() {
         {/* DESNA STRANA (Jezik + Meni) */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           
-          {/* 🌍 JEZIK - SA EFEKTIMA */}
+          {/* 🌍 JEZIK */}
           <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
-            <DropdownMenuTrigger 
-                className="flex items-center gap-1 px-3 py-2 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95"
-            >
+            <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-2 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95">
                 <span className="text-xl md:text-2xl">{currentLangObj.flag}</span> 
                 <span className="hidden md:inline font-bold text-sm ml-1">{currentLangObj.label}</span>
                 <ChevronDown className="w-3 h-3 text-purple-700" />
@@ -96,13 +86,7 @@ function NavbarContent() {
                 <DropdownMenuItem 
                     key={key} 
                     onSelect={(e) => handleLanguageClick(e, key)}
-                    className={`
-                        cursor-pointer py-3 mb-1 font-bold text-base rounded-xl border transition-all duration-300 flex items-center
-                        ${animatingLang === key 
-                            ? "bg-purple-900 text-white scale-110 shadow-lg border-purple-900 z-10" // EFEKAT KAD SE KLIKNE
-                            : "text-gray-700 bg-purple-50/50 hover:bg-purple-100 hover:text-purple-900 border-transparent hover:border-purple-200" // OBIČNO STANJE
-                        }
-                    `}
+                    className={`cursor-pointer py-3 mb-1 font-bold text-base rounded-xl border transition-all duration-300 flex items-center ${animatingLang === key ? "bg-purple-900 text-white scale-110 shadow-lg border-purple-900 z-10" : "text-gray-700 bg-purple-50/50 hover:bg-purple-100 hover:text-purple-900 border-transparent hover:border-purple-200"}`}
                 >
                   <span className="mr-3 text-2xl">{flag}</span> {label}
                 </DropdownMenuItem>
@@ -155,21 +139,16 @@ function NavbarContent() {
                               <span className="text-gray-500 font-medium">Dobrodošli (Gost)</span>
                           )}
                       </div>
-
-                      {/* ✅ POPRAVLJENO: Sada koristi t('navProfile') za ispravan prevod na SVE jezike */}
                       {user && (
                         <DropdownMenuItem onSelect={() => router.push("/profile")} className="py-3 font-bold text-base bg-purple-600 text-white hover:bg-purple-700 hover:text-white focus:bg-purple-700 focus:text-white rounded-lg mb-2 shadow-sm">
                             <User className="w-5 h-5 mr-3" /> {t('navProfile')}
                         </DropdownMenuItem>
                       )}
-                      
                       <DropdownMenuItem onSelect={() => router.push("/")} className="py-3 font-bold text-base text-gray-600"><Home className="w-5 h-5 mr-3"/> {t('backHome')}</DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => router.push("/create")} className="py-3 font-bold text-base text-gray-600"><PlusCircle className="w-5 h-5 mr-3"/> {t('navPostService')}</DropdownMenuItem>
-                      
                       {user?.isAdmin && (
                           <DropdownMenuItem onSelect={() => router.push("/admin")} className="py-3 font-bold text-base text-red-600 bg-red-50 rounded-lg mt-2"><ShieldCheck className="w-5 h-5 mr-3"/> Admin Panel</DropdownMenuItem>
                       )}
-                      
                       {!user && (
                          <DropdownMenuItem onSelect={() => router.push("/auth/login")} className="py-3 font-bold text-base justify-center bg-gray-900 text-white rounded-lg mt-2">Login</DropdownMenuItem>
                       )}
