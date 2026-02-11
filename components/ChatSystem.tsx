@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageCircle, Loader2, User } from 'lucide-react';
+import { Send, MessageCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthContext';
 import { useLanguage } from '@/components/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -13,13 +13,14 @@ interface Props {
 
 export default function ChatSystem({ sellerUsername }: Props) {
   const { user } = useAuth();
-  const { language } = useLanguage();
+  const { language } = useLanguage(); // Koristimo 'language' iz context-a
   
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // ✅ PROMENA: Ref sada gađa kontejner, a ne dno
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // --- PREVODI ---
   const txt: any = {
@@ -30,9 +31,13 @@ export default function ChatSystem({ sellerUsername }: Props) {
     tw: { title: "聯繫賣家", placeholder: "輸入消息...", send: "發送", login: "登錄聊天", empty: "暫無消息。開始對話！" },
     id: { title: "Hubungi Penjual", placeholder: "Ketik pesan...", send: "Kirim", login: "Masuk untuk mengobrol", empty: "Belum ada pesan." }
   };
-  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
+  
+  // Siguran pristup prevodu
+  const T = (key: string) => {
+    return txt[language]?.[key] || txt['en'][key] || key;
+  };
 
-  // Automatsko osvežavanje poruka (svake 3 sekunde)
+  // Automatsko osvežavanje poruka
   useEffect(() => {
     if (!user || !sellerUsername) return;
     
@@ -47,21 +52,24 @@ export default function ChatSystem({ sellerUsername }: Props) {
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000); // Polling interval
+    const interval = setInterval(fetchMessages, 3000); 
     return () => clearInterval(interval);
   }, [user, sellerUsername]);
 
-  // Skroluj na dno kad stigne nova poruka
+  // ✅ POPRAVKA SKAKANJA STRANICE:
+  // Umesto scrollIntoView (koji pomera ceo ekran), koristimo scrollTop kontejnera
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+        const { scrollHeight, clientHeight } = chatContainerRef.current;
+        chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
+    }
   }, [messages]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user) return;
     setSending(true);
 
-    // Animacija čekanja od 500ms
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 500)); // Mala pauza za efekat
 
     try {
       await fetch('/api/chat', {
@@ -88,37 +96,40 @@ export default function ChatSystem({ sellerUsername }: Props) {
 
   if (!user) {
     return (
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl text-center mt-6">
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center mt-6">
             <MessageCircle className="w-10 h-10 text-gray-300 mx-auto mb-2"/>
-            <p className="text-gray-500 font-medium">{T('login')}</p>
+            <p className="text-gray-500 font-medium text-sm">{T('login')}</p>
         </div>
     );
   }
 
-  // Ako sam ja prodavac, neću sam sebi da pišem (osim ako ne želiš testiranje)
+  // Ako sam ja prodavac, ne prikazuj chat sam sa sobom
   if (user.username === sellerUsername) return null;
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-purple-900/5 mt-6 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-purple-100 shadow-lg relative overflow-hidden flex flex-col h-full max-h-[500px]">
         {/* Header Chata */}
-        <div className="bg-purple-50 p-4 border-b border-purple-100 flex items-center gap-3">
-            <div className="bg-white p-2 rounded-full shadow-sm">
-                <MessageCircle className="w-5 h-5 text-purple-600"/>
+        <div className="bg-purple-50 p-3 border-b border-purple-100 flex items-center gap-3">
+            <div className="bg-white p-1.5 rounded-full shadow-sm">
+                <MessageCircle className="w-4 h-4 text-purple-600"/>
             </div>
-            <h3 className="font-bold text-gray-800">{T('title')}</h3>
+            <h3 className="font-bold text-gray-800 text-sm">{T('title')}</h3>
         </div>
 
-        {/* Lista Poruka */}
-        <div className="h-64 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+        {/* Lista Poruka - Ovde primenjujemo ref */}
+        <div 
+            ref={chatContainerRef} 
+            className="flex-grow overflow-y-auto p-4 space-y-3 bg-gray-50 h-64 scrollbar-thin scrollbar-thumb-purple-200"
+        >
             {messages.length === 0 && (
-                <div className="text-center text-gray-400 text-sm mt-10 italic">{T('empty')}</div>
+                <div className="text-center text-gray-400 text-xs mt-10 italic">{T('empty')}</div>
             )}
-            {messages.map((msg) => {
+            {messages.map((msg, index) => {
                 const isMe = msg.sender.username === user.username;
                 return (
-                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <div className={`
-                            max-w-[80%] p-3 rounded-2xl text-sm font-medium shadow-sm
+                            max-w-[85%] px-3 py-2 rounded-xl text-xs font-medium shadow-sm leading-relaxed
                             ${isMe ? 'bg-purple-600 text-white rounded-br-none' : 'bg-white text-gray-700 border border-gray-200 rounded-bl-none'}
                         `}>
                             {msg.content}
@@ -126,7 +137,6 @@ export default function ChatSystem({ sellerUsername }: Props) {
                     </div>
                 );
             })}
-            <div ref={scrollRef} />
         </div>
 
         {/* Unos */}
@@ -135,15 +145,15 @@ export default function ChatSystem({ sellerUsername }: Props) {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder={T('placeholder')}
-                className="border-gray-200 focus:ring-purple-500 rounded-xl"
+                className="border-gray-200 focus:ring-purple-500 rounded-xl text-sm h-10"
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             />
             <Button 
                 onClick={handleSend} 
                 disabled={sending}
                 className={`
-                    rounded-xl font-bold transition-all duration-300
-                    ${sending ? "bg-purple-800 scale-95" : "bg-purple-600 hover:bg-purple-700 hover:scale-105"}
+                    rounded-xl h-10 w-10 p-0 flex items-center justify-center transition-all duration-300
+                    ${sending ? "bg-purple-800" : "bg-purple-600 hover:bg-purple-700"}
                 `}
             >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4"/>}
