@@ -5,13 +5,16 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Star, MapPin, Calendar, MessageCircle, Share2, Layers, ShieldCheck, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-// ❌ Obrisali smo import lažnih podataka (SERVICES_DATA)
+import { useLanguage } from "@/components/LanguageContext" // ✅ UBACENO
 
 export default function SellerProfilePage() {
   const params = useParams()
   const router = useRouter()
-  // Dekodiramo username iz URL-a (npr. "Dragana%20S" postaje "Dragana S")
-  const username = decodeURIComponent(params?.id as string)
+  // Dekodiramo username iz URL-a
+  const username = decodeURIComponent(params?.username as string || params?.id as string)
+  
+  // ✅ UČITAVAMO PREVODE
+  const { t } = useLanguage();
 
   const [sellerServices, setSellerServices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,24 +28,28 @@ export default function SellerProfilePage() {
     }
   }, [username])
 
-  // ✅ NOVA FUNKCIJA ZA DOHVATANJE PRAVIH PODATAKA
   const fetchRealData = async () => {
     try {
-        const res = await fetch('/api/services'); // Koristimo tvoj API
+        const res = await fetch('/api/services'); 
         const data = await res.json();
         
         if (Array.isArray(data)) {
             // Filtriramo oglase SAMO za ovog prodavca
-            const myServices = data.filter((s: any) => s.seller?.username === username);
+            const myServices = data.filter((s: any) => 
+                s.seller?.username === username || s.author?.username === username
+            );
             setSellerServices(myServices);
 
-            // Ako ima oglasa, izvuci statistiku iz prvog (jer backend šalje iste globale za sve)
+            // Statistika
             if (myServices.length > 0) {
+                const s = myServices[0];
                 setSellerStats({
-                    rating: myServices[0].sellerRating || 0,
-                    reviews: myServices[0].reviewCount || 0,
-                    joined: new Date(myServices[0].seller?.createdAt).toLocaleDateString() || "Nedavno"
+                    rating: s.sellerRating || 0,
+                    reviews: s.reviewCount || 0,
+                    joined: new Date(s.seller?.createdAt || s.author?.createdAt || Date.now()).toLocaleDateString()
                 });
+            } else {
+                setSellerStats({ rating: 0, reviews: 0, joined: new Date().toLocaleDateString() })
             }
         }
     } catch (error) {
@@ -53,7 +60,7 @@ export default function SellerProfilePage() {
   };
 
   const getRandomGradient = (id: string) => {
-    // Jednostavan hash stringa da uvek dobijemo istu boju za isti ID
+    if (!id) return "from-purple-500 to-indigo-600";
     const num = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const gradients = [
       "from-fuchsia-500 to-pink-600",
@@ -75,7 +82,7 @@ export default function SellerProfilePage() {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="container mx-auto px-4 py-3">
              <Button variant="ghost" onClick={() => router.back()} className={`text-gray-600 hover:text-purple-600 -ml-2 gap-2 ${clickEffect}`}>
-                <ArrowLeft className="w-5 h-5" /> Nazad
+                <ArrowLeft className="w-5 h-5" /> {t('back')} {/* ✅ PREVEDENO */}
              </Button>
         </div>
       </div>
@@ -89,7 +96,6 @@ export default function SellerProfilePage() {
             <div className="relative flex flex-col md:flex-row items-start md:items-end gap-6 pt-10">
                 
                 <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center text-3xl md:text-5xl font-bold text-purple-600 z-10 overflow-hidden">
-                     {/* Ovde možemo ubaciti pravu sliku ako je user ima, za sad inicijal */}
                     {username ? username[0].toUpperCase() : <User />}
                 </div>
 
@@ -100,15 +106,15 @@ export default function SellerProfilePage() {
                                 @{username} 
                                 <ShieldCheck className="w-5 h-5 text-blue-500" />
                             </h1>
-                            <p className="text-gray-500 mt-1">SkillClick Član</p>
+                            <p className="text-gray-500 mt-1">{t('verifiedSeller')}</p> {/* ✅ PREVEDENO */}
                         </div>
                         
                         <div className="flex gap-3">
                             <Button variant="outline" className={`gap-2 rounded-full ${clickEffect}`}>
-                                <Share2 className="w-4 h-4" /> Deli
+                                <Share2 className="w-4 h-4" /> Share
                             </Button>
                             <Button className={`gap-2 rounded-full bg-purple-600 hover:bg-purple-700 ${clickEffect}`}>
-                                <MessageCircle className="w-4 h-4" /> Kontaktiraj
+                                <MessageCircle className="w-4 h-4" /> {t('contact')} {/* ✅ PREVEDENO */}
                             </Button>
                         </div>
                     </div>
@@ -116,18 +122,17 @@ export default function SellerProfilePage() {
                     <div className="flex flex-wrap gap-4 md:gap-8 mt-6 text-sm text-gray-600 border-t border-gray-100 pt-4">
                         <div className="flex items-center gap-1.5">
                             <MapPin className="w-4 h-4 text-gray-400" />
-                            <span>Novi Sad, Serbia</span> 
+                            <span>Global</span> {/* Promenjeno iz "Novi Sad" u "Global" da ne zbunjuje */}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Calendar className="w-4 h-4 text-gray-400" />
-                            {/* ✅ Prikazujemo pravi datum učlanjenja */}
-                            <span>Član od {sellerStats.joined}</span>
+                            {/* ✅ PREVEDENO */}
+                            <span>{t('memberSince')} {sellerStats.joined}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                            {/* ✅ Prikazujemo pravu ocenu iz baze */}
                             <span className="font-bold text-gray-900">{sellerStats.rating.toFixed(1)}</span>
-                            <span>({sellerStats.reviews} recenzija)</span>
+                            <span>({sellerStats.reviews} {t('reviewsCountLabel')})</span>
                         </div>
                     </div>
                 </div>
@@ -136,7 +141,7 @@ export default function SellerProfilePage() {
 
         {/* --- LISTA OGLASA --- */}
         <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            Aktivni Oglasi korisnika <span className="text-purple-600">@{username}</span>
+            {t('sellerGigs')} <span className="text-purple-600">@{username}</span> {/* ✅ PREVEDENO */}
         </h2>
 
         {sellerServices.length === 0 ? (
@@ -150,7 +155,6 @@ export default function SellerProfilePage() {
                     <div key={gig.id} className={`group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col cursor-pointer ${clickEffect}`}>
                         <Link href={`/services/${gig.id}`} className="block relative overflow-hidden h-40">
                             <div className={`absolute inset-0 bg-gradient-to-br ${getRandomGradient(gig.id)} flex items-center justify-center`}>
-                                 {/* Ako oglas ima sliku, prikaži je, inače ikonica */}
                                  {gig.images && gig.images.length > 0 ? (
                                     <img src={gig.images[0]} alt={gig.title} className="w-full h-full object-cover" />
                                  ) : (
@@ -168,7 +172,6 @@ export default function SellerProfilePage() {
 
                             <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
                                 <div className="flex items-center text-gray-700 text-xs font-semibold gap-1">
-                                  {/* Ovde prikazujemo ocenu samog oglasa ako želimo, ili prodavca */}
                                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 
                                   {gig.sellerRating?.toFixed(1) || "N/A"} 
                                 </div>
