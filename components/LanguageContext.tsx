@@ -31,7 +31,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       back: "Back",
       backHome: "Back to Home",
       
-      // 👇 OVO JE FALILO: PI LOGIN
+      // PI LOGIN
       piLoginBtn: "Login with Pi",
       piLoginDesc: "Access your account securely using Pi Network.",
       piLoginDisclaimer: "By clicking, you allow SkillClick to verify your Pi account.",
@@ -41,18 +41,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       piAuthFailed: "Authentication failed. Try again.",
       piWelcomeUser: "Welcome",
 
-      // Auth
       welcomeBack: "Welcome Back",
       securedBy: "Secured by Invictus System",
       loading: "Loading...",
       
-      // Ostalo...
+      // Navigacija
       navLogin: "Login",
       navJoin: "Join",
       navPostService: "Post a Service",
       navProfile: "My Profile",
       navAdminPanel: "Admin Panel",
       navLogout: "Log Out",
+      
+      // Hero & Kategorije
       heroTitle: "Find skill, pay with Pi",
       heroSubtitle: "Global marketplace for the Pi Network community.",
       catDesign: "Graphics & Design",
@@ -62,6 +63,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       catTech: "Programming & Tech",
       catBusiness: "Business",
       catLifestyle: "Lifestyle",
+      
+      // Pretraga
       searchPlaceholder: "What service are you looking for?",
       searchBtn: "Search",
       popularTag: "Popular:",
@@ -69,6 +72,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Explore the best offers",
       viewAll: "View All",
       noReviews: "No reviews yet.",
+      
+      // Create Service
       createTitle: "Post a New Service",
       createSubtitle: "Showcase your talent to the world",
       labelTitle: "Service Title",
@@ -81,18 +86,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       placeholderDesc: "Describe your service in detail...",
       btnPublish: "Publish Service",
       successMessage: "Service posted successfully!",
+      
+      // Admin & Stats
       masterAdmin: "Master Admin",
       totalEarnings: "Total Earnings",
       activeGigs: "Active Gigs",
       totalUsers: "Total Users",
       manageUsers: "Manage Users",
       manageServices: "Manage Services",
+      
+      // Service Detail & Seller Profile (DODATO 👇)
       servicePrice: "Service Price",
       aboutService: "About This Service",
       delivery: "Delivery",
       revisions: "Revisions",
       hireSeller: "Hire Seller",
       contactSeller: "Contact Seller",
+      memberSince: "Member Since",           // ✅ NOVO
+      aboutSeller: "About Seller",           // ✅ NOVO
+      sellerGigs: "Active Gigs by this Seller", // ✅ NOVO
+      contact: "Contact",                    // ✅ NOVO
+
+      // Reviews
       reviewsTitle: "Reviews & Ratings",
       leaveReview: "Leave a Review",
       writeReview: "Write about your experience...",
@@ -100,10 +115,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       days: "days",
       verifiedSeller: "Verified Seller",
       reviewsCountLabel: "reviews",
+      
+      // Footer / Misc
       securePayment: "Secure Pi Payment",
       satisfaction: "Satisfaction Guaranteed",
       support: "24/7 Support",
       guestUser: "Guest User",
+      
+      // Chat
       msgPlaceholder: "Type a message...",
       msgOnline: "Online",
       msgYourMessages: "Your Messages",
@@ -117,7 +136,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       back: "Nazad",
       backHome: "Nazad na početnu",
       
-      // 👇 PI LOGIN - SRPSKI
       piLoginBtn: "Prijavi se sa Pi",
       piLoginDesc: "Pristupite nalogu sigurno koristeći Pi Network.",
       piLoginDisclaimer: "Klikom dozvoljavate verifikaciju vašeg Pi naloga.",
@@ -176,6 +194,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "Revizije",
       hireSeller: "Angažuj",
       contactSeller: "Kontaktiraj",
+      
+      // DODATO ZA PROFIL 👇
+      memberSince: "Član od",           // ✅ NOVO
+      aboutSeller: "O Prodavcu",        // ✅ NOVO
+      sellerGigs: "Aktivni Oglasi",     // ✅ NOVO
+      contact: "Kontaktiraj",           // ✅ NOVO
+
       reviewsTitle: "Recenzije i Ocene",
       leaveReview: "Ostavite utisak",
       writeReview: "Napišite vaše iskustvo...",
@@ -199,8 +224,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     hi: {
       back: "Wapas",
       backHome: "Home par wapas",
-      
-      // 👇 PI LOGIN - HINDI
       piLoginBtn: "Pi se Login Karen",
       piLoginDesc: "Pi Network ka upyog karke apne account tak surakshit pahunchein.",
       piLoginDisclaimer: "Click karke, aap SkillClick ko apne Pi account ko verify karne ki anumati dete hain.",
@@ -258,6 +281,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "Sanshodhan",
       hireSeller: "Seller Hire Karen",
       contactSeller: "Sampark Karen",
+
+      // DODATO ZA PROFIL 👇
+      memberSince: "Sadasya se",
+      aboutSeller: "Vikreta ke bare mein",
+      sellerGigs: "Is vikreta ki sevaen",
+      contact: "Sampark karen",
+
       reviewsTitle: "Samiksha aur Rating",
       leaveReview: "Samiksha Chhodein",
       writeReview: "Apna anubhav ke bare mein likhein...",
@@ -281,8 +311,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     zh: {
       back: "返回",
       backHome: "返回首页",
-      
-      // 👇 PI LOGIN - CHINESE
       piLoginBtn: "使用 Pi 登录",
       piLoginDesc: "使用 Pi Network 安全访问您的帐户。",
       piLoginDisclaimer: "点击即表示您允许 SkillClick 验证您的 Pi 帐户。",
@@ -340,6 +368,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "修改",
       hireSeller: "雇佣卖家",
       contactSeller: "联系卖家",
+
+      // DODATO ZA PROFIL 👇
+      memberSince: "加入时间",         // ✅ NOVO
+      aboutSeller: "关于卖家",         // ✅ NOVO
+      sellerGigs: "卖家的活跃服务",     // ✅ NOVO
+      contact: "联系",               // ✅ NOVO
+
       reviewsTitle: "评论与评分",
       leaveReview: "留下评论",
       writeReview: "写下您的体验...",
@@ -363,8 +398,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     tw: {
       back: "返回",
       backHome: "返回首頁",
-      
-      // 👇 PI LOGIN - TAIWANESE
       piLoginBtn: "使用 Pi 登錄",
       piLoginDesc: "使用 Pi Network 安全訪問您的帳戶。",
       piLoginDisclaimer: "點擊即表示您允許 SkillClick 驗證您的 Pi 帳戶。",
@@ -422,6 +455,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "修改",
       hireSeller: "僱傭賣家",
       contactSeller: "聯繫賣家",
+
+      // DODATO ZA PROFIL 👇
+      memberSince: "加入時間",
+      aboutSeller: "關於賣家",
+      sellerGigs: "賣家的活躍服務",
+      contact: "聯繫",
+
       reviewsTitle: "評論與評分",
       leaveReview: "留下評論",
       writeReview: "寫下您的體驗...",
@@ -445,8 +485,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     id: {
       back: "Kembali",
       backHome: "Kembali ke Beranda",
-      
-      // 👇 PI LOGIN - INDONESIAN
       piLoginBtn: "Masuk dengan Pi",
       piLoginDesc: "Akses akun Anda dengan aman menggunakan Jaringan Pi.",
       piLoginDisclaimer: "Dengan mengklik, Anda mengizinkan SkillClick memverifikasi akun Pi Anda.",
@@ -504,6 +542,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "Revisi",
       hireSeller: "Sewa Penjual",
       contactSeller: "Hubungi Penjual",
+      
+      // DODATO ZA PROFIL 👇
+      memberSince: "Anggota Sejak",
+      aboutSeller: "Tentang Penjual",
+      sellerGigs: "Layanan Aktif",
+      contact: "Hubungi",
+
       reviewsTitle: "Ulasan & Peringkat",
       leaveReview: "Berikan Ulasan",
       writeReview: "Tulis pengalaman Anda...",
