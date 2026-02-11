@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageContext';
-import { ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, ExternalLink, UserCircle } from 'lucide-react'; // Dodate ikonice
+import { 
+  ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, 
+  UserCircle, Star, ShieldCheck, CheckCircle, RefreshCw 
+} from 'lucide-react';
 import Link from 'next/link';
 import BuyButton from '@/components/BuyButton'; 
 import ChatSystem from '@/components/ChatSystem'; 
@@ -17,6 +20,7 @@ export default function ServiceDetail() {
   const [service, setService] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
 
+  // Helper za gradient ako nema slike
   const getGradient = (id: string) => {
     if (!id) return "from-indigo-500 to-purple-600";
     const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -24,8 +28,9 @@ export default function ServiceDetail() {
     return gradients[sum % gradients.length];
   };
 
+  // Pametne ikonice ako nema slike
   const getSmartIcon = (svc: any) => {
-    const iconClass = "w-24 h-24 text-white/90 drop-shadow-lg";
+    const iconClass = "w-16 h-16 text-white/90 drop-shadow-md"; // Smanjena ikonica
     const title = (typeof svc.title === 'string' ? svc.title : (svc.title?.en || "")).toLowerCase();
     const cat = (svc.category || "").toLowerCase();
     if (title.includes('auto') || title.includes('alfa') || title.includes('fiat')) return <Car className={iconClass} />;
@@ -35,6 +40,7 @@ export default function ServiceDetail() {
     return <Code className={iconClass} />;
   };
 
+  // Učitavanje podataka
   useEffect(() => {
     fetch('/api/services')
       .then(res => res.json())
@@ -48,76 +54,119 @@ export default function ServiceDetail() {
       .catch(err => console.error("Greška:", err));
   }, [id]);
 
-  if (!service) return <div className="p-20 text-center text-purple-600 font-bold">...</div>;
+  if (!service) return <div className="p-20 text-center text-gray-500 text-sm">{t('loading')}</div>;
   
+  // Lokalizacija polja (Naslov i Opis)
   const getLocalized = (field: any) => (typeof field === 'string' ? field : field[lang] || field['en'] || "");
   const currentTitle = getLocalized(service.title);
-  const sellerUsername = service.author?.username || service.seller?.username || "";
+  const currentDesc = getLocalized(service.description);
+  const sellerUsername = service.author?.username || service.seller?.username || "User";
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 px-4 py-4 shadow-sm">
-          <div className="container mx-auto flex items-center justify-between">
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 font-bold hover:text-purple-600"><ArrowLeft className="w-5 h-5" /> {t('back')}</button>
-            <div className="text-sm font-bold text-purple-600 uppercase bg-purple-50 px-3 py-1 rounded-full">{service.category}</div>
+      
+      {/* 1. HEADER (Smanjen i kompaktan) */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+          <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 text-sm font-bold hover:text-purple-600">
+                <ArrowLeft className="w-4 h-4" /> {t('back')}
+            </button>
+            <div className="text-xs font-bold text-purple-600 uppercase bg-purple-50 px-2 py-1 rounded-full border border-purple-100">
+                {t('cat' + service.category.charAt(0).toUpperCase() + service.category.slice(1)) || service.category}
+            </div>
           </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="max-w-5xl mx-auto px-4 py-6 md:py-8">
         
-        <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        {/* GLAVNI GRID: Levo (Slike/Opis) - Desno (Cena/Buy) */}
+        <div className="grid md:grid-cols-3 gap-6 md:gap-8 items-start">
           
-          {/* 1. SLIKA */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-xl bg-white border border-gray-100 group">
-                {mainImage ? (
-                    <img src={mainImage} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/> 
-                ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center`}>{getSmartIcon(service)}</div>
-                )}
-            </div>
-          </div>
-
-          {/* 2. SIDEBAR */}
-          <div className="lg:col-span-4 lg:row-span-2 flex flex-col gap-6 lg:sticky lg:top-24">
+          {/* --- LEVA STRANA (2/3 širine) --- */}
+          <div className="md:col-span-2 space-y-6">
             
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-purple-900/5">
-                
-                {/* ✅ IZMENA: UOČLJIV KARTICA-LINK KA PROFILU */}
-                <Link 
-                  href={`/seller/${sellerUsername}`} 
-                  className="flex items-center gap-3 mb-5 p-3 bg-purple-50 border-2 border-purple-100 hover:border-purple-400 hover:bg-purple-100 rounded-2xl transition-all cursor-pointer group shadow-sm"
-                >
-                    {/* Avatar sa ikonicom */}
-                    <div className="w-12 h-12 bg-white text-purple-600 rounded-xl flex items-center justify-center font-black text-xl shadow-sm border border-purple-100 group-hover:scale-110 transition-transform">
+            {/* Naslov - Smanjen font */}
+            <h1 className="text-2xl font-black text-gray-900 leading-tight">
+                {currentTitle}
+            </h1>
+
+            {/* Info o prodavcu (Traka) */}
+            <div className="flex items-center gap-3 py-2 border-b border-gray-100">
+                <Link href={`/seller/${sellerUsername}`}>
+                    <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm hover:scale-105 transition-transform">
                         {sellerUsername[0]?.toUpperCase() || <UserCircle />}
                     </div>
-                    
-                    {/* Tekst */}
-                    <div className="flex-grow">
-                        <p className="text-[10px] text-purple-500 font-bold uppercase tracking-wider mb-0.5">Prodavac</p>
-                        <p className="font-bold text-gray-900 text-lg group-hover:text-purple-700 transition-colors">@{sellerUsername || 'User'}</p>
-                    </div>
-
-                    {/* Ikonica strelice desno */}
-                    <ExternalLink className="w-5 h-5 text-purple-300 group-hover:text-purple-600" />
                 </Link>
-
-                <h1 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{currentTitle}</h1>
-                
-                <div className="flex items-end justify-between mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <div>
-                        <p className="text-xs text-gray-500 font-bold uppercase mb-1">Cena</p>
-                        <p className="text-3xl font-black text-purple-600 tracking-tighter">{service.price} π</p>
+                <div>
+                    <Link href={`/seller/${sellerUsername}`} className="font-bold text-sm text-gray-900 hover:text-purple-600 hover:underline">
+                        @{sellerUsername}
+                    </Link>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center text-amber-500">
+                            <Star className="w-3 h-3 fill-current" />
+                            <span className="font-bold ml-1">{service.sellerRating?.toFixed(1) || "5.0"}</span>
+                        </div>
+                        <span>•</span>
+                        <span>{t('verifiedSeller')}</span>
                     </div>
-                    <div className="text-right">
-                         <div className="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm flex items-center gap-1">
-                            <Clock className="w-3 h-3"/> {service.deliveryTime} {t('days')}
-                         </div>
+                </div>
+            </div>
+
+            {/* SLIKA - FIX ZA DRAGANU (aspect-video + object-cover) */}
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-gray-100">
+                {mainImage ? (
+                    <img 
+                        src={mainImage} 
+                        alt={currentTitle} 
+                        className="w-full h-full object-cover" // 👈 OVO SEČE SLIKU DA STANE U OKVIR
+                    /> 
+                ) : (
+                    <div className={`w-full h-full bg-gradient-to-br ${getGradient(service.id)} flex items-center justify-center`}>
+                        {getSmartIcon(service)}
+                    </div>
+                )}
+            </div>
+
+            {/* OPIS */}
+            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <PenTool className="w-4 h-4 text-purple-500"/> {t('aboutService')}
+                </h3>
+                <div className="prose prose-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    {currentDesc}
+                </div>
+            </div>
+
+          </div>
+
+          {/* --- DESNA STRANA (1/3 širine - Sticky) --- */}
+          <div className="md:col-span-1 space-y-6 md:sticky md:top-20">
+            
+            <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+
+                <div className="flex justify-between items-center mb-6">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('servicePrice')}</span>
+                    <span className="text-3xl font-black text-purple-600">{service.price} π</span>
+                </div>
+
+                {/* Detalji isporuke */}
+                <div className="space-y-3 mb-8">
+                    <div className="flex items-center gap-3 text-sm text-gray-700 font-medium bg-gray-50 p-2 rounded-lg">
+                        <Clock className="w-4 h-4 text-purple-500" />
+                        <span>{service.deliveryTime} {t('days')} {t('delivery')}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-700 font-medium px-2">
+                        <RefreshCw className="w-4 h-4 text-purple-500" />
+                        <span>{service.revisions || 1} {t('revisions')}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-700 font-medium px-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>{t('satisfaction')}</span>
                     </div>
                 </div>
 
+                {/* Dugme za kupovinu */}
                 <BuyButton 
                     amount={parseFloat(service.price)}
                     serviceId={service.id}
@@ -126,20 +175,11 @@ export default function ServiceDetail() {
                 />
             </div>
 
-            <ChatSystem sellerUsername={sellerUsername} />
-          </div>
-
-          {/* 3. OPIS */}
-          <div className="lg:col-span-8">
-            <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
-                    <span className="bg-purple-100 p-2 rounded-lg text-purple-600"><PenTool className="w-5 h-5"/></span>
-                    {t('aboutService')}
-                </h3>
-                <div className="prose prose-purple text-gray-600 leading-relaxed whitespace-pre-wrap font-medium text-base">
-                    {getLocalized(service.description)}
-                </div>
+            {/* Chat Komponenta */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                 <ChatSystem sellerUsername={sellerUsername} />
             </div>
+
           </div>
 
         </div>
