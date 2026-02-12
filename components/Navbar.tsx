@@ -124,16 +124,14 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans overflow-hidden">
       <div className="container mx-auto px-2 md:px-4 h-16 md:h-20 flex items-center relative">
         
-        {/* LOGO - POMEREN JOS LEVO */}
-        {/* Ranije: ml-[-20px] -> Sada: ml-[-70px] (mobile) */}
-        {/* Ranije: ml-[-100px] -> Sada: ml-[-150px] (desktop) */}
-        <Link href="/" className="flex-shrink-0 ml-[-70px] md:ml-[-150px] z-0"> 
+        {/* LOGO - JOŠ LEVLJE (-110px Mobile / -190px Desktop) */}
+        <Link href="/" className="flex-shrink-0 ml-[-110px] md:ml-[-190px] z-0"> 
           <Image 
             src="/skillclick_logo.png" 
             alt="SkillClick" 
-            width={440} 
-            height={120} 
-            className="w-[280px] sm:w-[320px] md:w-[400px] h-auto object-contain" 
+            width={600} 
+            height={160} 
+            className="w-[320px] sm:w-[370px] md:w-[460px] h-auto object-contain" 
             priority 
           />
         </Link>
