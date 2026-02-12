@@ -84,6 +84,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Delivery Time (days)",
       labelDesc: "Description",
       placeholderDesc: "Describe your service in detail...",
+      uploadImages: "Upload Images", // ✅ NOVO
       btnPublish: "Publish Service",
       successMessage: "Service posted successfully!",
       
@@ -95,17 +96,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       manageUsers: "Manage Users",
       manageServices: "Manage Services",
       
-      // Service Detail & Seller Profile (DODATO 👇)
+      // Service Detail & Seller Profile
       servicePrice: "Service Price",
       aboutService: "About This Service",
       delivery: "Delivery",
       revisions: "Revisions",
       hireSeller: "Hire Seller",
       contactSeller: "Contact Seller",
-      memberSince: "Member Since",           // ✅ NOVO
-      aboutSeller: "About Seller",           // ✅ NOVO
-      sellerGigs: "Active Gigs by this Seller", // ✅ NOVO
-      contact: "Contact",                    // ✅ NOVO
+      memberSince: "Member Since",
+      aboutSeller: "About Seller",
+      sellerGigs: "Active Gigs by this Seller",
+      contact: "Contact",
 
       // Reviews
       reviewsTitle: "Reviews & Ratings",
@@ -180,6 +181,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Vreme isporuke (dana)",
       labelDesc: "Opis",
       placeholderDesc: "Opišite vašu uslugu detaljno...",
+      uploadImages: "Postavi Slike", // ✅ NOVO
       btnPublish: "Objavi Uslugu",
       successMessage: "Usluga uspešno objavljena!",
       masterAdmin: "Glavni Admin",
@@ -195,11 +197,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       hireSeller: "Angažuj",
       contactSeller: "Kontaktiraj",
       
-      // DODATO ZA PROFIL 👇
-      memberSince: "Član od",           // ✅ NOVO
-      aboutSeller: "O Prodavcu",        // ✅ NOVO
-      sellerGigs: "Aktivni Oglasi",     // ✅ NOVO
-      contact: "Kontaktiraj",           // ✅ NOVO
+      memberSince: "Član od",
+      aboutSeller: "O Prodavcu",
+      sellerGigs: "Aktivni Oglasi",
+      contact: "Kontaktiraj",
 
       reviewsTitle: "Recenzije i Ocene",
       leaveReview: "Ostavite utisak",
@@ -267,6 +268,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Delivery Time (din)",
       labelDesc: "Vivaran",
       placeholderDesc: "Apni seva ke bare mein batayein...",
+      uploadImages: "Tasveeren Upload Karen", // ✅ NOVO
       btnPublish: "Seva Prakashit Karen",
       successMessage: "Seva safaltapurvak post ki gayi!",
       masterAdmin: "Master Admin",
@@ -282,7 +284,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       hireSeller: "Seller Hire Karen",
       contactSeller: "Sampark Karen",
 
-      // DODATO ZA PROFIL 👇
       memberSince: "Sadasya se",
       aboutSeller: "Vikreta ke bare mein",
       sellerGigs: "Is vikreta ki sevaen",
@@ -354,6 +355,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "交付时间 (天)",
       labelDesc: "描述",
       placeholderDesc: "详细描述您的服务...",
+      uploadImages: "上传图片", // ✅ NOVO
       btnPublish: "发布服务",
       successMessage: "服务发布成功！",
       masterAdmin: "超级管理员",
@@ -369,11 +371,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       hireSeller: "雇佣卖家",
       contactSeller: "联系卖家",
 
-      // DODATO ZA PROFIL 👇
-      memberSince: "加入时间",         // ✅ NOVO
-      aboutSeller: "关于卖家",         // ✅ NOVO
-      sellerGigs: "卖家的活跃服务",     // ✅ NOVO
-      contact: "联系",               // ✅ NOVO
+      memberSince: "加入时间",
+      aboutSeller: "关于卖家",
+      sellerGigs: "卖家的活跃服务",
+      contact: "联系",
 
       reviewsTitle: "评论与评分",
       leaveReview: "留下评论",
@@ -441,6 +442,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "交付時間 (天)",
       labelDesc: "描述",
       placeholderDesc: "詳細描述您的服務...",
+      uploadImages: "上傳圖片", // ✅ NOVO
       btnPublish: "發布服務",
       successMessage: "服務發布成功！",
       masterAdmin: "超級管理員",
@@ -456,7 +458,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       hireSeller: "僱傭賣家",
       contactSeller: "聯繫賣家",
 
-      // DODATO ZA PROFIL 👇
       memberSince: "加入時間",
       aboutSeller: "關於賣家",
       sellerGigs: "賣家的活躍服務",
@@ -528,6 +529,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Waktu Pengiriman (hari)",
       labelDesc: "Deskripsi",
       placeholderDesc: "Jelaskan layanan Anda secara rinci...",
+      uploadImages: "Unggah Gambar", // ✅ NOVO
       btnPublish: "Terbitkan Layanan",
       successMessage: "Layanan berhasil diposting!",
       masterAdmin: "Master Admin",
@@ -543,7 +545,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       hireSeller: "Sewa Penjual",
       contactSeller: "Hubungi Penjual",
       
-      // DODATO ZA PROFIL 👇
       memberSince: "Anggota Sejak",
       aboutSeller: "Tentang Penjual",
       sellerGigs: "Layanan Aktif",
