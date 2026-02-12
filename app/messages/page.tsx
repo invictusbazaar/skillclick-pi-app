@@ -24,14 +24,13 @@ function ChatInterface() {
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
   
-  // Ovde čuvamo poruke
   const [chatHistory, setChatHistory] = useState<any[]>([])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  // 1. INBOX LISTA (Učitava se samo ako NISI u četu)
+  // 1. INBOX LISTA
   useEffect(() => {
     const fetchConversations = async () => {
       if (!user?.username || sellerName) return; 
@@ -52,21 +51,18 @@ function ChatInterface() {
 
     if (!sellerName) {
         fetchConversations();
-        // Osvežavaj listu svakih 5 sekundi dok gledaš Inbox
         const interval = setInterval(fetchConversations, 5000); 
         return () => clearInterval(interval);
     }
   }, [user, sellerName]);
 
 
-  // 2. 🔥 LIVE CHAT SYNC (Ovo rešava tvoj problem)
+  // 2. LIVE CHAT SYNC
   useEffect(() => {
-    // Ako nemamo korisnika ili sagovornika, ne radi ništa
     if (!sellerName || !user?.username) return;
 
     const syncMessages = async () => {
         try {
-            // Gađamo onaj API iz koraka 1
             const res = await fetch('/api/messages/get', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -81,7 +77,6 @@ function ChatInterface() {
             const data = await res.json();
             
             if (data.messages) {
-                // Formatiramo poruke za prikaz
                 const formatted = data.messages.map((m: any) => ({
                     id: m.id,
                     text: m.content,
@@ -90,7 +85,6 @@ function ChatInterface() {
                     isRead: m.isRead
                 }));
                 
-                // Ako imaš serviceName (ušao preko oglasa), dodajemo sistemsku poruku na vrh
                 if (serviceName) {
                     formatted.unshift({ 
                         id: 'sys-topic', 
@@ -100,13 +94,11 @@ function ChatInterface() {
                     });
                 }
                 
-                // Ažuriramo ekran SAMO ako ima promena (da ne treperi)
                 setChatHistory(prev => {
                     if (prev.length !== formatted.length) {
-                        setTimeout(scrollToBottom, 100); // Skroluj ako ima novih
+                        setTimeout(scrollToBottom, 100); 
                         return formatted;
                     }
-                    // Proveri da li je poslednja poruka ista
                     const lastMsgNew = formatted[formatted.length - 1];
                     const lastMsgOld = prev[prev.length - 1];
                     if (lastMsgNew?.id !== lastMsgOld?.id || lastMsgNew?.isRead !== lastMsgOld?.isRead) {
@@ -120,12 +112,8 @@ function ChatInterface() {
         }
     };
 
-    // Pokreni odmah
     syncMessages();
-    
-    // Ponavljaj svake 2 sekunde
     const interval = setInterval(syncMessages, 2000);
-    
     return () => clearInterval(interval);
   }, [sellerName, user, serviceName, t]);
 
@@ -137,7 +125,6 @@ function ChatInterface() {
     setMessage("");
     setIsSending(true);
 
-    // 1. Prikaži odmah na ekranu (Optimistic UI)
     const optimisticMsg = { 
         id: "temp-" + Date.now(), 
         text: contentToSend, 
@@ -148,7 +135,6 @@ function ChatInterface() {
     setChatHistory(prev => [...prev, optimisticMsg]);
     setTimeout(scrollToBottom, 100);
 
-    // 2. Pošalji na server
     try {
         await fetch('/api/messages/send', {
             method: 'POST',
@@ -159,10 +145,8 @@ function ChatInterface() {
                 receiverUsername: sellerName
             }),
         });
-        // Ne moramo ništa ručno da dodajemo, setInterval (iznad) će povući pravu poruku za 2 sekunde
     } catch (error) {
         console.error("Greška pri slanju:", error);
-        alert("Greška pri slanju poruke!");
     } finally {
         setIsSending(false);
     }
@@ -181,7 +165,6 @@ function ChatInterface() {
     return (
         <div className="min-h-screen bg-white md:bg-gray-50 font-sans pb-20">
           <div className="max-w-2xl mx-auto bg-white min-h-screen md:shadow-2xl md:border-x md:border-gray-100">
-            {/* Header */}
             <div className="p-5 border-b border-gray-100 bg-white/95 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between shadow-sm">
               <div>
                 <h1 className="text-2xl font-black text-gray-900 tracking-tight">{t('msgYourMessages')}</h1>
@@ -192,7 +175,6 @@ function ChatInterface() {
               </div>
             </div>
             
-            {/* Search */}
             <div className="p-4 bg-white">
                <div className="relative group">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -200,7 +182,6 @@ function ChatInterface() {
                </div>
             </div>
 
-            {/* Lista */}
             {loadingInbox ? (
               <div className="p-10 text-center text-gray-400 animate-pulse">{t('loading')}</div>
             ) : conversations.length === 0 ? (
@@ -291,7 +272,6 @@ function ChatInterface() {
                       {msg.sender !== "system" && (
                         <div className={`text-[10px] mt-1 flex justify-end items-center gap-1 opacity-70 ${msg.sender === "me" ? "text-purple-100" : "text-gray-400"}`}>
                             <span>{msg.time}</span>
-                            {/* Prikaži status čitanja */}
                             {msg.sender === "me" && (
                                 <CheckCheck className={`w-3 h-3 ${msg.isRead ? "text-green-300" : "text-purple-300"}`} />
                             )}
@@ -303,18 +283,18 @@ function ChatInterface() {
           <div ref={messagesEndRef} />
         </main>
 
-        {/* INPUT ZONA */}
+        {/* 👇 INPUT ZONA - UTEGNUTA */}
         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-3 md:p-4 z-30 md:static md:w-full pb-safe">
-            <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm max-w-2xl mx-auto">
+            <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl pl-4 pr-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm max-w-2xl mx-auto">
                 <input 
                   type="text" 
                   value={message} 
                   onChange={(e) => setMessage(e.target.value)} 
                   placeholder={t('msgPlaceholder')} 
-                  className="flex-1 bg-transparent border-0 px-3 py-2 text-gray-700 outline-none text-base" 
+                  className="flex-1 bg-transparent border-0 py-2 text-gray-700 outline-none text-base" 
                   onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()} 
                 />
-                <Button onClick={handleSend} disabled={isSending} size="icon" className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md disabled:opacity-50 w-10 h-10">
+                <Button onClick={handleSend} disabled={isSending} size="icon" className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md disabled:opacity-50 w-10 h-10 mr-1">
                     {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                 </Button>
             </div>
