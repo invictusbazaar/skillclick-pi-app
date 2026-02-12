@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-// ✅ KORISTIMO POSTOJEĆU VEZU, NE PRAVIMO NOVU
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
@@ -35,6 +34,24 @@ export async function POST(req: Request) {
         serviceId: serviceId
       }
     });
+
+    // ✅ 5. KREIRAJ NOTIFIKACIJU ZA PRODAVCA (NOVO)
+    // Ovo šalje "signal" Dragani da je dobila porudžbinu
+    try {
+        await prisma.notification.create({
+            data: {
+                userId: seller.id, // Obaveštavamo prodavca
+                type: 'order',
+                message: `🎉 Nova porudžbina! ${buyerUsername} je kupio vašu uslugu!`,
+                link: `/orders`, // Vodi prodavca na listu porudžbina
+                isRead: false
+            }
+        });
+    } catch (notifError) {
+        // Ako notifikacija ne uspe, ne želimo da srušimo celu porudžbinu,
+        // samo logujemo grešku (npr. ako baza kasni).
+        console.error("Greška pri kreiranju notifikacije:", notifError);
+    }
 
     return NextResponse.json({ success: true, order: newOrder });
 
