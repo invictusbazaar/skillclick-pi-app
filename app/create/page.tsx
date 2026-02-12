@@ -9,17 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { 
   Zap, ArrowLeft, Loader2, CheckCircle, 
-  Image as ImageIcon 
+  Image as ImageIcon, Upload, X 
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/LanguageContext';
-import { useAuth } from '@/components/AuthContext'; // ✅ UBAČEN NOVI SISTEM
+import { useAuth } from '@/components/AuthContext';
 
 export default function CreateServicePage() {
   const router = useRouter();
   const { t } = useLanguage();
   
-  // ✅ KORISTIMO AUTH CONTEXT UMESTO LOCALSTORAGE
   const { user, isLoading: authLoading } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,10 +46,9 @@ export default function CreateServicePage() {
     { key: "catLifestyle", val: "Lifestyle" }
   ];
 
-  // Ako nije ulogovan, vratimo ga na početnu (ali tek kad se učitavanje završi)
   useEffect(() => {
     if (!authLoading && !user) {
-        // router.push('/'); // Možeš ga vratiti ili samo ispisati poruku
+        // router.push('/'); 
     }
   }, [authLoading, user, router]);
 
@@ -63,11 +61,33 @@ export default function CreateServicePage() {
       setFormData(prev => ({ ...prev, category: value }));
   }
 
+  // --- LOGIKA ZA UPLOAD SLIKA (Base64) ---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, imageKey: string) => {
+    const file = e.target.files?.[0];
+    
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Slika je prevelika. Molimo koristite sliku manju od 2MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, [imageKey]: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (imageKey: string) => {
+    setFormData(prev => ({ ...prev, [imageKey]: "" }));
+  };
+  // ---------------------------------------
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // 1. Provera autora preko novog sistema
     if (!user || !user.username) {
         alert("Greška: Niste ulogovani.");
         setIsSubmitting(false);
@@ -93,7 +113,7 @@ export default function CreateServicePage() {
                 price: formData.price,
                 deliveryTime: formData.deliveryTime,
                 revisions: formData.revisions,
-                author: user.username, // ✅ Šaljemo username iz Contexta
+                author: user.username, 
                 images: [formData.image1, formData.image2, formData.image3].filter(img => img.length > 0)
             }),
         });
@@ -117,7 +137,6 @@ export default function CreateServicePage() {
     }
   };
 
-  // ✅ PRIKAZ DOK SE UČITAVA AUTH
   if (authLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -126,7 +145,6 @@ export default function CreateServicePage() {
       );
   }
 
-  // ✅ AKO KORISNIK NIJE ULOGOVAN
   if (!user) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
@@ -205,14 +223,82 @@ export default function CreateServicePage() {
                     </div>
                 </div>
 
-                {/* UNOS SLIKA */}
+                {/* NOVI SISTEM ZA UPLOAD SLIKA */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                     <Label className={`${labelClass} mb-3 flex items-center gap-2`}>
-                        <ImageIcon className="w-4 h-4" /> Slike Oglasa (URL)
+                        <ImageIcon className="w-4 h-4" /> 
+                        {t('uploadImages')} 
+                        <span className="text-gray-400 font-normal ml-auto text-[10px] md:text-xs">
+                           ({t('uploadHint')})
+                        </span>
                     </Label>
-                    <div className="space-y-3">
-                        <Input name="image1" placeholder="Image URL 1 (Cover)" value={formData.image1} onChange={handleChange} className={inputClass} />
-                        <Input name="image2" placeholder="Image URL 2 (Optional)" value={formData.image2} onChange={handleChange} className={inputClass} />
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* Image 1 Upload */}
+                        <div className="relative">
+                            {formData.image1 ? (
+                                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 group">
+                                    <img src={formData.image1} alt="Preview 1" className="h-full w-full object-cover" />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeImage('image1')}
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
+                                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                                    <span className="text-xs text-gray-500 font-semibold">Cover</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image1')} />
+                                </label>
+                            )}
+                        </div>
+
+                        {/* Image 2 Upload */}
+                        <div className="relative">
+                            {formData.image2 ? (
+                                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 group">
+                                    <img src={formData.image2} alt="Preview 2" className="h-full w-full object-cover" />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeImage('image2')}
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
+                                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                                    <span className="text-xs text-gray-500">Slika 2</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image2')} />
+                                </label>
+                            )}
+                        </div>
+
+                        {/* Image 3 Upload */}
+                        <div className="relative">
+                            {formData.image3 ? (
+                                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 group">
+                                    <img src={formData.image3} alt="Preview 3" className="h-full w-full object-cover" />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeImage('image3')}
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
+                                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                                    <span className="text-xs text-gray-500">Slika 3</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image3')} />
+                                </label>
+                            )}
+                        </div>
                     </div>
                 </div>
 
