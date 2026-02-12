@@ -1,16 +1,16 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, Suspense, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation" 
 import { useLanguage } from "@/components/LanguageContext"
 import { useAuth } from "@/components/AuthContext"
 import { 
-  ChevronDown, Menu, ShieldCheck, Home, PlusCircle, User 
+  ChevronDown, Menu, ShieldCheck, Home, PlusCircle, User, Bell, Check 
 } from "lucide-react"
 import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 
@@ -21,8 +21,12 @@ function NavbarContent() {
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false); // Za zvonce meni
   
-  // State za animacije (koji element se trenutno "pali")
+  // Notifikacije State
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const [animatingLang, setAnimatingLang] = useState<string | null>(null);
   const [animatingLink, setAnimatingLink] = useState<string | null>(null);
 
@@ -49,7 +53,52 @@ function NavbarContent() {
     { key: "catLifestyle", slug: "lifestyle" }
   ];
 
-  // 1. EFEKAT ZA JEZIKE
+  // --- LOGIKA ZA NOTIFIKACIJE ---
+  const fetchNotifications = async () => {
+    if (!user?.username) return;
+    try {
+        const res = await fetch('/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user.username })
+        });
+        const data = await res.json();
+        if (data.notifications) {
+            setNotifications(data.notifications);
+            setUnreadCount(data.unreadCount);
+        }
+    } catch (error) {
+        console.error("Failed to fetch notifications");
+    }
+  };
+
+  // Učitaj notifikacije kad se user uloguje i osvežavaj svakih 30 sekundi
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); 
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const markAsRead = async (id: string, link: string | null) => {
+      // 1. Frontend update odmah (da se smanji broj)
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      
+      // 2. Backend update
+      await fetch('/api/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId: id })
+      });
+
+      // 3. Idi na link ako postoji
+      if (link) {
+          router.push(link);
+          setIsNotifOpen(false);
+      }
+  };
+  // ------------------------------
+
   const handleLanguageClick = (e: Event, key: string) => {
     e.preventDefault();
     setAnimatingLang(key);
@@ -60,10 +109,9 @@ function NavbarContent() {
     }, 400);
   };
 
-  // 2. EFEKAT ZA MOBILNI MENI (Isti kao za jezike)
   const handleMobileClick = (e: Event, path: string) => {
     e.preventDefault();
-    setAnimatingLink(path); // Palimo ljubičastu boju
+    setAnimatingLink(path); 
     setTimeout(() => {
         router.push(path);
         setAnimatingLink(null);
@@ -71,11 +119,10 @@ function NavbarContent() {
     }, 400);
   };
 
-  // Helper funkcija za stil mobilnog linka
   const getMobileLinkStyle = (path: string) => `
     cursor-pointer py-3 mb-1 font-bold text-sm rounded-xl transition-all duration-300 flex items-center
     ${animatingLink === path 
-        ? "bg-purple-900 text-white scale-105 shadow-lg z-10" // TAMNO LJUBIČASTA KAD SE KLIKNE
+        ? "bg-purple-900 text-white scale-105 shadow-lg z-10" 
         : "text-gray-600 hover:bg-gray-100" 
     }
   `;
@@ -84,7 +131,7 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
       <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
         
-        {/* LOGO - Pomeren ulevo */}
+        {/* LOGO */}
         <Link href="/" className="flex-shrink-0 ml-[-100px]"> 
           <Image 
             src="/skillclick_logo.png" 
@@ -99,10 +146,9 @@ function NavbarContent() {
         {/* DESNA STRANA */}
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
           
-          {/* 🌍 JEZIK (SMANJEN FONT) */}
+          {/* 🌍 JEZIK */}
           <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
             <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95">
-                {/* Smanjen font zastavice i teksta */}
                 <span className="text-lg md:text-xl">{currentLangObj.flag}</span> 
                 <span className="hidden md:inline font-bold text-xs ml-1">{currentLangObj.label}</span>
                 <ChevronDown className="w-3 h-3 text-purple-700" />
@@ -113,7 +159,6 @@ function NavbarContent() {
                 <DropdownMenuItem 
                     key={key} 
                     onSelect={(e) => handleLanguageClick(e, key)}
-                    // Smanjen font (text-sm) i tamno ljubičasta boja (bg-purple-900)
                     className={`cursor-pointer py-2 mb-1 font-bold text-sm rounded-xl border transition-all duration-300 flex items-center ${animatingLang === key ? "bg-purple-900 text-white scale-105 shadow-lg border-purple-900 z-10" : "text-gray-700 bg-purple-50/50 hover:bg-purple-100 hover:text-purple-900 border-transparent hover:border-purple-200"}`}
                 >
                   <span className="mr-3 text-xl">{flag}</span> {label}
@@ -121,6 +166,45 @@ function NavbarContent() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* 🔔 NOTIFIKACIJE (ZVONCE) - NOVO */}
+          {user && (
+             <DropdownMenu open={isNotifOpen} onOpenChange={setIsNotifOpen}>
+                <DropdownMenuTrigger className="relative p-2 rounded-full hover:bg-gray-100 transition outline-none">
+                    <Bell className={`w-6 h-6 ${unreadCount > 0 ? "text-purple-600 fill-purple-100" : "text-gray-500"}`} />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                            {unreadCount}
+                        </span>
+                    )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 bg-white border-gray-200 shadow-xl rounded-xl p-0 overflow-hidden z-[100]">
+                    <div className="bg-purple-50 p-3 border-b border-purple-100 font-bold text-gray-700 text-sm flex justify-between items-center">
+                        <span>Obaveštenja</span>
+                        {unreadCount > 0 && <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">{unreadCount} novih</span>}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                            <div className="p-8 text-center text-gray-400 text-sm">Nema novih obaveštenja 🔕</div>
+                        ) : (
+                            notifications.map((notif) => (
+                                <DropdownMenuItem 
+                                    key={notif.id} 
+                                    className={`p-3 border-b border-gray-50 cursor-pointer flex items-start gap-3 ${notif.isRead ? 'bg-white' : 'bg-blue-50/50'}`}
+                                    onSelect={() => markAsRead(notif.id, notif.link)}
+                                >
+                                    <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${notif.isRead ? 'bg-gray-300' : 'bg-purple-600'}`} />
+                                    <div className="flex-1">
+                                        <p className={`text-sm ${notif.isRead ? 'text-gray-600' : 'text-gray-900 font-semibold'}`}>{notif.message}</p>
+                                        <p className="text-[10px] text-gray-400 mt-1">{new Date(notif.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                </DropdownMenuItem>
+                            ))
+                        )}
+                    </div>
+                </DropdownMenuContent>
+             </DropdownMenu>
+          )}
 
           {/* DESKTOP LINKOVI */}
           <div className="hidden md:flex items-center gap-4">
@@ -147,13 +231,11 @@ function NavbarContent() {
              )}
           </div>
 
-          {/* MOBILNI MENI - HAMBURGER (SA EFEKTIMA I SMANJENIM FONTOM) */}
+          {/* MOBILNI MENI */}
           <div className="flex md:hidden">
               <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                   <DropdownMenuTrigger className="p-2 transition-transform active:scale-95"> <Menu className="w-7 h-7 text-gray-800" /> </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-60 bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl p-2 mr-2">
-                      
-                      {/* Zaglavlje menija */}
                       <div className="p-3 border-b border-gray-100 mb-2 bg-gray-50 rounded-lg">
                           {user ? (
                               <div className="flex items-center gap-3">
@@ -170,7 +252,6 @@ function NavbarContent() {
                           )}
                       </div>
 
-                      {/* STAVKE MENIJA SA EFEKTOM */}
                       {user && (
                         <DropdownMenuItem 
                             onSelect={(e) => handleMobileClick(e, "/profile")} 
@@ -218,7 +299,7 @@ function NavbarContent() {
         </div>
       </div>
       
-      {/* KATEGORIJE - BEZ PROMENA */}
+      {/* KATEGORIJE */}
       <div className="block border-t border-gray-100 bg-white/95 backdrop-blur-md shadow-sm">
          <div className="container mx-auto px-4">
             <div className="flex items-center gap-6 overflow-x-auto py-3 scrollbar-hide no-scrollbar">
