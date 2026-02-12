@@ -2,14 +2,16 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { ArrowLeft, Send, User } from "lucide-react"
+import { ArrowLeft, Send, User, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/LanguageContext"
+import { useAuth } from "@/components/AuthContext" // ✅ 1. Uvozimo AuthContext
 
 function ChatInterface() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useLanguage();
+  const { user } = useAuth(); // ✅ 2. Uzimamo ulogovanog korisnika
   
   const rawSellerName = searchParams.get('seller')
   const serviceName = searchParams.get('service')
@@ -17,57 +19,52 @@ function ChatInterface() {
   const sellerName = rawSellerName ? decodeURIComponent(rawSellerName) : null
 
   const [message, setMessage] = useState("")
+  const [isSending, setIsSending] = useState(false); // Za spinner dok šalje
   
-  // Inicijalizujemo sa ID-jem da bismo mogli da ih prepoznamo i prevedemo kasnije
   const [chatHistory, setChatHistory] = useState([
     { id: 1, text: "Welcome...", sender: "system", time: "10:00", type: "welcome" } 
   ])
 
   const [isMobileBackActive, setIsMobileBackActive] = useState(false)
 
-  // 👇 OVO JE KLJUČNO: Ovaj efekt prati promenu jezika (t) i AŽURIRA tekst poruka
+  // Prevođenje sistemskih poruka
   useEffect(() => {
     setChatHistory(prevHistory => prevHistory.map(msg => {
-        // Ako je ovo poruka dobrodošlice, prevedi je opet
         if (msg.id === 1) {
             return { ...msg, text: t('msgSystemWelcome') };
         }
-        // Ako je ovo poruka o temi razgovora (ima type 'topic' ili id 2), prevedi je opet
         if (msg.id === 2 && serviceName) {
             return { ...msg, text: `${t('msgStartConv')} "${serviceName}"` };
         }
-        // Obične poruke ne diraj
         return msg;
     }));
-  }, [t, serviceName]); // Okinuće se svaki put kad promeniš jezik!
+  }, [t, serviceName]);
 
+  // Inicijalna poruka ako postoji tema (serviceName)
   useEffect(() => {
     if (sellerName && serviceName) {
         setChatHistory(prev => {
-            if (prev.some(msg => msg.id === 2)) return prev; // Ne dodaj ako već postoji
+            if (prev.some(msg => msg.id === 2)) return prev;
             return [
                 ...prev,
                 { 
                     id: 2, 
-                    // Prvi put generišemo tekst
                     text: `${t('msgStartConv')} "${serviceName}"`, 
                     sender: "system", 
                     time: "Just now",
-                    type: "topic" // Obeležimo je da znamo da je sistemska
+                    type: "topic"
                 }
             ]
         })
     }
-  }, [sellerName, serviceName]) // Ovo se izvršava samo na početku razgovora
+  }, [sellerName, serviceName])
 
   const handleBack = (e: React.MouseEvent) => {
     const isMobile = window.innerWidth < 768;
-
     if (isMobile) {
         e.preventDefault();
         e.stopPropagation();
         setIsMobileBackActive(true);
-
         setTimeout(() => {
             setIsMobileBackActive(false); 
             navigateBack();
@@ -85,21 +82,52 @@ function ChatInterface() {
       }
   }
 
-  const handleSend = () => {
-    if (!message.trim()) return
-    const newMsg = { id: Date.now(), text: message, sender: "me", time: "Now", type: "user" }
-    setChatHistory(prev => [...prev, newMsg])
-    setMessage("")
+  // ✅ 3. NOVA FUNKCIJA ZA SLANJE (POVEZANA SA SERVEROM)
+  const handleSend = async () => {
+    if (!message.trim() || !user || !sellerName) return;
 
-    setTimeout(() => {
-        setChatHistory(prev => [...prev, { 
-            id: Date.now() + 1, 
-            text: "Thanks for the message! I'll get back to you soon.", // Ovo bi idealno isto išlo preko t() ako je generičko
-            sender: "other", 
-            time: "Now",
-            type: "other"
-        }])
-    }, 1500)
+    const contentToSend = message;
+    setMessage(""); // Odmah isprazni polje
+    setIsSending(true);
+
+    // 1. Optimistički prikaz (prikaži poruku odmah da korisnik ne čeka)
+    const optimisticMsg = { 
+        id: Date.now(), 
+        text: contentToSend, 
+        sender: "me", 
+        time: "Now", 
+        type: "user" 
+    };
+    setChatHistory(prev => [...prev, optimisticMsg]);
+
+    try {
+        // 2. Šaljemo podatke na API
+        const response = await fetch('/api/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: contentToSend,
+                senderUsername: user.username,   // Ko šalje (JA)
+                receiverUsername: sellerName     // Kome šaljem (PRODAVAC)
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Greška pri slanju");
+        }
+
+        // Ovde bi idealno zamenili optimističku poruku sa pravom iz baze,
+        // ali za sada je dovoljno da znamo da je prošlo.
+        // Server je sada kreirao NOTIFIKACIJU za primaoca! 🔔
+
+    } catch (error) {
+        console.error("Greška pri slanju:", error);
+        alert("Nije uspelo slanje poruke. Proverite internet.");
+    } finally {
+        setIsSending(false);
+    }
   }
 
   return (
@@ -110,18 +138,12 @@ function ChatInterface() {
         {/* HEADER */}
         <div className="bg-white/95 backdrop-blur-md border-b border-gray-100 p-3 md:p-4 shadow-sm shrink-0 z-20">
           <div className="flex items-center gap-3">
-               
                <button 
                   onClick={handleBack} 
                   className={`
                     flex items-center gap-2 transition-colors duration-200 font-medium outline-none p-1
-                    ${isMobileBackActive 
-                        ? "text-purple-600" 
-                        : "text-gray-500 md:hover:text-purple-600" 
-                    }
+                    ${isMobileBackActive ? "text-purple-600" : "text-gray-500 md:hover:text-purple-600"}
                   `}
-                  title="Go back"
-                  style={{ WebkitTapHighlightColor: "transparent" }}
                >
                   <ArrowLeft className="w-6 h-6" />
                   <span className="hidden md:block">{t('back')}</span>
@@ -141,7 +163,6 @@ function ChatInterface() {
                               {sellerName ? sellerName : t('msgYourMessages')}
                           </h1>
                       </div>
-                      
                       {serviceName ? (
                           <p className="text-xs text-gray-500 truncate w-full">
                               {t('msgTopic')} {serviceName}
@@ -190,14 +211,16 @@ function ChatInterface() {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t('msgPlaceholder')}
                   className="flex-1 bg-transparent border-0 px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:outline-none min-w-0"
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()}
+                  disabled={isSending}
                 />
                 <Button 
                   onClick={handleSend}
+                  disabled={isSending}
                   size="icon"
-                  className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200"
+                  className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200 disabled:opacity-50"
                 >
-                    <Send className="w-4 h-4" />
+                    {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
             </div>
         </div>
