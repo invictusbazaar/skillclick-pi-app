@@ -18,7 +18,6 @@ import { useAuth } from '@/components/AuthContext';
 export default function CreateServicePage() {
   const router = useRouter();
   const { t } = useLanguage();
-  
   const { user, isLoading: authLoading } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,6 +45,7 @@ export default function CreateServicePage() {
     { key: "catLifestyle", val: "Lifestyle" }
   ];
 
+  // Ako nije ulogovan, logika se može dodati ovde, ali trenutno samo prikazujemo poruku dole
   useEffect(() => {
     if (!authLoading && !user) {
         // router.push('/'); 
@@ -61,11 +61,12 @@ export default function CreateServicePage() {
       setFormData(prev => ({ ...prev, category: value }));
   }
 
-  // --- LOGIKA ZA UPLOAD SLIKA (Base64) ---
+  // --- LOGIKA ZA UPLOAD SLIKA ---
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, imageKey: string) => {
     const file = e.target.files?.[0];
     
     if (file) {
+      // Provera veličine (max 2MB)
       if (file.size > 2 * 1024 * 1024) {
         alert("Slika je prevelika. Molimo koristite sliku manju od 2MB.");
         return;
@@ -82,7 +83,7 @@ export default function CreateServicePage() {
   const removeImage = (imageKey: string) => {
     setFormData(prev => ({ ...prev, [imageKey]: "" }));
   };
-  // ---------------------------------------
+  // ------------------------------
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,8 +102,6 @@ export default function CreateServicePage() {
     }
 
     try {
-        console.log("🚀 Šaljem podatke...", { author: user.username, title: formData.title });
-
         const response = await fetch('/api/services/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -114,6 +113,7 @@ export default function CreateServicePage() {
                 deliveryTime: formData.deliveryTime,
                 revisions: formData.revisions,
                 author: user.username, 
+                // Filtriramo prazne stringove da ne šaljemo prazna polja
                 images: [formData.image1, formData.image2, formData.image3].filter(img => img.length > 0)
             }),
         });
@@ -223,7 +223,7 @@ export default function CreateServicePage() {
                     </div>
                 </div>
 
-                {/* NOVI SISTEM ZA UPLOAD SLIKA */}
+                {/* NOVI SISTEM ZA UPLOAD SLIKA - SA PREVODIMA */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                     <Label className={`${labelClass} mb-3 flex items-center gap-2`}>
                         <ImageIcon className="w-4 h-4" /> 
@@ -250,7 +250,8 @@ export default function CreateServicePage() {
                             ) : (
                                 <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
                                     <Upload className="w-6 h-6 text-gray-400 mb-1" />
-                                    <span className="text-xs text-gray-500 font-semibold">Cover</span>
+                                    {/* ✅ PREVOD: Cover Slika */}
+                                    <span className="text-xs text-gray-500 font-semibold">{t('coverImage')}</span>
                                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image1')} />
                                 </label>
                             )}
@@ -272,7 +273,8 @@ export default function CreateServicePage() {
                             ) : (
                                 <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
                                     <Upload className="w-6 h-6 text-gray-400 mb-1" />
-                                    <span className="text-xs text-gray-500">Slika 2</span>
+                                    {/* ✅ PREVOD: Slika 2 */}
+                                    <span className="text-xs text-gray-500">{t('imageLabel')} 2</span>
                                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image2')} />
                                 </label>
                             )}
@@ -294,7 +296,8 @@ export default function CreateServicePage() {
                             ) : (
                                 <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
                                     <Upload className="w-6 h-6 text-gray-400 mb-1" />
-                                    <span className="text-xs text-gray-500">Slika 3</span>
+                                    {/* ✅ PREVOD: Slika 3 */}
+                                    <span className="text-xs text-gray-500">{t('imageLabel')} 3</span>
                                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image3')} />
                                 </label>
                             )}
