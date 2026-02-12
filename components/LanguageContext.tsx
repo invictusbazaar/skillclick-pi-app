@@ -74,7 +74,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDesc: "Description",
       placeholderDesc: "Describe your service in detail...",
       uploadImages: "Upload Images",
-      uploadHint: "Max 2MB per image", // ✅ NOVO
+      uploadHint: "Max 2MB per image",
       btnPublish: "Publish Service",
       successMessage: "Service posted successfully!",
       masterAdmin: "Master Admin",
@@ -109,7 +109,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       msgYourMessages: "Your Messages",
       msgTopic: "Topic:",
       msgSystemWelcome: "Welcome to SkillClick chat! 👋",
-      msgStartConv: "Starting conversation regarding:"
+      msgStartConv: "Starting conversation regarding:",
+      
+      // ✅ NOVO - NOTIFIKACIJE
+      notificationsTitle: "Notifications",
+      new: "new",
+      noNotifications: "No new notifications"
     },
 
     // === 🇷🇸 SRPSKI ===
@@ -160,7 +165,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDesc: "Opis",
       placeholderDesc: "Opišite vašu uslugu detaljno...",
       uploadImages: "Postavi Slike",
-      uploadHint: "Max 2MB po slici", // ✅ NOVO
+      uploadHint: "Max 2MB po slici",
       btnPublish: "Objavi Uslugu",
       successMessage: "Usluga uspešno objavljena!",
       masterAdmin: "Glavni Admin",
@@ -195,7 +200,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       msgYourMessages: "Vaše poruke",
       msgTopic: "Tema:",
       msgSystemWelcome: "Dobrodošli u SkillClick ćaskanje! 👋",
-      msgStartConv: "Započinjete razgovor u vezi:"
+      msgStartConv: "Započinjete razgovor u vezi:",
+
+      // ✅ NOVO - NOTIFIKACIJE
+      notificationsTitle: "Obaveštenja",
+      new: "novih",
+      noNotifications: "Nema novih obaveštenja"
     },
 
     // === 🇮🇳 HINDI ===
@@ -245,7 +255,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDesc: "Vivaran",
       placeholderDesc: "Apni seva ke bare mein batayein...",
       uploadImages: "Tasveeren Upload Karen",
-      uploadHint: "Adhiktam 2MB prati tasveer", // ✅ NOVO
+      uploadHint: "Adhiktam 2MB prati tasveer",
       btnPublish: "Seva Prakashit Karen",
       successMessage: "Seva safaltapurvak post ki gayi!",
       masterAdmin: "Master Admin",
@@ -280,7 +290,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       msgYourMessages: "Aapke Sandesh",
       msgTopic: "Vishay:",
       msgSystemWelcome: "SkillClick chat mein swagat hai!",
-      msgStartConv: "Baatcheet shuru:"
+      msgStartConv: "Baatcheet shuru:",
+
+      // ✅ NOVO - NOTIFIKACIJE
+      notificationsTitle: "Suchnayein",
+      new: "nayi",
+      noNotifications: "Koi nayi suchna nahi"
     },
 
     // === 🇨🇳 KINESKI ===
@@ -330,7 +345,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDesc: "描述",
       placeholderDesc: "详细描述您的服务...",
       uploadImages: "上传图片",
-      uploadHint: "每张图片最大 2MB", // ✅ NOVO
+      uploadHint: "每张图片最大 2MB",
       btnPublish: "发布服务",
       successMessage: "服务发布成功！",
       masterAdmin: "超级管理员",
@@ -365,7 +380,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       msgYourMessages: "您的消息",
       msgTopic: "主题:",
       msgSystemWelcome: "欢迎来到 SkillClick 聊天!",
-      msgStartConv: "开始对话:"
+      msgStartConv: "开始对话:",
+
+      // ✅ NOVO - NOTIFIKACIJE
+      notificationsTitle: "通知",
+      new: "新",
+      noNotifications: "暂无新通知"
     },
 
     // === 🇹🇼 TAJVANSKI ===
@@ -415,7 +435,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDesc: "描述",
       placeholderDesc: "詳細描述您的服務...",
       uploadImages: "上傳圖片",
-      uploadHint: "每張圖片最大 2MB", // ✅ NOVO
+      uploadHint: "每張圖片最大 2MB",
       btnPublish: "發布服務",
       successMessage: "服務發布成功！",
       masterAdmin: "超級管理員",
@@ -450,7 +470,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       msgYourMessages: "您的消息",
       msgTopic: "主題:",
       msgSystemWelcome: "歡迎來到 SkillClick 聊天!",
-      msgStartConv: "開始對話:"
+      msgStartConv: "開始對話:",
+
+      // ✅ NOVO - NOTIFIKACIJE
+      notificationsTitle: "通知",
+      new: "新",
+      noNotifications: "暫無新通知"
     },
 
     // === 🇮🇩 INDONEŽANSKI ===
@@ -500,7 +525,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDesc: "Deskripsi",
       placeholderDesc: "Jelaskan layanan Anda secara rinci...",
       uploadImages: "Unggah Gambar",
-      uploadHint: "Maks 2MB per gambar", // ✅ NOVO
+      uploadHint: "Maks 2MB per gambar",
       btnPublish: "Terbitkan Layanan",
       successMessage: "Layanan berhasil diposting!",
       masterAdmin: "Master Admin",
@@ -535,7 +560,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       msgYourMessages: "Pesan Anda",
       msgTopic: "Topik:",
       msgSystemWelcome: "Selamat datang di obrolan!",
-      msgStartConv: "Memulai obrolan:"
+      msgStartConv: "Memulai obrolan:",
+
+      // ✅ NOVO - NOTIFIKACIJE
+      notificationsTitle: "Notifikasi",
+      new: "baru",
+      noNotifications: "Tidak ada notifikasi baru"
     }
   };
 
