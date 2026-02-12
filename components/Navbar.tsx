@@ -21,9 +21,8 @@ function NavbarContent() {
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false); // Za zvonce meni
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   
-  // Notifikacije State
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -72,7 +71,6 @@ function NavbarContent() {
     }
   };
 
-  // Učitaj notifikacije kad se user uloguje i osvežavaj svakih 30 sekundi
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); 
@@ -80,18 +78,15 @@ function NavbarContent() {
   }, [user]);
 
   const markAsRead = async (id: string, link: string | null) => {
-      // 1. Frontend update odmah (da se smanji broj)
       setUnreadCount(prev => Math.max(0, prev - 1));
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       
-      // 2. Backend update
       await fetch('/api/notifications', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ notificationId: id })
       });
 
-      // 3. Idi na link ako postoji
       if (link) {
           router.push(link);
           setIsNotifOpen(false);
@@ -167,7 +162,7 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* 🔔 NOTIFIKACIJE (ZVONCE) - NOVO */}
+          {/* 🔔 NOTIFIKACIJE (Sada sa prevodima) */}
           {user && (
              <DropdownMenu open={isNotifOpen} onOpenChange={setIsNotifOpen}>
                 <DropdownMenuTrigger className="relative p-2 rounded-full hover:bg-gray-100 transition outline-none">
@@ -180,12 +175,15 @@ function NavbarContent() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80 bg-white border-gray-200 shadow-xl rounded-xl p-0 overflow-hidden z-[100]">
                     <div className="bg-purple-50 p-3 border-b border-purple-100 font-bold text-gray-700 text-sm flex justify-between items-center">
-                        <span>Obaveštenja</span>
-                        {unreadCount > 0 && <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">{unreadCount} novih</span>}
+                        {/* ✅ PREVEDEN NASLOV */}
+                        <span>{t('notificationsTitle')}</span>
+                        {/* ✅ PREVEDEN BROJAČ */}
+                        {unreadCount > 0 && <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">{unreadCount} {t('new')}</span>}
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
-                            <div className="p-8 text-center text-gray-400 text-sm">Nema novih obaveštenja 🔕</div>
+                            // ✅ PREVEDEN TEKST KAD NEMA OBAVEŠTENJA
+                            <div className="p-8 text-center text-gray-400 text-sm">{t('noNotifications')} 🔕</div>
                         ) : (
                             notifications.map((notif) => (
                                 <DropdownMenuItem 
