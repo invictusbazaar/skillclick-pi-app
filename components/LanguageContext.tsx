@@ -30,8 +30,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     en: {
       back: "Back",
       backHome: "Back to Home",
-      
-      // PI LOGIN
       piLoginBtn: "Login with Pi",
       piLoginDesc: "Access your account securely using Pi Network.",
       piLoginDisclaimer: "By clicking, you allow SkillClick to verify your Pi account.",
@@ -40,20 +38,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       piBrowserError: "Please open this app in the Pi Browser.",
       piAuthFailed: "Authentication failed. Try again.",
       piWelcomeUser: "Welcome",
-
       welcomeBack: "Welcome Back",
       securedBy: "Secured by Invictus System",
       loading: "Loading...",
-      
-      // Navigacija
       navLogin: "Login",
       navJoin: "Join",
       navPostService: "Post a Service",
       navProfile: "My Profile",
       navAdminPanel: "Admin Panel",
       navLogout: "Log Out",
-      
-      // Hero & Kategorije
       heroTitle: "Find skill, pay with Pi",
       heroSubtitle: "Global marketplace for the Pi Network community.",
       catDesign: "Graphics & Design",
@@ -63,8 +56,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       catTech: "Programming & Tech",
       catBusiness: "Business",
       catLifestyle: "Lifestyle",
-      
-      // Pretraga
       searchPlaceholder: "What service are you looking for?",
       searchBtn: "Search",
       popularTag: "Popular:",
@@ -72,8 +63,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Explore the best offers",
       viewAll: "View All",
       noReviews: "No reviews yet.",
-      
-      // Create Service
       createTitle: "Post a New Service",
       createSubtitle: "Showcase your talent to the world",
       labelTitle: "Service Title",
@@ -84,19 +73,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Delivery Time (days)",
       labelDesc: "Description",
       placeholderDesc: "Describe your service in detail...",
-      uploadImages: "Upload Images", // ✅ NOVO
+      uploadImages: "Upload Images",
+      uploadHint: "Max 2MB per image", // ✅ NOVO
       btnPublish: "Publish Service",
       successMessage: "Service posted successfully!",
-      
-      // Admin & Stats
       masterAdmin: "Master Admin",
       totalEarnings: "Total Earnings",
       activeGigs: "Active Gigs",
       totalUsers: "Total Users",
       manageUsers: "Manage Users",
       manageServices: "Manage Services",
-      
-      // Service Detail & Seller Profile
       servicePrice: "Service Price",
       aboutService: "About This Service",
       delivery: "Delivery",
@@ -107,8 +93,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       aboutSeller: "About Seller",
       sellerGigs: "Active Gigs by this Seller",
       contact: "Contact",
-
-      // Reviews
       reviewsTitle: "Reviews & Ratings",
       leaveReview: "Leave a Review",
       writeReview: "Write about your experience...",
@@ -116,14 +100,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       days: "days",
       verifiedSeller: "Verified Seller",
       reviewsCountLabel: "reviews",
-      
-      // Footer / Misc
       securePayment: "Secure Pi Payment",
       satisfaction: "Satisfaction Guaranteed",
       support: "24/7 Support",
       guestUser: "Guest User",
-      
-      // Chat
       msgPlaceholder: "Type a message...",
       msgOnline: "Online",
       msgYourMessages: "Your Messages",
@@ -136,7 +116,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     sr: {
       back: "Nazad",
       backHome: "Nazad na početnu",
-      
       piLoginBtn: "Prijavi se sa Pi",
       piLoginDesc: "Pristupite nalogu sigurno koristeći Pi Network.",
       piLoginDisclaimer: "Klikom dozvoljavate verifikaciju vašeg Pi naloga.",
@@ -145,7 +124,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       piBrowserError: "Molimo otvorite aplikaciju u Pi Browser-u.",
       piAuthFailed: "Neuspešna prijava. Pokušajte ponovo.",
       piWelcomeUser: "Dobrodošli",
-
       welcomeBack: "Dobrodošli nazad",
       securedBy: "Osigurano Invictus Sistemom",
       loading: "Učitavanje...",
@@ -181,7 +159,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Vreme isporuke (dana)",
       labelDesc: "Opis",
       placeholderDesc: "Opišite vašu uslugu detaljno...",
-      uploadImages: "Postavi Slike", // ✅ NOVO
+      uploadImages: "Postavi Slike",
+      uploadHint: "Max 2MB po slici", // ✅ NOVO
       btnPublish: "Objavi Uslugu",
       successMessage: "Usluga uspešno objavljena!",
       masterAdmin: "Glavni Admin",
@@ -196,12 +175,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "Revizije",
       hireSeller: "Angažuj",
       contactSeller: "Kontaktiraj",
-      
       memberSince: "Član od",
       aboutSeller: "O Prodavcu",
       sellerGigs: "Aktivni Oglasi",
       contact: "Kontaktiraj",
-
       reviewsTitle: "Recenzije i Ocene",
       leaveReview: "Ostavite utisak",
       writeReview: "Napišite vaše iskustvo...",
@@ -233,7 +210,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       piBrowserError: "Kripya is app ko Pi Browser mein kholein.",
       piAuthFailed: "Login vifal raha. Phir se koshish karen.",
       piWelcomeUser: "Swagat hai",
-
       welcomeBack: "Wapas Swagat Hai",
       securedBy: "Invictus dwara surakshit",
       loading: "Load ho raha hai...",
@@ -268,7 +244,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Delivery Time (din)",
       labelDesc: "Vivaran",
       placeholderDesc: "Apni seva ke bare mein batayein...",
-      uploadImages: "Tasveeren Upload Karen", // ✅ NOVO
+      uploadImages: "Tasveeren Upload Karen",
+      uploadHint: "Adhiktam 2MB prati tasveer", // ✅ NOVO
       btnPublish: "Seva Prakashit Karen",
       successMessage: "Seva safaltapurvak post ki gayi!",
       masterAdmin: "Master Admin",
@@ -283,12 +260,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "Sanshodhan",
       hireSeller: "Seller Hire Karen",
       contactSeller: "Sampark Karen",
-
       memberSince: "Sadasya se",
       aboutSeller: "Vikreta ke bare mein",
       sellerGigs: "Is vikreta ki sevaen",
       contact: "Sampark karen",
-
       reviewsTitle: "Samiksha aur Rating",
       leaveReview: "Samiksha Chhodein",
       writeReview: "Apna anubhav ke bare mein likhein...",
@@ -320,7 +295,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       piBrowserError: "请在 Pi 浏览器中打开此应用。",
       piAuthFailed: "验证失败。请重试。",
       piWelcomeUser: "欢迎",
-
       welcomeBack: "欢迎回来",
       securedBy: "由 Invictus 系统保护",
       loading: "加载中...",
@@ -355,7 +329,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "交付时间 (天)",
       labelDesc: "描述",
       placeholderDesc: "详细描述您的服务...",
-      uploadImages: "上传图片", // ✅ NOVO
+      uploadImages: "上传图片",
+      uploadHint: "每张图片最大 2MB", // ✅ NOVO
       btnPublish: "发布服务",
       successMessage: "服务发布成功！",
       masterAdmin: "超级管理员",
@@ -370,12 +345,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "修改",
       hireSeller: "雇佣卖家",
       contactSeller: "联系卖家",
-
       memberSince: "加入时间",
       aboutSeller: "关于卖家",
       sellerGigs: "卖家的活跃服务",
       contact: "联系",
-
       reviewsTitle: "评论与评分",
       leaveReview: "留下评论",
       writeReview: "写下您的体验...",
@@ -407,7 +380,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       piBrowserError: "請在 Pi 瀏覽器中打開此應用。",
       piAuthFailed: "驗證失敗。請重試。",
       piWelcomeUser: "歡迎",
-
       welcomeBack: "歡迎回來",
       securedBy: "由 Invictus 系統保護",
       loading: "加載中...",
@@ -442,7 +414,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "交付時間 (天)",
       labelDesc: "描述",
       placeholderDesc: "詳細描述您的服務...",
-      uploadImages: "上傳圖片", // ✅ NOVO
+      uploadImages: "上傳圖片",
+      uploadHint: "每張圖片最大 2MB", // ✅ NOVO
       btnPublish: "發布服務",
       successMessage: "服務發布成功！",
       masterAdmin: "超級管理員",
@@ -457,12 +430,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "修改",
       hireSeller: "僱傭賣家",
       contactSeller: "聯繫賣家",
-
       memberSince: "加入時間",
       aboutSeller: "關於賣家",
       sellerGigs: "賣家的活躍服務",
       contact: "聯繫",
-
       reviewsTitle: "評論與評分",
       leaveReview: "留下評論",
       writeReview: "寫下您的體驗...",
@@ -494,7 +465,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       piBrowserError: "Silakan buka aplikasi ini di Pi Browser.",
       piAuthFailed: "Otentikasi gagal. Coba lagi.",
       piWelcomeUser: "Selamat Datang",
-
       welcomeBack: "Selamat Datang Kembali",
       securedBy: "Diamankan oleh Invictus",
       loading: "Memuat...",
@@ -529,7 +499,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       labelDelivery: "Waktu Pengiriman (hari)",
       labelDesc: "Deskripsi",
       placeholderDesc: "Jelaskan layanan Anda secara rinci...",
-      uploadImages: "Unggah Gambar", // ✅ NOVO
+      uploadImages: "Unggah Gambar",
+      uploadHint: "Maks 2MB per gambar", // ✅ NOVO
       btnPublish: "Terbitkan Layanan",
       successMessage: "Layanan berhasil diposting!",
       masterAdmin: "Master Admin",
@@ -544,12 +515,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       revisions: "Revisi",
       hireSeller: "Sewa Penjual",
       contactSeller: "Hubungi Penjual",
-      
       memberSince: "Anggota Sejak",
       aboutSeller: "Tentang Penjual",
       sellerGigs: "Layanan Aktif",
       contact: "Hubungi",
-
       reviewsTitle: "Ulasan & Peringkat",
       leaveReview: "Berikan Ulasan",
       writeReview: "Tulis pengalaman Anda...",
