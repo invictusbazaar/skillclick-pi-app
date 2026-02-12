@@ -122,29 +122,25 @@ function NavbarContent() {
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans overflow-hidden">
-      {/* Dodat 'relative' da bi apsolutno pozicioniranje radilo unutar ovog diva */}
       <div className="container mx-auto px-2 md:px-4 h-16 md:h-20 flex items-center relative">
         
-        {/* LOGO - Sada je VELIKI i na mobilnom */}
-        <Link href="/" className="flex-shrink-0 ml-[-20px] md:ml-[-100px] z-0"> 
+        {/* LOGO - POMEREN JOS LEVO */}
+        {/* Ranije: ml-[-20px] -> Sada: ml-[-70px] (mobile) */}
+        {/* Ranije: ml-[-100px] -> Sada: ml-[-150px] (desktop) */}
+        <Link href="/" className="flex-shrink-0 ml-[-70px] md:ml-[-150px] z-0"> 
           <Image 
             src="/skillclick_logo.png" 
             alt="SkillClick" 
             width={440} 
             height={120} 
-            // 👇 Vraćena veća širina
             className="w-[280px] sm:w-[320px] md:w-[400px] h-auto object-contain" 
             priority 
           />
         </Link>
 
-        {/* DESNA STRANA - APSOLUTNO POZICIONIRANA 
-           Ovo znači da "lebdi" iznad svega, desno poravnata.
-           z-50 osigurava da je IZNAD logoa i da se može kliknuti.
-        */}
+        {/* DESNA STRANA */}
         <div className="absolute right-2 md:static md:ml-auto flex items-center gap-1 sm:gap-2 md:gap-4 z-50 bg-white/30 backdrop-blur-[2px] rounded-full p-1 border border-white/50 shadow-sm">
           
-          {/* 🌍 JEZIK */}
           <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
             <DropdownMenuTrigger className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-white/80 hover:bg-purple-50 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95 shadow-sm">
                 <span className="text-lg md:text-xl">{currentLangObj.flag}</span> 
@@ -165,7 +161,6 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* 🔔 NOTIFIKACIJE */}
           {user && (
              <DropdownMenu open={isNotifOpen} onOpenChange={setIsNotifOpen}>
                 <DropdownMenuTrigger className="relative p-1.5 md:p-2 rounded-full bg-white/80 hover:bg-gray-100 transition outline-none border border-gray-100 shadow-sm">
@@ -204,12 +199,10 @@ function NavbarContent() {
              </DropdownMenu>
           )}
 
-          {/* DESKTOP LINKOVI (Sakriveni na mobilnom) */}
           <div className="hidden md:flex items-center gap-4">
              <Link href="/create" className="text-sm font-bold text-gray-600 hover:text-purple-600 flex items-center gap-2">
                 <PlusCircle className="w-5 h-5" /> {t('navPostService')}
              </Link>
-             
              {user?.isAdmin && (
                 <Link href="/admin">
                     <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2 shadow-md">
@@ -217,7 +210,6 @@ function NavbarContent() {
                     </Button>
                 </Link>
              )}
-             
              {user ? (
                 <Link href="/profile">
                     <div className="w-10 h-10 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-md cursor-pointer hover:bg-purple-200 transition">
@@ -229,7 +221,6 @@ function NavbarContent() {
              )}
           </div>
 
-          {/* MOBILNI MENI - HAMBURGER */}
           <div className="flex md:hidden">
               <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                   <DropdownMenuTrigger className="p-1.5 transition-transform active:scale-95 bg-white/80 rounded-full border border-gray-100 shadow-sm"> <Menu className="w-6 h-6 text-gray-800" /> </DropdownMenuTrigger>
@@ -297,7 +288,6 @@ function NavbarContent() {
         </div>
       </div>
       
-      {/* KATEGORIJE */}
       <div className="block border-t border-gray-100 bg-white/95 backdrop-blur-md shadow-sm">
          <div className="container mx-auto px-4">
             <div className="flex items-center gap-6 overflow-x-auto py-3 scrollbar-hide no-scrollbar">
