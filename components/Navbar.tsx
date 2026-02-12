@@ -7,10 +7,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/components/LanguageContext"
 import { useAuth } from "@/components/AuthContext"
 import { 
-  ChevronDown, Menu, ShieldCheck, Home, PlusCircle, User, Bell, Check 
+  ChevronDown, Menu, ShieldCheck, Home, PlusCircle, User, Bell 
 } from "lucide-react"
 import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator 
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 
@@ -52,7 +52,6 @@ function NavbarContent() {
     { key: "catLifestyle", slug: "lifestyle" }
   ];
 
-  // --- LOGIKA ZA NOTIFIKACIJE ---
   const fetchNotifications = async () => {
     if (!user?.username) return;
     try {
@@ -92,7 +91,6 @@ function NavbarContent() {
           setIsNotifOpen(false);
       }
   };
-  // ------------------------------
 
   const handleLanguageClick = (e: Event, key: string) => {
     e.preventDefault();
@@ -123,27 +121,32 @@ function NavbarContent() {
   `;
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans">
-      <div className="container mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans overflow-hidden">
+      {/* Dodat 'relative' da bi apsolutno pozicioniranje radilo unutar ovog diva */}
+      <div className="container mx-auto px-2 md:px-4 h-16 md:h-20 flex items-center relative">
         
-        {/* LOGO */}
-        <Link href="/" className="flex-shrink-0 ml-[-100px]"> 
+        {/* LOGO - Sada je VELIKI i na mobilnom */}
+        <Link href="/" className="flex-shrink-0 ml-[-20px] md:ml-[-100px] z-0"> 
           <Image 
             src="/skillclick_logo.png" 
             alt="SkillClick" 
             width={440} 
             height={120} 
-            className="w-[320px] md:w-[400px] h-auto object-contain" 
+            // 👇 Vraćena veća širina
+            className="w-[280px] sm:w-[320px] md:w-[400px] h-auto object-contain" 
             priority 
           />
         </Link>
 
-        {/* DESNA STRANA */}
-        <div className="flex items-center gap-2 md:gap-4 ml-auto">
+        {/* DESNA STRANA - APSOLUTNO POZICIONIRANA 
+           Ovo znači da "lebdi" iznad svega, desno poravnata.
+           z-50 osigurava da je IZNAD logoa i da se može kliknuti.
+        */}
+        <div className="absolute right-2 md:static md:ml-auto flex items-center gap-1 sm:gap-2 md:gap-4 z-50 bg-white/30 backdrop-blur-[2px] rounded-full p-1 border border-white/50 shadow-sm">
           
           {/* 🌍 JEZIK */}
           <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
-            <DropdownMenuTrigger className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95">
+            <DropdownMenuTrigger className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-white/80 hover:bg-purple-50 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95 shadow-sm">
                 <span className="text-lg md:text-xl">{currentLangObj.flag}</span> 
                 <span className="hidden md:inline font-bold text-xs ml-1">{currentLangObj.label}</span>
                 <ChevronDown className="w-3 h-3 text-purple-700" />
@@ -162,27 +165,24 @@ function NavbarContent() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* 🔔 NOTIFIKACIJE (Sada sa prevodima) */}
+          {/* 🔔 NOTIFIKACIJE */}
           {user && (
              <DropdownMenu open={isNotifOpen} onOpenChange={setIsNotifOpen}>
-                <DropdownMenuTrigger className="relative p-2 rounded-full hover:bg-gray-100 transition outline-none">
-                    <Bell className={`w-6 h-6 ${unreadCount > 0 ? "text-purple-600 fill-purple-100" : "text-gray-500"}`} />
+                <DropdownMenuTrigger className="relative p-1.5 md:p-2 rounded-full bg-white/80 hover:bg-gray-100 transition outline-none border border-gray-100 shadow-sm">
+                    <Bell className={`w-5 h-5 md:w-6 md:h-6 ${unreadCount > 0 ? "text-purple-600 fill-purple-100" : "text-gray-500"}`} />
                     {unreadCount > 0 && (
-                        <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                        <span className="absolute top-0 right-0 md:top-1 md:right-1 w-3.5 h-3.5 md:w-4 md:h-4 bg-red-600 text-white text-[9px] md:text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
                             {unreadCount}
                         </span>
                     )}
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 bg-white border-gray-200 shadow-xl rounded-xl p-0 overflow-hidden z-[100]">
+                <DropdownMenuContent align="end" className="w-72 md:w-80 bg-white border-gray-200 shadow-xl rounded-xl p-0 overflow-hidden z-[100]">
                     <div className="bg-purple-50 p-3 border-b border-purple-100 font-bold text-gray-700 text-sm flex justify-between items-center">
-                        {/* ✅ PREVEDEN NASLOV */}
                         <span>{t('notificationsTitle')}</span>
-                        {/* ✅ PREVEDEN BROJAČ */}
                         {unreadCount > 0 && <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">{unreadCount} {t('new')}</span>}
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
-                            // ✅ PREVEDEN TEKST KAD NEMA OBAVEŠTENJA
                             <div className="p-8 text-center text-gray-400 text-sm">{t('noNotifications')} 🔕</div>
                         ) : (
                             notifications.map((notif) => (
@@ -204,7 +204,7 @@ function NavbarContent() {
              </DropdownMenu>
           )}
 
-          {/* DESKTOP LINKOVI */}
+          {/* DESKTOP LINKOVI (Sakriveni na mobilnom) */}
           <div className="hidden md:flex items-center gap-4">
              <Link href="/create" className="text-sm font-bold text-gray-600 hover:text-purple-600 flex items-center gap-2">
                 <PlusCircle className="w-5 h-5" /> {t('navPostService')}
@@ -229,10 +229,10 @@ function NavbarContent() {
              )}
           </div>
 
-          {/* MOBILNI MENI */}
+          {/* MOBILNI MENI - HAMBURGER */}
           <div className="flex md:hidden">
               <DropdownMenu open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                  <DropdownMenuTrigger className="p-2 transition-transform active:scale-95"> <Menu className="w-7 h-7 text-gray-800" /> </DropdownMenuTrigger>
+                  <DropdownMenuTrigger className="p-1.5 transition-transform active:scale-95 bg-white/80 rounded-full border border-gray-100 shadow-sm"> <Menu className="w-6 h-6 text-gray-800" /> </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-60 bg-white border border-gray-200 shadow-2xl z-[9999] rounded-xl p-2 mr-2">
                       <div className="p-3 border-b border-gray-100 mb-2 bg-gray-50 rounded-lg">
                           {user ? (
