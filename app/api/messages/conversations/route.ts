@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // Pronalazimo sve jedinstvene korisnike sa kojima je ovaj korisnik pričao
+    // Pronalazimo sve poruke
     const messages = await prisma.message.findMany({
       where: {
         OR: [{ senderId: user.id }, { receiverId: user.id }],
@@ -28,12 +28,15 @@ export async function POST(req: Request) {
 
     messages.forEach((msg) => {
       const otherUser = msg.senderId === user.id ? msg.receiver : msg.sender;
+      
       if (!conversationsMap.has(otherUser.username)) {
         conversationsMap.set(otherUser.username, {
           username: otherUser.username,
           lastMessage: msg.content,
           time: msg.createdAt,
           isRead: msg.receiverId === user.id ? msg.isRead : true,
+          // 👇 OVO JE NOVO: Šaljemo vreme kada je korisnik poslednji put viđen
+          lastSeen: otherUser.lastSeen 
         });
       }
     });
