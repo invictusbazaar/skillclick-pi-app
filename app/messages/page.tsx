@@ -13,7 +13,6 @@ function ChatInterface() {
   const { t } = useLanguage()
   const { user } = useAuth()
   
-  // Ref za automatsko skrolovanje na dno čata
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const sellerParam = searchParams.get('seller')
@@ -24,23 +23,18 @@ function ChatInterface() {
   const [loadingInbox, setLoadingInbox] = useState(true)
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
-  const [chatHistory, setChatHistory] = useState([
-    { id: 1, text: "...", sender: "system", time: "", type: "welcome" } 
-  ])
+  
+  // Ovde čuvamo stvarne poruke
+  const [chatHistory, setChatHistory] = useState<any[]>([])
 
-  // Skroluj na dno kad stigne nova poruka ili se otvori čat
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [chatHistory, sellerName])
-
-  // 1. Učitavanje Inboxa (Lista razgovora)
+  // 1. UČITAVANJE LISTE RAZGOVORA (INBOX)
   useEffect(() => {
     const fetchConversations = async () => {
-      if (!user?.username || sellerName) return;
+      if (!user?.username || sellerName) return; // Ne učitavaj listu ako smo u četu
       try {
         const res = await fetch('/api/messages/conversations', {
           method: 'POST',
@@ -50,43 +44,93 @@ function ChatInterface() {
         const data = await res.json();
         setConversations(data.conversations || []);
       } catch (err) {
-        console.error("Greška pri učitavanju Inboxa", err);
+        console.error("Greška inbox", err);
       } finally {
         setLoadingInbox(false);
       }
     };
-    
+
     if (!sellerName) {
         fetchConversations();
-        const interval = setInterval(fetchConversations, 10000); // Brže osvežavanje (10s)
+        const interval = setInterval(fetchConversations, 5000); 
         return () => clearInterval(interval);
     }
   }, [user, sellerName]);
 
-  // 2. Sistemske poruke i učitavanje
-  useEffect(() => {
-    if (sellerName) {
-        // Ovde bismo idealno učitali STVARNE poruke iz baze za ovaj par (sellerName + user)
-        // Za sada koristimo state, ali sistem je spreman za pravi fetch
-        setChatHistory(prevHistory => prevHistory.map(msg => {
-            if (msg.id === 1) return { ...msg, text: t('msgSystemWelcome') };
-            if (msg.id === 2 && serviceName) return { ...msg, text: `${t('msgStartConv')} "${serviceName}"` };
-            return msg;
-        }));
-    }
-  }, [t, serviceName, sellerName]);
 
-  // 3. Slanje poruke
+  // 2. 🔥 GLAVNA STVAR: UČITAVANJE PORUKA U ČETU UŽIVO
+  useEffect(() => {
+    if (!sellerName || !user?.username) return;
+
+    const fetchMessages = async () => {
+        try {
+            const res = await fetch('/api/messages/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    myUsername: user.username,
+                    otherUsername: sellerName
+                })
+            });
+            const data = await res.json();
+            
+            if (data.messages) {
+                // Konvertujemo format iz baze u format za prikaz
+                const formatted = data.messages.map((m: any) => ({
+                    id: m.id,
+                    text: m.content,
+                    sender: m.sender.username === user.username ? "me" : "other",
+                    time: new Date(m.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    isRead: m.isRead
+                }));
+                
+                // Dodamo sistemsku poruku na početak ako je ima
+                if (serviceName) {
+                    formatted.unshift({ 
+                        id: 'sys', 
+                        text: `${t('msgStartConv')} "${serviceName}"`, 
+                        sender: "system", 
+                        time: "" 
+                    });
+                }
+                
+                setChatHistory(formatted);
+                // Skroluj samo ako je ovo prvo učitavanje ili ako je stigla nova poruka
+                // (Ovde možeš dodati logiku da ne skroluje ako korisnik čita stare poruke)
+            }
+        } catch (e) {
+            console.error("Greška pri učitavanju poruka", e);
+        }
+    };
+
+    fetchMessages(); // Učitaj odmah
+    const interval = setInterval(fetchMessages, 2000); // ⚡ OSVEŽAVAJ SVAKE 2 SEKUNDE
+    
+    return () => clearInterval(interval);
+  }, [sellerName, user, serviceName, t]);
+
+
+  // Skroluj na dno kad se promeni istorija poruka
+  useEffect(() => {
+      scrollToBottom();
+  }, [chatHistory.length]); // Samo kad se broj poruka promeni
+
+
+  // 3. SLANJE PORUKE
   const handleSend = async () => {
     if (!message.trim() || !user || !sellerName) return;
     const contentToSend = message;
     setMessage("");
     setIsSending(true);
 
-    const optimisticMsg = { id: Date.now(), text: contentToSend, sender: "me", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), type: "user" };
+    // Optimistički prikaz (odmah pokaži da je poslato)
+    const optimisticMsg = { 
+        id: Date.now().toString(), 
+        text: contentToSend, 
+        sender: "me", 
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+    };
     setChatHistory(prev => [...prev, optimisticMsg]);
-    
-    // Odmah skroluj dole
     setTimeout(scrollToBottom, 100);
 
     try {
@@ -99,6 +143,7 @@ function ChatInterface() {
                 receiverUsername: sellerName
             }),
         });
+        // Ne moramo ništa više da radimo, setInterval iznad će povući pravu poruku iz baze za 2 sekunde
     } catch (error) {
         console.error("Greška pri slanju:", error);
     } finally {
@@ -130,14 +175,6 @@ function ChatInterface() {
               </div>
             </div>
             
-            {/* Search */}
-            <div className="p-4 bg-white">
-               <div className="relative group">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="text" placeholder="Pretraži..." className="w-full bg-gray-100 border-none rounded-xl py-3 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-purple-100 transition-all" />
-               </div>
-            </div>
-
             {/* Lista */}
             {loadingInbox ? (
               <div className="p-10 text-center text-gray-400 animate-pulse">{t('loading')}</div>
@@ -154,7 +191,6 @@ function ChatInterface() {
                     onClick={() => router.push(`/messages?seller=${conv.username}`)} 
                     className="px-4 py-4 flex items-center gap-4 hover:bg-purple-50 active:bg-purple-100 cursor-pointer transition-all border-b border-gray-50 group"
                   >
-                    {/* Avatar */}
                     <div className="relative shrink-0">
                         <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-md">
                             {conv.username[0].toUpperCase()}
@@ -163,8 +199,6 @@ function ChatInterface() {
                             <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
                         )}
                     </div>
-
-                    {/* Tekst */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-1">
                         <h3 className="font-bold text-gray-900 truncate text-base">{conv.username}</h3>
@@ -175,8 +209,6 @@ function ChatInterface() {
                         <p className={`text-sm truncate ${!conv.isRead ? 'font-bold text-gray-900' : 'text-gray-500'}`}>{conv.lastMessage}</p>
                       </div>
                     </div>
-                    
-                    {/* Strelica da zna da može da klikne */}
                     <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-purple-400" />
                   </div>
                 ))}
@@ -205,27 +237,42 @@ function ChatInterface() {
                   </div>
                   <div className="flex flex-col overflow-hidden">
                       <h1 className="font-bold text-gray-900 leading-tight truncate text-lg">{sellerName}</h1>
-                      {serviceName && <p className="text-[10px] text-gray-400 truncate">{t('msgTopic')} {serviceName}</p>}
+                      {/* Ovde možemo dodati i "kuca..." indikator kasnije */}
+                      {serviceName ? (
+                          <p className="text-[10px] text-gray-400 truncate">{t('msgTopic')} {serviceName}</p>
+                      ) : (
+                          <p className="text-[10px] text-green-600 font-medium animate-pulse">Live Chat</p>
+                      )}
                   </div>
                </div>
           </div>
         </div>
 
         {/* Poruke Area */}
-        <main className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-gray-50/50 pb-24 md:pb-4">
-          {chatHistory.map((msg) => (
-              <div key={msg.id} className={`flex w-full ${msg.sender === "me" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] md:max-w-[70%] p-3.5 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed break-words
-                      ${msg.sender === "me" ? "bg-purple-600 text-white rounded-br-none" : msg.sender === "system" ? "bg-transparent text-gray-400 text-center text-xs w-full shadow-none my-2 italic" : "bg-white border border-gray-200 text-gray-700 rounded-bl-none"}`}>
+        <main className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50/50 pb-24 md:pb-4">
+          {chatHistory.length === 0 && (
+              <div className="text-center text-gray-400 mt-10 text-sm">Započnite razgovor...</div>
+          )}
+          {chatHistory.map((msg, index) => (
+              <div key={index} className={`flex w-full ${msg.sender === "me" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] md:max-w-[70%] p-3 px-4 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed break-words
+                      ${msg.sender === "me" ? "bg-purple-600 text-white rounded-br-none" : msg.sender === "system" ? "bg-purple-50 text-purple-800 text-center text-xs w-full shadow-none my-2 italic border border-purple-100" : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"}`}>
                       <p>{msg.text}</p>
-                      {msg.sender !== "system" && <span className="text-[10px] block mt-1 text-right opacity-70">{msg.time}</span>}
+                      {msg.sender !== "system" && (
+                        <div className={`text-[10px] mt-1 flex justify-end items-center gap-1 opacity-70 ${msg.sender === "me" ? "text-purple-100" : "text-gray-400"}`}>
+                            <span>{msg.time}</span>
+                            {msg.sender === "me" && (
+                                <CheckCheck className={`w-3 h-3 ${msg.isRead ? "text-green-300" : ""}`} />
+                            )}
+                        </div>
+                      )}
                   </div>
               </div>
           ))}
           <div ref={messagesEndRef} />
         </main>
 
-        {/* INPUT ZONA (Fixed na dnu za mobilni) */}
+        {/* INPUT ZONA */}
         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-3 md:p-4 z-30 md:static md:w-full pb-safe">
             <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm max-w-2xl mx-auto">
                 <input 
