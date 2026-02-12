@@ -25,6 +25,7 @@ function ChatInterface() {
     { id: 1, text: "...", sender: "system", time: "", type: "welcome" } 
   ])
 
+  // 1. Učitavanje Inboxa
   useEffect(() => {
     const fetchConversations = async () => {
       if (!user?.username || sellerName) return;
@@ -42,9 +43,17 @@ function ChatInterface() {
         setLoadingInbox(false);
       }
     };
+    
+    // Učitaj odmah
     fetchConversations();
+
+    // Osvežavaj listu svakih 30 sekundi da bi se zelene tačkice ažurirale uživo
+    const interval = setInterval(fetchConversations, 30000);
+    return () => clearInterval(interval);
+
   }, [user, sellerName]);
 
+  // 2. Sistemske poruke
   useEffect(() => {
     if (sellerName) {
         setChatHistory(prevHistory => prevHistory.map(msg => {
@@ -55,6 +64,7 @@ function ChatInterface() {
     }
   }, [t, serviceName, sellerName]);
 
+  // 3. Slanje poruke
   const handleSend = async () => {
     if (!message.trim() || !user || !sellerName) return;
     const contentToSend = message;
@@ -81,7 +91,16 @@ function ChatInterface() {
     }
   };
 
-  // --- RENDERING: INBOX LISTA (WhatsApp stil) ---
+  // 👇 FUNKCIJA ZA PROVERU "ONLINE" STATUSA
+  const isOnline = (lastSeenDate: string) => {
+    if (!lastSeenDate) return false;
+    const now = new Date();
+    const lastSeen = new Date(lastSeenDate);
+    const diffInMinutes = (now.getTime() - lastSeen.getTime()) / 1000 / 60;
+    return diffInMinutes < 2; // Smatramo ga online ako je viđen pre manje od 2 min
+  };
+
+  // --- RENDERING: INBOX LISTA ---
   if (!sellerName) {
     return (
         <div className="min-h-screen bg-white md:bg-gray-50 font-sans pb-20">
@@ -95,12 +114,14 @@ function ChatInterface() {
                 <MessageSquare className="w-6 h-6 text-white -rotate-3" />
               </div>
             </div>
+            
             <div className="p-4">
-                <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="text" placeholder="Pretraži..." className="w-full bg-gray-100 border-none rounded-xl py-3 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-purple-100 transition-all" />
-                </div>
+               <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Pretraži..." className="w-full bg-gray-100 border-none rounded-xl py-3 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-purple-100 transition-all" />
+               </div>
             </div>
+
             {loadingInbox ? (
               <div className="p-10 text-center text-gray-400 animate-pulse">{t('loading')}</div>
             ) : conversations.length === 0 ? (
@@ -112,7 +133,18 @@ function ChatInterface() {
               <div className="flex flex-col">
                 {conversations.map((conv) => (
                   <div key={conv.username} onClick={() => router.push(`/messages?seller=${conv.username}`)} className="px-4 py-4 flex items-center gap-4 hover:bg-purple-50 cursor-pointer transition-all border-b border-gray-50 group">
-                    <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-md group-hover:scale-105 transition-transform">{conv.username[0].toUpperCase()}</div>
+                    
+                    {/* AVATAR SA ZELENOM TAČKICOM */}
+                    <div className="relative shrink-0">
+                        <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-md group-hover:scale-105 transition-transform">
+                            {conv.username[0].toUpperCase()}
+                        </div>
+                        {/* 👇 Ovde se pali zelena lampica SAMO ako je isOnline = true */}
+                        {isOnline(conv.lastSeen) && (
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
+                        )}
+                    </div>
+
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-1">
                         <h3 className="font-bold text-gray-900 truncate">{conv.username}</h3>
@@ -132,7 +164,7 @@ function ChatInterface() {
     );
   }
 
-  // --- RENDERING: DIREKTAN ČAT (Bez lažnog Online statusa) ---
+  // --- RENDERING: DIREKTAN ČAT ---
   return (
     <div className="h-[100dvh] md:min-h-screen w-full bg-white md:bg-gray-100 flex flex-col md:items-center md:justify-center font-sans overflow-hidden">
       <div className="w-full md:max-w-2xl bg-white md:rounded-2xl md:shadow-xl md:border md:border-gray-200 h-full md:h-[85vh] flex flex-col relative">
@@ -148,7 +180,6 @@ function ChatInterface() {
                   </div>
                   <div className="flex flex-col overflow-hidden">
                       <h1 className="font-bold text-gray-900 leading-tight truncate">{sellerName}</h1>
-                      {/* 👇 Online status i zelena tačkica su uklonjeni */}
                       {serviceName && <p className="text-[10px] text-gray-400 truncate">{t('msgTopic')} {serviceName}</p>}
                   </div>
                </div>
