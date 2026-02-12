@@ -283,20 +283,23 @@ function ChatInterface() {
           <div ref={messagesEndRef} />
         </main>
 
-        {/* 👇 INPUT ZONA - UTEGNUTA */}
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 p-3 md:p-4 z-30 md:static md:w-full pb-safe">
-            <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl pl-4 pr-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm max-w-2xl mx-auto">
-                <input 
-                  type="text" 
-                  value={message} 
-                  onChange={(e) => setMessage(e.target.value)} 
-                  placeholder={t('msgPlaceholder')} 
-                  className="flex-1 bg-transparent border-0 py-2 text-gray-700 outline-none text-base" 
-                  onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()} 
-                />
-                <Button onClick={handleSend} disabled={isSending} size="icon" className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md disabled:opacity-50 w-10 h-10 mr-1">
-                    {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                </Button>
+        {/* 👇 INPUT ZONA - POPRAVLJENO */}
+        {/* Koristimo z-40 i fiksiranu poziciju, ali sa px-4 da odmaknemo od ivice */}
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 z-40 pb-safe">
+            <div className="p-3 md:p-4 w-full max-w-2xl mx-auto">
+                <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm">
+                    <input 
+                      type="text" 
+                      value={message} 
+                      onChange={(e) => setMessage(e.target.value)} 
+                      placeholder={t('msgPlaceholder')} 
+                      className="flex-1 bg-transparent border-0 px-3 py-2 text-gray-700 outline-none text-base min-w-0" 
+                      onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()} 
+                    />
+                    <Button onClick={handleSend} disabled={isSending} size="icon" className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md disabled:opacity-50 w-10 h-10 mr-1">
+                        {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                    </Button>
+                </div>
             </div>
         </div>
 
