@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/components/LanguageContext"
 import { useAuth } from "@/components/AuthContext"
 import { 
-  ChevronDown, Menu, ShieldCheck, Home, PlusCircle, User, Bell 
+  ChevronDown, Menu, ShieldCheck, Home, PlusCircle, User, Bell, MessageSquare 
 } from "lucide-react"
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
@@ -124,21 +124,22 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans overflow-hidden">
       <div className="container mx-auto px-2 md:px-4 h-16 md:h-20 flex items-center relative">
         
-        {/* LOGO - JOŠ LEVLJE (-110px Mobile / -190px Desktop) */}
+        {/* LOGO - ISTA POZICIJA I VELIČINA */}
         <Link href="/" className="flex-shrink-0 ml-[-110px] md:ml-[-190px] z-0"> 
           <Image 
             src="/skillclick_logo.png" 
             alt="SkillClick" 
             width={600} 
             height={160} 
-            className="w-[320px] sm:w-[370px] md:w-[460px] h-auto object-contain" 
+            className="w-[370px] sm:w-[420px] md:w-[530px] h-auto object-contain" 
             priority 
           />
         </Link>
 
-        {/* DESNA STRANA */}
+        {/* DESNA STRANA - DODATA IKONA PORUKA */}
         <div className="absolute right-2 md:static md:ml-auto flex items-center gap-1 sm:gap-2 md:gap-4 z-50 bg-white/30 backdrop-blur-[2px] rounded-full p-1 border border-white/50 shadow-sm">
           
+          {/* 🌍 JEZIK */}
           <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
             <DropdownMenuTrigger className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-white/80 hover:bg-purple-50 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95 shadow-sm">
                 <span className="text-lg md:text-xl">{currentLangObj.flag}</span> 
@@ -160,7 +161,16 @@ function NavbarContent() {
           </DropdownMenu>
 
           {user && (
-             <DropdownMenu open={isNotifOpen} onOpenChange={setIsNotifOpen}>
+            <>
+              {/* ✉️ INBOX IKONA (Nova) */}
+              <Link href="/messages">
+                <div className="p-1.5 md:p-2 rounded-full bg-white/80 hover:bg-gray-100 transition border border-gray-100 shadow-sm text-gray-500 hover:text-purple-600">
+                    <MessageSquare className="w-5 h-5 md:w-6 md:h-6" />
+                </div>
+              </Link>
+
+              {/* 🔔 NOTIFIKACIJE */}
+              <DropdownMenu open={isNotifOpen} onOpenChange={setIsNotifOpen}>
                 <DropdownMenuTrigger className="relative p-1.5 md:p-2 rounded-full bg-white/80 hover:bg-gray-100 transition outline-none border border-gray-100 shadow-sm">
                     <Bell className={`w-5 h-5 md:w-6 md:h-6 ${unreadCount > 0 ? "text-purple-600 fill-purple-100" : "text-gray-500"}`} />
                     {unreadCount > 0 && (
@@ -194,7 +204,8 @@ function NavbarContent() {
                         )}
                     </div>
                 </DropdownMenuContent>
-             </DropdownMenu>
+              </DropdownMenu>
+            </>
           )}
 
           <div className="hidden md:flex items-center gap-4">
