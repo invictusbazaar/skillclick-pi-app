@@ -1,589 +1,324 @@
-"use client"
+"use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { 
+  Zap, ArrowLeft, Loader2, CheckCircle, 
+  Image as ImageIcon, Upload, X 
+} from 'lucide-react';
+import Link from 'next/link';
+import { useLanguage } from '@/components/LanguageContext';
+import { useAuth } from '@/components/AuthContext';
 
-type LanguageContextType = {
-  language: string;
-  setLanguage: (lang: string) => void;
-  t: (key: string) => string;
-};
+export default function CreateServicePage() {
+  const router = useRouter();
+  const { t } = useLanguage();
+  const { user, isLoading: authLoading } = useAuth();
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "",
+    price: "",
+    deliveryTime: "",
+    revisions: "",
+    image1: "", 
+    image2: "",
+    image3: "" 
+  });
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState('en');
+  const categories = [
+    { key: "catDesign", val: "Graphics & Design" },
+    { key: "catMarketing", val: "Digital Marketing" },
+    { key: "catWriting", val: "Writing & Translation" },
+    { key: "catVideo", val: "Video & Animation" },
+    { key: "catTech", val: "Programming & Tech" },
+    { key: "catBusiness", val: "Business" },
+    { key: "catLifestyle", val: "Lifestyle" }
+  ];
 
+  // Ako nije ulogovan, logika se može dodati ovde, ali trenutno samo prikazujemo poruku dole
   useEffect(() => {
-    const storedLang = localStorage.getItem('skillclick_lang');
-    if (storedLang) {
-        setLanguageState(storedLang);
+    if (!authLoading && !user) {
+        // router.push('/'); 
     }
-  }, []);
+  }, [authLoading, user, router]);
 
-  const setLanguage = (lang: string) => {
-      setLanguageState(lang);
-      localStorage.setItem('skillclick_lang', lang);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const translations: Record<string, Record<string, string>> = {
-    // === 🇺🇸 ENGLESKI ===
-    en: {
-      back: "Back",
-      backHome: "Back to Home",
-      piLoginBtn: "Login with Pi",
-      piLoginDesc: "Access your account securely using Pi Network.",
-      piLoginDisclaimer: "By clicking, you allow SkillClick to verify your Pi account.",
-      piConnecting: "Connecting to Pi Network...",
-      piVerifying: "Verifying...",
-      piBrowserError: "Please open this app in the Pi Browser.",
-      piAuthFailed: "Authentication failed. Try again.",
-      piWelcomeUser: "Welcome",
-      welcomeBack: "Welcome Back",
-      securedBy: "Secured by Invictus System",
-      loading: "Loading...",
-      navLogin: "Login",
-      navJoin: "Join",
-      navPostService: "Post a Service",
-      navProfile: "My Profile",
-      navAdminPanel: "Admin Panel",
-      navLogout: "Log Out",
-      heroTitle: "Find skill, pay with Pi",
-      heroSubtitle: "Global marketplace for the Pi Network community.",
-      catDesign: "Graphics & Design",
-      catMarketing: "Digital Marketing",
-      catWriting: "Writing & Translation",
-      catVideo: "Video & Animation",
-      catTech: "Programming & Tech",
-      catBusiness: "Business",
-      catLifestyle: "Lifestyle",
-      searchPlaceholder: "What service are you looking for?",
-      searchBtn: "Search",
-      popularTag: "Popular:",
-      adsTitle: "Popular Services",
-      exploreBest: "Explore the best offers",
-      viewAll: "View All",
-      noReviews: "No reviews yet.",
-      createTitle: "Post a New Service",
-      createSubtitle: "Showcase your talent to the world",
-      labelTitle: "Service Title",
-      placeholderTitle: "e.g. I will design a modern logo for you",
-      labelCategory: "Category",
-      selectCategory: "Select a Category",
-      labelPrice: "Price (Pi)",
-      labelDelivery: "Delivery Time (days)",
-      labelDesc: "Description",
-      placeholderDesc: "Describe your service in detail...",
-      uploadImages: "Upload Images",
-      uploadHint: "Max 2MB per image",
-      btnPublish: "Publish Service",
-      successMessage: "Service posted successfully!",
-      masterAdmin: "Master Admin",
-      totalEarnings: "Total Earnings",
-      activeGigs: "Active Gigs",
-      totalUsers: "Total Users",
-      manageUsers: "Manage Users",
-      manageServices: "Manage Services",
-      servicePrice: "Service Price",
-      aboutService: "About This Service",
-      delivery: "Delivery",
-      revisions: "Revisions",
-      hireSeller: "Hire Seller",
-      contactSeller: "Contact Seller",
-      memberSince: "Member Since",
-      aboutSeller: "About Seller",
-      sellerGigs: "Active Gigs by this Seller",
-      contact: "Contact",
-      reviewsTitle: "Reviews & Ratings",
-      leaveReview: "Leave a Review",
-      writeReview: "Write about your experience...",
-      submitReview: "Post Review",
-      days: "days",
-      verifiedSeller: "Verified Seller",
-      reviewsCountLabel: "reviews",
-      securePayment: "Secure Pi Payment",
-      satisfaction: "Satisfaction Guaranteed",
-      support: "24/7 Support",
-      guestUser: "Guest User",
-      msgPlaceholder: "Type a message...",
-      msgOnline: "Online",
-      msgYourMessages: "Your Messages",
-      msgTopic: "Topic:",
-      msgSystemWelcome: "Welcome to SkillClick chat! 👋",
-      msgStartConv: "Starting conversation regarding:",
-      
-      // ✅ NOVO - NOTIFIKACIJE
-      notificationsTitle: "Notifications",
-      new: "new",
-      noNotifications: "No new notifications"
-    },
+  const handleCategoryChange = (value: string) => {
+      setFormData(prev => ({ ...prev, category: value }));
+  }
 
-    // === 🇷🇸 SRPSKI ===
-    sr: {
-      back: "Nazad",
-      backHome: "Nazad na početnu",
-      piLoginBtn: "Prijavi se sa Pi",
-      piLoginDesc: "Pristupite nalogu sigurno koristeći Pi Network.",
-      piLoginDisclaimer: "Klikom dozvoljavate verifikaciju vašeg Pi naloga.",
-      piConnecting: "Povezivanje na Pi mrežu...",
-      piVerifying: "Verifikacija...",
-      piBrowserError: "Molimo otvorite aplikaciju u Pi Browser-u.",
-      piAuthFailed: "Neuspešna prijava. Pokušajte ponovo.",
-      piWelcomeUser: "Dobrodošli",
-      welcomeBack: "Dobrodošli nazad",
-      securedBy: "Osigurano Invictus Sistemom",
-      loading: "Učitavanje...",
-      navLogin: "Prijavi se",
-      navJoin: "Registruj se",
-      navPostService: "Objavi Uslugu",
-      navProfile: "Moj Profil",
-      navAdminPanel: "Admin Panel",
-      navLogout: "Odjavi se",
-      heroTitle: "Pronađi veštinu, plati Pi-jem",
-      heroSubtitle: "Globalna pijaca za Pi Network zajednicu.",
-      catDesign: "Grafika i Dizajn",
-      catMarketing: "Digitalni Marketing",
-      catWriting: "Pisanje i Prevod",
-      catVideo: "Video i Animacija",
-      catTech: "Programiranje i Tehnika",
-      catBusiness: "Biznis",
-      catLifestyle: "Životni stil",
-      searchPlaceholder: "Koju uslugu tražiš?",
-      searchBtn: "Pretraži",
-      popularTag: "Popularno:",
-      adsTitle: "Popularne Usluge",
-      exploreBest: "Istražite najbolje ponude",
-      viewAll: "Pogledaj sve",
-      noReviews: "Još uvek nema recenzija.",
-      createTitle: "Objavi Novu Uslugu",
-      createSubtitle: "Pokaži svoj talenat svetu",
-      labelTitle: "Naslov Usluge",
-      placeholderTitle: "npr. Dizajniraću moderan logo za vas",
-      labelCategory: "Kategorija",
-      selectCategory: "Izaberi kategoriju",
-      labelPrice: "Cena (Pi)",
-      labelDelivery: "Vreme isporuke (dana)",
-      labelDesc: "Opis",
-      placeholderDesc: "Opišite vašu uslugu detaljno...",
-      uploadImages: "Postavi Slike",
-      uploadHint: "Max 2MB po slici",
-      btnPublish: "Objavi Uslugu",
-      successMessage: "Usluga uspešno objavljena!",
-      masterAdmin: "Glavni Admin",
-      totalEarnings: "Ukupna Zarada",
-      activeGigs: "Aktivni Oglasi",
-      totalUsers: "Ukupno Korisnika",
-      manageUsers: "Upravljanje Korisnicima",
-      manageServices: "Upravljanje Oglasima",
-      servicePrice: "Cena Usluge",
-      aboutService: "O Ovoj Usluzi",
-      delivery: "Isporuka",
-      revisions: "Revizije",
-      hireSeller: "Angažuj",
-      contactSeller: "Kontaktiraj",
-      memberSince: "Član od",
-      aboutSeller: "O Prodavcu",
-      sellerGigs: "Aktivni Oglasi",
-      contact: "Kontaktiraj",
-      reviewsTitle: "Recenzije i Ocene",
-      leaveReview: "Ostavite utisak",
-      writeReview: "Napišite vaše iskustvo...",
-      submitReview: "Postavi Recenziju",
-      days: "dana",
-      verifiedSeller: "Verifikovan prodavac",
-      reviewsCountLabel: "recenzija",
-      securePayment: "Sigurno Pi plaćanje",
-      satisfaction: "Zadovoljstvo garantovano",
-      support: "24/7 Podrška",
-      guestUser: "Gost",
-      msgPlaceholder: "Napiši poruku...",
-      msgOnline: "Na mreži",
-      msgYourMessages: "Vaše poruke",
-      msgTopic: "Tema:",
-      msgSystemWelcome: "Dobrodošli u SkillClick ćaskanje! 👋",
-      msgStartConv: "Započinjete razgovor u vezi:",
+  // --- LOGIKA ZA UPLOAD SLIKA ---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, imageKey: string) => {
+    const file = e.target.files?.[0];
+    
+    if (file) {
+      // Provera veličine (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Slika je prevelika. Molimo koristite sliku manju od 2MB.");
+        return;
+      }
 
-      // ✅ NOVO - NOTIFIKACIJE
-      notificationsTitle: "Obaveštenja",
-      new: "novih",
-      noNotifications: "Nema novih obaveštenja"
-    },
-
-    // === 🇮🇳 HINDI ===
-    hi: {
-      back: "Wapas",
-      backHome: "Home par wapas",
-      piLoginBtn: "Pi se Login Karen",
-      piLoginDesc: "Pi Network ka upyog karke apne account tak surakshit pahunchein.",
-      piLoginDisclaimer: "Click karke, aap SkillClick ko apne Pi account ko verify karne ki anumati dete hain.",
-      piConnecting: "Pi Network se connect ho raha hai...",
-      piVerifying: "Janch ho rahi hai...",
-      piBrowserError: "Kripya is app ko Pi Browser mein kholein.",
-      piAuthFailed: "Login vifal raha. Phir se koshish karen.",
-      piWelcomeUser: "Swagat hai",
-      welcomeBack: "Wapas Swagat Hai",
-      securedBy: "Invictus dwara surakshit",
-      loading: "Load ho raha hai...",
-      navLogin: "Login",
-      navJoin: "Shamil Hon",
-      navPostService: "Seva Post Karen",
-      navProfile: "Mera Profile",
-      navAdminPanel: "Admin Panel",
-      navLogout: "Log Out",
-      heroTitle: "Kaushal khojen, Pi se bhugtan karen",
-      catDesign: "Graphics aur Design",
-      catMarketing: "Digital Marketing",
-      catWriting: "Lekhan aur Anuvaad",
-      catVideo: "Video aur Animation",
-      catTech: "Programming aur Tech",
-      catBusiness: "Vyapar",
-      catLifestyle: "Jivan Shaili",
-      searchPlaceholder: "Aap kis seva ki talash kar rahe hain?",
-      searchBtn: "Khojein",
-      popularTag: "Lokpriya:",
-      adsTitle: "Lokpriya Sevayein",
-      exploreBest: "Behtarin prastav dekhein",
-      viewAll: "Sabhi Dekhein",
-      noReviews: "Abhi tak koi samiksha nahi.",
-      createTitle: "Nayi Seva Post Karen",
-      createSubtitle: "Apna hunar duniya ko dikhayein",
-      labelTitle: "Seva ka Shirshak",
-      placeholderTitle: "Jaise: Main ek logo design karunga",
-      labelCategory: "Varg (Category)",
-      selectCategory: "Varg chunein",
-      labelPrice: "Mulya (Pi)",
-      labelDelivery: "Delivery Time (din)",
-      labelDesc: "Vivaran",
-      placeholderDesc: "Apni seva ke bare mein batayein...",
-      uploadImages: "Tasveeren Upload Karen",
-      uploadHint: "Adhiktam 2MB prati tasveer",
-      btnPublish: "Seva Prakashit Karen",
-      successMessage: "Seva safaltapurvak post ki gayi!",
-      masterAdmin: "Master Admin",
-      totalEarnings: "Kul Kamai",
-      activeGigs: "Active Gigs",
-      totalUsers: "Kul Users",
-      manageUsers: "Users Prabandhan",
-      manageServices: "Services Prabandhan",
-      servicePrice: "Seva Mulya",
-      aboutService: "Is Seva Ke Bare Mein",
-      delivery: "Delivery",
-      revisions: "Sanshodhan",
-      hireSeller: "Seller Hire Karen",
-      contactSeller: "Sampark Karen",
-      memberSince: "Sadasya se",
-      aboutSeller: "Vikreta ke bare mein",
-      sellerGigs: "Is vikreta ki sevaen",
-      contact: "Sampark karen",
-      reviewsTitle: "Samiksha aur Rating",
-      leaveReview: "Samiksha Chhodein",
-      writeReview: "Apna anubhav ke bare mein likhein...",
-      submitReview: "Post Karen",
-      days: "din",
-      verifiedSeller: "Satyapit Seller",
-      reviewsCountLabel: "samikshayen",
-      securePayment: "Surakshit Pi Bhugtan",
-      satisfaction: "Santushti Ki Guarantee",
-      support: "24/7 Sahayata",
-      guestUser: "Mehman",
-      msgPlaceholder: "Sandesh likhein...",
-      msgOnline: "Online",
-      msgYourMessages: "Aapke Sandesh",
-      msgTopic: "Vishay:",
-      msgSystemWelcome: "SkillClick chat mein swagat hai!",
-      msgStartConv: "Baatcheet shuru:",
-
-      // ✅ NOVO - NOTIFIKACIJE
-      notificationsTitle: "Suchnayein",
-      new: "nayi",
-      noNotifications: "Koi nayi suchna nahi"
-    },
-
-    // === 🇨🇳 KINESKI ===
-    zh: {
-      back: "返回",
-      backHome: "返回首页",
-      piLoginBtn: "使用 Pi 登录",
-      piLoginDesc: "使用 Pi Network 安全访问您的帐户。",
-      piLoginDisclaimer: "点击即表示您允许 SkillClick 验证您的 Pi 帐户。",
-      piConnecting: "正在连接 Pi Network...",
-      piVerifying: "正在验证...",
-      piBrowserError: "请在 Pi 浏览器中打开此应用。",
-      piAuthFailed: "验证失败。请重试。",
-      piWelcomeUser: "欢迎",
-      welcomeBack: "欢迎回来",
-      securedBy: "由 Invictus 系统保护",
-      loading: "加载中...",
-      navLogin: "登录",
-      navJoin: "加入",
-      navPostService: "发布服务",
-      navProfile: "我的主页",
-      navAdminPanel: "管理面板",
-      navLogout: "退出",
-      heroTitle: "寻找技能，用 Pi 支付",
-      catDesign: "图形与设计",
-      catMarketing: "数字营销",
-      catWriting: "写作与翻译",
-      catVideo: "视频与动画",
-      catTech: "编程与技术",
-      catBusiness: "商业",
-      catLifestyle: "生活方式",
-      searchPlaceholder: "您在寻找什么服务？",
-      searchBtn: "搜索",
-      popularTag: "热门:",
-      adsTitle: "热门服务",
-      exploreBest: "探索最佳优惠",
-      viewAll: "查看全部",
-      noReviews: "暂无评论。",
-      createTitle: "发布新服务",
-      createSubtitle: "向世界展示您的才华",
-      labelTitle: "服务标题",
-      placeholderTitle: "例如：我将为您设计一个现代标志",
-      labelCategory: "类别",
-      selectCategory: "选择类别",
-      labelPrice: "价格 (Pi)",
-      labelDelivery: "交付时间 (天)",
-      labelDesc: "描述",
-      placeholderDesc: "详细描述您的服务...",
-      uploadImages: "上传图片",
-      uploadHint: "每张图片最大 2MB",
-      btnPublish: "发布服务",
-      successMessage: "服务发布成功！",
-      masterAdmin: "超级管理员",
-      totalEarnings: "总收入",
-      activeGigs: "活跃服务",
-      totalUsers: "总用户",
-      manageUsers: "管理用户",
-      manageServices: "管理服务",
-      servicePrice: "服务价格",
-      aboutService: "关于此服务",
-      delivery: "交付",
-      revisions: "修改",
-      hireSeller: "雇佣卖家",
-      contactSeller: "联系卖家",
-      memberSince: "加入时间",
-      aboutSeller: "关于卖家",
-      sellerGigs: "卖家的活跃服务",
-      contact: "联系",
-      reviewsTitle: "评论与评分",
-      leaveReview: "留下评论",
-      writeReview: "写下您的体验...",
-      submitReview: "发布评论",
-      days: "天",
-      verifiedSeller: "认证卖家",
-      reviewsCountLabel: "条评论",
-      securePayment: "安全 Pi 支付",
-      satisfaction: "满意保证",
-      support: "24/7 支持",
-      guestUser: "访客",
-      msgPlaceholder: "输入消息...",
-      msgOnline: "在线",
-      msgYourMessages: "您的消息",
-      msgTopic: "主题:",
-      msgSystemWelcome: "欢迎来到 SkillClick 聊天!",
-      msgStartConv: "开始对话:",
-
-      // ✅ NOVO - NOTIFIKACIJE
-      notificationsTitle: "通知",
-      new: "新",
-      noNotifications: "暂无新通知"
-    },
-
-    // === 🇹🇼 TAJVANSKI ===
-    tw: {
-      back: "返回",
-      backHome: "返回首頁",
-      piLoginBtn: "使用 Pi 登錄",
-      piLoginDesc: "使用 Pi Network 安全訪問您的帳戶。",
-      piLoginDisclaimer: "點擊即表示您允許 SkillClick 驗證您的 Pi 帳戶。",
-      piConnecting: "正在連接 Pi Network...",
-      piVerifying: "正在驗證...",
-      piBrowserError: "請在 Pi 瀏覽器中打開此應用。",
-      piAuthFailed: "驗證失敗。請重試。",
-      piWelcomeUser: "歡迎",
-      welcomeBack: "歡迎回來",
-      securedBy: "由 Invictus 系統保護",
-      loading: "加載中...",
-      navLogin: "登錄",
-      navJoin: "加入",
-      navPostService: "發布服務",
-      navProfile: "我的主頁",
-      navAdminPanel: "管理面板",
-      navLogout: "退出",
-      heroTitle: "尋找技能，用 Pi 支付",
-      catDesign: "圖形與設計",
-      catMarketing: "數字營銷",
-      catWriting: "寫作與翻譯",
-      catVideo: "視頻與動畫",
-      catTech: "編程與技術",
-      catBusiness: "商業",
-      catLifestyle: "生活方式",
-      searchPlaceholder: "您在尋找什麼服務？",
-      searchBtn: "搜索",
-      popularTag: "熱門:",
-      adsTitle: "熱門服務",
-      exploreBest: "探索最佳優惠",
-      viewAll: "查看全部",
-      noReviews: "暫無評論。",
-      createTitle: "發布新服務",
-      createSubtitle: "向世界展示您的才華",
-      labelTitle: "服務標題",
-      placeholderTitle: "例如：我將為您設計一個現代標誌",
-      labelCategory: "類別",
-      selectCategory: "選擇類別",
-      labelPrice: "價格 (Pi)",
-      labelDelivery: "交付時間 (天)",
-      labelDesc: "描述",
-      placeholderDesc: "詳細描述您的服務...",
-      uploadImages: "上傳圖片",
-      uploadHint: "每張圖片最大 2MB",
-      btnPublish: "發布服務",
-      successMessage: "服務發布成功！",
-      masterAdmin: "超級管理員",
-      totalEarnings: "總收入",
-      activeGigs: "活躍服務",
-      totalUsers: "總用戶",
-      manageUsers: "管理用戶",
-      manageServices: "管理服務",
-      servicePrice: "服務價格",
-      aboutService: "關於此服務",
-      delivery: "交付",
-      revisions: "修改",
-      hireSeller: "僱傭賣家",
-      contactSeller: "聯繫賣家",
-      memberSince: "加入時間",
-      aboutSeller: "關於賣家",
-      sellerGigs: "賣家的活躍服務",
-      contact: "聯繫",
-      reviewsTitle: "評論與評分",
-      leaveReview: "留下評論",
-      writeReview: "寫下您的體驗...",
-      submitReview: "發布評論",
-      days: "天",
-      verifiedSeller: "認證賣家",
-      reviewsCountLabel: "條評論",
-      securePayment: "安全 Pi 支付",
-      satisfaction: "滿意保證",
-      support: "24/7 支持",
-      guestUser: "訪客",
-      msgPlaceholder: "輸入消息...",
-      msgOnline: "在線",
-      msgYourMessages: "您的消息",
-      msgTopic: "主題:",
-      msgSystemWelcome: "歡迎來到 SkillClick 聊天!",
-      msgStartConv: "開始對話:",
-
-      // ✅ NOVO - NOTIFIKACIJE
-      notificationsTitle: "通知",
-      new: "新",
-      noNotifications: "暫無新通知"
-    },
-
-    // === 🇮🇩 INDONEŽANSKI ===
-    id: {
-      back: "Kembali",
-      backHome: "Kembali ke Beranda",
-      piLoginBtn: "Masuk dengan Pi",
-      piLoginDesc: "Akses akun Anda dengan aman menggunakan Jaringan Pi.",
-      piLoginDisclaimer: "Dengan mengklik, Anda mengizinkan SkillClick memverifikasi akun Pi Anda.",
-      piConnecting: "Menghubungkan ke Jaringan Pi...",
-      piVerifying: "Memverifikasi...",
-      piBrowserError: "Silakan buka aplikasi ini di Pi Browser.",
-      piAuthFailed: "Otentikasi gagal. Coba lagi.",
-      piWelcomeUser: "Selamat Datang",
-      welcomeBack: "Selamat Datang Kembali",
-      securedBy: "Diamankan oleh Invictus",
-      loading: "Memuat...",
-      navLogin: "Masuk",
-      navJoin: "Gabung",
-      navPostService: "Pasang Layanan",
-      navProfile: "Profil Saya",
-      navAdminPanel: "Panel Admin",
-      navLogout: "Keluar",
-      heroTitle: "Temukan keahlian, bayar dengan Pi",
-      catDesign: "Grafis & Desain",
-      catMarketing: "Pemasaran Digital",
-      catWriting: "Penulisan & Terjemahan",
-      catVideo: "Video & Animasi",
-      catTech: "Pemrograman & Teknologi",
-      catBusiness: "Bisnis",
-      catLifestyle: "Gaya Hidup",
-      searchPlaceholder: "Layanan apa yang Anda cari?",
-      searchBtn: "Cari",
-      popularTag: "Populer:",
-      adsTitle: "Layanan Populer",
-      exploreBest: "Jelajahi penawaran terbaik",
-      viewAll: "Lihat Semua",
-      noReviews: "Belum ada ulasan.",
-      createTitle: "Pasang Layanan Baru",
-      createSubtitle: "Tunjukkan bakat Anda kepada dunia",
-      labelTitle: "Judul Layanan",
-      placeholderTitle: "misalnya Saya akan mendesain logo modern",
-      labelCategory: "Kategori",
-      selectCategory: "Pilih Kategori",
-      labelPrice: "Harga (Pi)",
-      labelDelivery: "Waktu Pengiriman (hari)",
-      labelDesc: "Deskripsi",
-      placeholderDesc: "Jelaskan layanan Anda secara rinci...",
-      uploadImages: "Unggah Gambar",
-      uploadHint: "Maks 2MB per gambar",
-      btnPublish: "Terbitkan Layanan",
-      successMessage: "Layanan berhasil diposting!",
-      masterAdmin: "Master Admin",
-      totalEarnings: "Total Pendapatan",
-      activeGigs: "Gigs Aktif",
-      totalUsers: "Total Pengguna",
-      manageUsers: "Kelola Pengguna",
-      manageServices: "Kelola Layanan",
-      servicePrice: "Harga Layanan",
-      aboutService: "Tentang Layanan Ini",
-      delivery: "Pengiriman",
-      revisions: "Revisi",
-      hireSeller: "Sewa Penjual",
-      contactSeller: "Hubungi Penjual",
-      memberSince: "Anggota Sejak",
-      aboutSeller: "Tentang Penjual",
-      sellerGigs: "Layanan Aktif",
-      contact: "Hubungi",
-      reviewsTitle: "Ulasan & Peringkat",
-      leaveReview: "Berikan Ulasan",
-      writeReview: "Tulis pengalaman Anda...",
-      submitReview: "Kirim Ulasan",
-      days: "hari",
-      verifiedSeller: "Penjual Terverifikasi",
-      reviewsCountLabel: "ulasan",
-      securePayment: "Pembayaran Pi Aman",
-      satisfaction: "Kepuasan Dijamin",
-      support: "Dukungan 24/7",
-      guestUser: "Tamu",
-      msgPlaceholder: "Ketik pesan...",
-      msgOnline: "Online",
-      msgYourMessages: "Pesan Anda",
-      msgTopic: "Topik:",
-      msgSystemWelcome: "Selamat datang di obrolan!",
-      msgStartConv: "Memulai obrolan:",
-
-      // ✅ NOVO - NOTIFIKACIJE
-      notificationsTitle: "Notifikasi",
-      new: "baru",
-      noNotifications: "Tidak ada notifikasi baru"
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, [imageKey]: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const t = (key: string) => {
-    return translations[language]?.[key] || translations['en']?.[key] || key;
+  const removeImage = (imageKey: string) => {
+    setFormData(prev => ({ ...prev, [imageKey]: "" }));
   };
+  // ------------------------------
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    if (!user || !user.username) {
+        alert("Greška: Niste ulogovani.");
+        setIsSubmitting(false);
+        return;
+    }
+
+    if (!formData.category) {
+        alert("Molimo izaberite kategoriju.");
+        setIsSubmitting(false);
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/services/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: formData.title,
+                description: formData.description,
+                category: formData.category,
+                price: formData.price,
+                deliveryTime: formData.deliveryTime,
+                revisions: formData.revisions,
+                author: user.username, 
+                // Filtriramo prazne stringove da ne šaljemo prazna polja
+                images: [formData.image1, formData.image2, formData.image3].filter(img => img.length > 0)
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Greška na serveru");
+        }
+
+        setIsSuccess(true);
+        setTimeout(() => {
+            router.push('/'); 
+        }, 1500);
+
+    } catch (error: any) {
+        console.error("❌ Greška:", error);
+        alert(`Greška: ${error.message}`);
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  if (authLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
+        </div>
+      );
+  }
+
+  if (!user) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 text-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Morate biti ulogovani</h2>
+            <Link href="/">
+                <Button>Vrati se na početnu</Button>
+            </Link>
+        </div>
+      );
+  }
+
+  const inputClass = "rounded-xl border-gray-200 focus:!border-purple-500 focus:!ring-purple-500 focus:ring-2 outline-none transition-all h-12 bg-white";
+  const labelClass = "text-xs font-bold text-gray-700 uppercase ml-1 mb-1.5 block";
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </LanguageContext.Provider>
+    <div className="min-h-screen bg-gray-50 py-10 px-4 font-sans">
+      <div className="max-w-2xl mx-auto">
+        <Link href="/" className="inline-flex items-center text-gray-500 hover:text-purple-600 mb-6 font-bold text-sm transition-colors">
+            <ArrowLeft className="w-5 h-5 mr-2" /> {t('backHome')}
+        </Link>
+
+        <div className="bg-white rounded-3xl shadow-2xl shadow-purple-900/10 border border-white overflow-hidden">
+          <div className="bg-white pt-8 pb-2 px-8 text-center">
+            <div className="mx-auto w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mb-4 text-purple-600">
+                <Zap className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900">{t('createTitle')}</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              {t('welcomeBack')}: <span className="font-semibold text-purple-600">{user.username}</span>
+            </p>
+          </div>
+          
+          <div className="p-8">
+            {isSuccess ? (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-6 py-8 rounded-2xl text-center">
+                    <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                    <h3 className="font-bold text-xl mb-2">{t('successMessage')}</h3>
+                    <p>{t('loading')}...</p>
+                </div>
+            ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <Label htmlFor="title" className={labelClass}>{t('labelTitle')}</Label>
+                    <Input id="title" name="title" placeholder={t('placeholderTitle')} value={formData.title} onChange={handleChange} required className={inputClass} />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <Label htmlFor="category" className={labelClass}>{t('labelCategory')}</Label>
+                        <Select value={formData.category} onValueChange={handleCategoryChange}>
+                            <SelectTrigger id="category" className={inputClass}>
+                                <SelectValue placeholder={t('selectCategory')} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                                {categories.map(cat => (
+                                    <SelectItem key={cat.key} value={cat.val}>{t(cat.key)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <Label htmlFor="price" className={labelClass}>{t('labelPrice')}</Label>
+                        <Input id="price" name="price" type="number" placeholder="10.00" value={formData.price} onChange={handleChange} required className={inputClass} />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <Label htmlFor="deliveryTime" className={labelClass}>{t('labelDelivery')}</Label>
+                        <Input id="deliveryTime" name="deliveryTime" type="number" placeholder="3" value={formData.deliveryTime} onChange={handleChange} required className={inputClass} />
+                    </div>
+                    <div>
+                        <Label htmlFor="revisions" className={labelClass}>{t('revisions')}</Label>
+                        <Input id="revisions" name="revisions" placeholder="Unlimited" value={formData.revisions} onChange={handleChange} required className={inputClass} />
+                    </div>
+                </div>
+
+                {/* NOVI SISTEM ZA UPLOAD SLIKA - SA PREVODIMA */}
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <Label className={`${labelClass} mb-3 flex items-center gap-2`}>
+                        <ImageIcon className="w-4 h-4" /> 
+                        {t('uploadImages')} 
+                        <span className="text-gray-400 font-normal ml-auto text-[10px] md:text-xs">
+                           ({t('uploadHint')})
+                        </span>
+                    </Label>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* Image 1 Upload */}
+                        <div className="relative">
+                            {formData.image1 ? (
+                                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 group">
+                                    <img src={formData.image1} alt="Preview 1" className="h-full w-full object-cover" />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeImage('image1')}
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
+                                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                                    {/* ✅ PREVOD: Cover Slika */}
+                                    <span className="text-xs text-gray-500 font-semibold">{t('coverImage')}</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image1')} />
+                                </label>
+                            )}
+                        </div>
+
+                        {/* Image 2 Upload */}
+                        <div className="relative">
+                            {formData.image2 ? (
+                                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 group">
+                                    <img src={formData.image2} alt="Preview 2" className="h-full w-full object-cover" />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeImage('image2')}
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
+                                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                                    {/* ✅ PREVOD: Slika 2 */}
+                                    <span className="text-xs text-gray-500">{t('imageLabel')} 2</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image2')} />
+                                </label>
+                            )}
+                        </div>
+
+                        {/* Image 3 Upload */}
+                        <div className="relative">
+                            {formData.image3 ? (
+                                <div className="relative h-32 w-full rounded-lg overflow-hidden border border-gray-200 group">
+                                    <img src={formData.image3} alt="Preview 3" className="h-full w-full object-cover" />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeImage('image3')}
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:border-purple-500 transition">
+                                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                                    {/* ✅ PREVOD: Slika 3 */}
+                                    <span className="text-xs text-gray-500">{t('imageLabel')} 3</span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'image3')} />
+                                </label>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <Label htmlFor="description" className={labelClass}>{t('aboutService')}</Label>
+                    <Textarea id="description" name="description" placeholder={t('placeholderDesc')} value={formData.description} onChange={handleChange} required rows={5} className="rounded-xl border-gray-200 focus:ring-purple-500 h-32 resize-none" />
+                </div>
+
+              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg h-14 rounded-xl shadow-lg" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
+                {isSubmitting ? t('loading') : t('btnPublish')} 
+              </Button>
+            </form>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
-
-export const useLanguage = () => {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    return { language: 'en', setLanguage: () => {}, t: (key: string) => key };
-  }
-  return context;
-};
