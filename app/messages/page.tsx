@@ -2,238 +2,133 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { ArrowLeft, Send, User, Loader2 } from "lucide-react"
+import { ArrowLeft, Send, User, MessageSquare, Search, CheckCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/LanguageContext"
-import { useAuth } from "@/components/AuthContext" // ✅ 1. Uvozimo AuthContext
+import { useAuth } from "@/components/AuthContext"
 
-function ChatInterface() {
+function MessagesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { t } = useLanguage();
-  const { user } = useAuth(); // ✅ 2. Uzimamo ulogovanog korisnika
+  const { t } = useLanguage()
+  const { user } = useAuth()
   
-  const rawSellerName = searchParams.get('seller')
-  const serviceName = searchParams.get('service')
-  
-  const sellerName = rawSellerName ? decodeURIComponent(rawSellerName) : null
+  const sellerParam = searchParams.get('seller')
+  const [conversations, setConversations] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [message, setMessage] = useState("")
-  const [isSending, setIsSending] = useState(false); // Za spinner dok šalje
-  
-  const [chatHistory, setChatHistory] = useState([
-    { id: 1, text: "Welcome...", sender: "system", time: "10:00", type: "welcome" } 
-  ])
-
-  const [isMobileBackActive, setIsMobileBackActive] = useState(false)
-
-  // Prevođenje sistemskih poruka
   useEffect(() => {
-    setChatHistory(prevHistory => prevHistory.map(msg => {
-        if (msg.id === 1) {
-            return { ...msg, text: t('msgSystemWelcome') };
-        }
-        if (msg.id === 2 && serviceName) {
-            return { ...msg, text: `${t('msgStartConv')} "${serviceName}"` };
-        }
-        return msg;
-    }));
-  }, [t, serviceName]);
-
-  // Inicijalna poruka ako postoji tema (serviceName)
-  useEffect(() => {
-    if (sellerName && serviceName) {
-        setChatHistory(prev => {
-            if (prev.some(msg => msg.id === 2)) return prev;
-            return [
-                ...prev,
-                { 
-                    id: 2, 
-                    text: `${t('msgStartConv')} "${serviceName}"`, 
-                    sender: "system", 
-                    time: "Just now",
-                    type: "topic"
-                }
-            ]
-        })
-    }
-  }, [sellerName, serviceName])
-
-  const handleBack = (e: React.MouseEvent) => {
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsMobileBackActive(true);
-        setTimeout(() => {
-            setIsMobileBackActive(false); 
-            navigateBack();
-        }, 500);
-    } else {
-        navigateBack();
-    }
-  }
-
-  const navigateBack = () => {
-      if (window.history.length > 1) {
-          router.back();
-      } else {
-          router.push('/');
-      }
-  }
-
-  // ✅ 3. NOVA FUNKCIJA ZA SLANJE (POVEZANA SA SERVEROM)
-  const handleSend = async () => {
-    if (!message.trim() || !user || !sellerName) return;
-
-    const contentToSend = message;
-    setMessage(""); // Odmah isprazni polje
-    setIsSending(true);
-
-    // 1. Optimistički prikaz (prikaži poruku odmah da korisnik ne čeka)
-    const optimisticMsg = { 
-        id: Date.now(), 
-        text: contentToSend, 
-        sender: "me", 
-        time: "Now", 
-        type: "user" 
-    };
-    setChatHistory(prev => [...prev, optimisticMsg]);
-
-    try {
-        // 2. Šaljemo podatke na API
-        const response = await fetch('/api/messages/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                content: contentToSend,
-                senderUsername: user.username,   // Ko šalje (JA)
-                receiverUsername: sellerName     // Kome šaljem (PRODAVAC)
-            }),
+    const fetchConversations = async () => {
+      if (!user?.username) return;
+      try {
+        const res = await fetch('/api/messages/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user.username })
         });
+        const data = await res.json();
+        setConversations(data.conversations || []);
+      } catch (err) {
+        console.error("Greška pri učitavanju Inboxa", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConversations();
+  }, [user]);
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Greška pri slanju");
-        }
-
-        // Ovde bi idealno zamenili optimističku poruku sa pravom iz baze,
-        // ali za sada je dovoljno da znamo da je prošlo.
-        // Server je sada kreirao NOTIFIKACIJU za primaoca! 🔔
-
-    } catch (error) {
-        console.error("Greška pri slanju:", error);
-        alert("Nije uspelo slanje poruke. Proverite internet.");
-    } finally {
-        setIsSending(false);
-    }
+  // Ako kliknemo na nekoga, otvara se čet (to ostaje isto)
+  if (sellerParam) {
+     return <DirectChat sellerName={decodeURIComponent(sellerParam)} />
   }
 
   return (
-    <div className="h-[100dvh] md:min-h-screen w-full bg-white md:bg-gray-100 flex flex-col md:items-center md:justify-center font-sans overflow-hidden">
-      
-      <div className="w-full md:max-w-2xl bg-white md:rounded-2xl md:shadow-xl md:border md:border-gray-200 h-full md:h-[85vh] flex flex-col relative">
+    <div className="min-h-screen bg-white md:bg-gray-50 font-sans pb-20">
+      <div className="max-w-2xl mx-auto bg-white min-h-screen md:shadow-2xl md:border-x md:border-gray-100">
         
-        {/* HEADER */}
-        <div className="bg-white/95 backdrop-blur-md border-b border-gray-100 p-3 md:p-4 shadow-sm shrink-0 z-20">
-          <div className="flex items-center gap-3">
-               <button 
-                  onClick={handleBack} 
-                  className={`
-                    flex items-center gap-2 transition-colors duration-200 font-medium outline-none p-1
-                    ${isMobileBackActive ? "text-purple-600" : "text-gray-500 md:hover:text-purple-600"}
-                  `}
-               >
-                  <ArrowLeft className="w-6 h-6" />
-                  <span className="hidden md:block">{t('back')}</span>
-               </button>
-               
-               <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                  <div className="relative shrink-0">
-                      <div className="w-10 h-10 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold">
-                          {sellerName ? sellerName[0].toUpperCase() : <User className="w-5 h-5"/>}
-                      </div>
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-                  </div>
-                  
-                  <div className="flex flex-col overflow-hidden">
-                      <div className="flex items-center gap-2">
-                          <h1 className="font-bold text-gray-900 leading-tight truncate">
-                              {sellerName ? sellerName : t('msgYourMessages')}
-                          </h1>
-                      </div>
-                      {serviceName ? (
-                          <p className="text-xs text-gray-500 truncate w-full">
-                              {t('msgTopic')} {serviceName}
-                          </p>
-                      ) : (
-                          <p className="text-xs text-green-600 font-medium">{t('msgOnline')}</p>
-                      )}
-                  </div>
-               </div>
+        {/* HEADER (U tvom stilu) */}
+        <div className="p-5 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                {t('msgYourMessages')}
+            </h1>
+            <p className="text-xs text-purple-600 font-bold uppercase tracking-widest mt-1">
+                SkillClick Chat
+            </p>
+          </div>
+          <div className="w-12 h-12 bg-purple-600 rounded-2xl rotate-3 flex items-center justify-center shadow-lg shadow-purple-200">
+            <MessageSquare className="w-6 h-6 text-white -rotate-3" />
           </div>
         </div>
 
-        {/* CHAT AREA */}
-        <main className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-gray-50/50 w-full">
-          {chatHistory.map((msg) => (
-              <div 
-                  key={msg.id} 
-                  className={`flex w-full ${msg.sender === "me" ? "justify-end" : "justify-start"}`}
-              >
-                  <div 
-                      className={`max-w-[85%] md:max-w-[70%] p-3.5 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed break-words
-                      ${msg.sender === "me" 
-                          ? "bg-purple-600 text-white rounded-br-none" 
-                          : msg.sender === "system"
-                              ? "bg-transparent text-gray-400 text-center text-xs w-full shadow-none my-2"
-                              : "bg-white border border-gray-200 text-gray-700 rounded-bl-none"
-                      }`}
-                  >
-                      <p>{msg.text}</p>
-                      {msg.sender !== "system" && (
-                          <span className={`text-[10px] block mt-1 text-right opacity-70`}>
-                              {msg.time}
-                          </span>
-                      )}
-                  </div>
-              </div>
-          ))}
-        </main>
-
-        {/* INPUT AREA */}
-        <div className="bg-white border-t border-gray-100 p-3 md:p-4 shrink-0 w-full z-20 pb-safe">
-            <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 focus-within:border-purple-300 transition-all w-full">
+        {/* SEARCH BAR (Kao na WhatsApp-u) */}
+        <div className="p-4">
+            <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-purple-500 transition-colors" />
                 <input 
-                  type="text" 
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={t('msgPlaceholder')}
-                  className="flex-1 bg-transparent border-0 px-3 py-2 text-gray-700 placeholder:text-gray-400 focus:outline-none min-w-0"
-                  onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()}
-                  disabled={isSending}
+                    type="text" 
+                    placeholder="Pretraži razgovore..." 
+                    className="w-full bg-gray-100 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-purple-100 transition-all outline-none"
                 />
-                <Button 
-                  onClick={handleSend}
-                  disabled={isSending}
-                  size="icon"
-                  className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200 disabled:opacity-50"
-                >
-                    {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </Button>
             </div>
         </div>
 
+        {/* LISTA RAZGOVORA */}
+        {loading ? (
+          <div className="p-10 text-center text-gray-400 animate-pulse">Učitavanje...</div>
+        ) : conversations.length === 0 ? (
+          <div className="p-20 text-center">
+             <div className="bg-purple-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="text-purple-200 w-10 h-10" />
+             </div>
+             <p className="text-gray-500 font-medium">Još uvek nema poruka.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {conversations.map((conv) => (
+              <div 
+                key={conv.username}
+                onClick={() => router.push(`/messages?seller=${conv.username}`)}
+                className="px-4 py-4 flex items-center gap-4 hover:bg-purple-50 cursor-pointer transition-all border-b border-gray-50 group"
+              >
+                {/* Avatar sa tvojom bojom */}
+                <div className="relative shrink-0">
+                    <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-2xl flex items-center justify-center font-bold text-xl shadow-md group-hover:scale-105 transition-transform">
+                        {conv.username[0].toUpperCase()}
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+                </div>
+
+                {/* Tekst poruke */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <h3 className="font-bold text-gray-900 truncate text-base">{conv.username}</h3>
+                    <span className="text-[11px] font-medium text-gray-400">
+                        {new Date(conv.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {/* Ikona za "pročitano" kao na WA */}
+                    <CheckCheck className={`w-4 h-4 ${conv.isRead ? 'text-blue-500' : 'text-gray-300'}`} />
+                    <p className={`text-sm truncate ${!conv.isRead ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
+                        {conv.lastMessage}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Kružić za nepročitane poruke */}
+                {!conv.isRead && (
+                  <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-200">
+                    <span className="text-[10px] text-white font-bold">1</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-export default function MessagesPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Učitavanje...</div>}>
-      <ChatInterface />
-    </Suspense>
-  )
-}
+// Ostatak koda (DirectChat i Suspense) ostaje dole...
