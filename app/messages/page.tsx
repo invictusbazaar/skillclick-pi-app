@@ -24,17 +24,17 @@ function ChatInterface() {
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
   
-  // Ovde čuvamo stvarne poruke
+  // Ovde čuvamo poruke
   const [chatHistory, setChatHistory] = useState<any[]>([])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  // 1. UČITAVANJE LISTE RAZGOVORA (INBOX)
+  // 1. INBOX LISTA (Učitava se samo ako NISI u četu)
   useEffect(() => {
     const fetchConversations = async () => {
-      if (!user?.username || sellerName) return; // Ne učitavaj listu ako smo u četu
+      if (!user?.username || sellerName) return; 
       try {
         const res = await fetch('/api/messages/conversations', {
           method: 'POST',
@@ -52,18 +52,21 @@ function ChatInterface() {
 
     if (!sellerName) {
         fetchConversations();
+        // Osvežavaj listu svakih 5 sekundi dok gledaš Inbox
         const interval = setInterval(fetchConversations, 5000); 
         return () => clearInterval(interval);
     }
   }, [user, sellerName]);
 
 
-  // 2. 🔥 GLAVNA STVAR: UČITAVANJE PORUKA U ČETU UŽIVO
+  // 2. 🔥 LIVE CHAT SYNC (Ovo rešava tvoj problem)
   useEffect(() => {
+    // Ako nemamo korisnika ili sagovornika, ne radi ništa
     if (!sellerName || !user?.username) return;
 
-    const fetchMessages = async () => {
+    const syncMessages = async () => {
         try {
+            // Gađamo onaj API iz koraka 1
             const res = await fetch('/api/messages/get', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -72,10 +75,13 @@ function ChatInterface() {
                     otherUsername: sellerName
                 })
             });
+            
+            if (!res.ok) return;
+
             const data = await res.json();
             
             if (data.messages) {
-                // Konvertujemo format iz baze u format za prikaz
+                // Formatiramo poruke za prikaz
                 const formatted = data.messages.map((m: any) => ({
                     id: m.id,
                     text: m.content,
@@ -84,36 +90,44 @@ function ChatInterface() {
                     isRead: m.isRead
                 }));
                 
-                // Dodamo sistemsku poruku na početak ako je ima
+                // Ako imaš serviceName (ušao preko oglasa), dodajemo sistemsku poruku na vrh
                 if (serviceName) {
                     formatted.unshift({ 
-                        id: 'sys', 
+                        id: 'sys-topic', 
                         text: `${t('msgStartConv')} "${serviceName}"`, 
                         sender: "system", 
                         time: "" 
                     });
                 }
                 
-                setChatHistory(formatted);
-                // Skroluj samo ako je ovo prvo učitavanje ili ako je stigla nova poruka
-                // (Ovde možeš dodati logiku da ne skroluje ako korisnik čita stare poruke)
+                // Ažuriramo ekran SAMO ako ima promena (da ne treperi)
+                setChatHistory(prev => {
+                    if (prev.length !== formatted.length) {
+                        setTimeout(scrollToBottom, 100); // Skroluj ako ima novih
+                        return formatted;
+                    }
+                    // Proveri da li je poslednja poruka ista
+                    const lastMsgNew = formatted[formatted.length - 1];
+                    const lastMsgOld = prev[prev.length - 1];
+                    if (lastMsgNew?.id !== lastMsgOld?.id || lastMsgNew?.isRead !== lastMsgOld?.isRead) {
+                         return formatted;
+                    }
+                    return prev; 
+                });
             }
         } catch (e) {
-            console.error("Greška pri učitavanju poruka", e);
+            console.error("Greška sync:", e);
         }
     };
 
-    fetchMessages(); // Učitaj odmah
-    const interval = setInterval(fetchMessages, 2000); // ⚡ OSVEŽAVAJ SVAKE 2 SEKUNDE
+    // Pokreni odmah
+    syncMessages();
+    
+    // Ponavljaj svake 2 sekunde
+    const interval = setInterval(syncMessages, 2000);
     
     return () => clearInterval(interval);
   }, [sellerName, user, serviceName, t]);
-
-
-  // Skroluj na dno kad se promeni istorija poruka
-  useEffect(() => {
-      scrollToBottom();
-  }, [chatHistory.length]); // Samo kad se broj poruka promeni
 
 
   // 3. SLANJE PORUKE
@@ -123,16 +137,18 @@ function ChatInterface() {
     setMessage("");
     setIsSending(true);
 
-    // Optimistički prikaz (odmah pokaži da je poslato)
+    // 1. Prikaži odmah na ekranu (Optimistic UI)
     const optimisticMsg = { 
-        id: Date.now().toString(), 
+        id: "temp-" + Date.now(), 
         text: contentToSend, 
         sender: "me", 
-        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        isRead: false
     };
     setChatHistory(prev => [...prev, optimisticMsg]);
     setTimeout(scrollToBottom, 100);
 
+    // 2. Pošalji na server
     try {
         await fetch('/api/messages/send', {
             method: 'POST',
@@ -143,9 +159,10 @@ function ChatInterface() {
                 receiverUsername: sellerName
             }),
         });
-        // Ne moramo ništa više da radimo, setInterval iznad će povući pravu poruku iz baze za 2 sekunde
+        // Ne moramo ništa ručno da dodajemo, setInterval (iznad) će povući pravu poruku za 2 sekunde
     } catch (error) {
         console.error("Greška pri slanju:", error);
+        alert("Greška pri slanju poruke!");
     } finally {
         setIsSending(false);
     }
@@ -175,6 +192,14 @@ function ChatInterface() {
               </div>
             </div>
             
+            {/* Search */}
+            <div className="p-4 bg-white">
+               <div className="relative group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Pretraži..." className="w-full bg-gray-100 border-none rounded-xl py-3 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-purple-100 transition-all" />
+               </div>
+            </div>
+
             {/* Lista */}
             {loadingInbox ? (
               <div className="p-10 text-center text-gray-400 animate-pulse">{t('loading')}</div>
@@ -237,11 +262,16 @@ function ChatInterface() {
                   </div>
                   <div className="flex flex-col overflow-hidden">
                       <h1 className="font-bold text-gray-900 leading-tight truncate text-lg">{sellerName}</h1>
-                      {/* Ovde možemo dodati i "kuca..." indikator kasnije */}
                       {serviceName ? (
                           <p className="text-[10px] text-gray-400 truncate">{t('msgTopic')} {serviceName}</p>
                       ) : (
-                          <p className="text-[10px] text-green-600 font-medium animate-pulse">Live Chat</p>
+                          <div className="flex items-center gap-1">
+                             <span className="relative flex h-2 w-2">
+                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                             </span>
+                             <p className="text-[10px] text-green-600 font-bold">Live</p>
+                          </div>
                       )}
                   </div>
                </div>
@@ -261,8 +291,9 @@ function ChatInterface() {
                       {msg.sender !== "system" && (
                         <div className={`text-[10px] mt-1 flex justify-end items-center gap-1 opacity-70 ${msg.sender === "me" ? "text-purple-100" : "text-gray-400"}`}>
                             <span>{msg.time}</span>
+                            {/* Prikaži status čitanja */}
                             {msg.sender === "me" && (
-                                <CheckCheck className={`w-3 h-3 ${msg.isRead ? "text-green-300" : ""}`} />
+                                <CheckCheck className={`w-3 h-3 ${msg.isRead ? "text-green-300" : "text-purple-300"}`} />
                             )}
                         </div>
                       )}
