@@ -52,6 +52,7 @@ function NavbarContent() {
     { key: "catLifestyle", slug: "lifestyle" }
   ];
 
+  // 1. LOGIKA ZA NOTIFIKACIJE (Zvonce)
   const fetchNotifications = async () => {
     if (!user?.username) return;
     try {
@@ -75,6 +76,33 @@ function NavbarContent() {
     const interval = setInterval(fetchNotifications, 30000); 
     return () => clearInterval(interval);
   }, [user]);
+
+  // 👇 2. NOVA LOGIKA ZA HEARTBEAT (Prisustvo)
+  useEffect(() => {
+    const sendHeartbeat = async () => {
+      if (user?.username) {
+        try {
+            // Šaljemo signal na API koji smo napravili u Koraku 2
+            await fetch('/api/presence/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user.username })
+            });
+        } catch (err) {
+            console.error("Greška pri slanju otkucaja:", err);
+        }
+      }
+    };
+
+    // Pošalji signal ODMAH čim korisnik uđe
+    sendHeartbeat();
+
+    // Ponavljaj signal svakih 60 sekundi (1 minut)
+    const heartbeatInterval = setInterval(sendHeartbeat, 60000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [user]);
+
 
   const markAsRead = async (id: string, link: string | null) => {
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -124,7 +152,7 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans overflow-hidden">
       <div className="container mx-auto px-2 md:px-4 h-16 md:h-20 flex items-center relative">
         
-        {/* LOGO - ISTA POZICIJA I VELIČINA */}
+        {/* LOGO */}
         <Link href="/" className="flex-shrink-0 ml-[-110px] md:ml-[-190px] z-0"> 
           <Image 
             src="/skillclick_logo.png" 
@@ -136,10 +164,9 @@ function NavbarContent() {
           />
         </Link>
 
-        {/* DESNA STRANA - DODATA IKONA PORUKA */}
+        {/* DESNA STRANA */}
         <div className="absolute right-2 md:static md:ml-auto flex items-center gap-1 sm:gap-2 md:gap-4 z-50 bg-white/30 backdrop-blur-[2px] rounded-full p-1 border border-white/50 shadow-sm">
           
-          {/* 🌍 JEZIK */}
           <DropdownMenu open={isLangMenuOpen} onOpenChange={setIsLangMenuOpen}>
             <DropdownMenuTrigger className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-white/80 hover:bg-purple-50 text-purple-900 transition-all duration-300 outline-none border border-purple-200 active:scale-95 shadow-sm">
                 <span className="text-lg md:text-xl">{currentLangObj.flag}</span> 
@@ -162,7 +189,7 @@ function NavbarContent() {
 
           {user && (
             <>
-              {/* ✉️ INBOX IKONA (Nova) */}
+              {/* ✉️ INBOX IKONA */}
               <Link href="/messages">
                 <div className="p-1.5 md:p-2 rounded-full bg-white/80 hover:bg-gray-100 transition border border-gray-100 shadow-sm text-gray-500 hover:text-purple-600">
                     <MessageSquare className="w-5 h-5 md:w-6 md:h-6" />
