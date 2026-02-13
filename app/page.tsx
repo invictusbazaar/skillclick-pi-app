@@ -87,7 +87,7 @@ function HomeContent() {
   };
 
   const getSmartIcon = (service: any) => {
-    const iconClass = "h-10 w-10 text-white/90 drop-shadow-md"; // Smanjena ikonica
+    const iconClass = "h-12 w-12 text-white/90 drop-shadow-md"; 
     const title = (typeof service.title === 'string' ? service.title : (service.title?.en || "")).toLowerCase();
     if (title.includes('auto') || title.includes('alfa')) return <Car className={iconClass} />;
     if (title.includes('popravka') || title.includes('servis')) return <Wrench className={iconClass} />;
@@ -97,96 +97,121 @@ function HomeContent() {
   const renderRating = (rating: number, count: number) => {
     if (!count || count === 0) {
       return (
-        <div className="flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full w-fit">
-           <span>🆕</span>
+        <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md w-fit border border-indigo-100 uppercase tracking-wide">
+           <span>Novo</span>
         </div>
       );
     }
     return (
-      <div className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded-full w-fit border border-amber-100">
-        <Star className="w-3 h-3 fill-current" />
+      <div className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md w-fit border border-amber-200 shadow-sm">
+        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
         <span>{rating.toFixed(1)}</span>
-        <span className="text-[10px] text-gray-400 font-normal">({count})</span>
+        <span className="text-[10px] text-gray-500 font-medium">({count})</span>
       </div>
     );
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-      <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-12 md:py-24 overflow-hidden">
-         <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
-            
-            {/* --- ADMIN DUGME (VRAĆENO NA STARO - VELIKO I CRVENO) --- */}
-            {user?.isAdmin && (
-              <Link href="/admin" className="mb-8 animate-bounce">
-                <Button className="bg-red-600 font-bold px-8 py-6 rounded-xl shadow-xl flex items-center gap-2 border-2 border-white">
-                  <ShieldCheck className="w-6 h-6" /> IDI NA ADMIN PANEL
+      {/* HEADER SEKCIJA */}
+      <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-16 md:py-28 overflow-hidden">
+         
+         {/* ELEGANTNO ADMIN DUGME (Prikazano samo tebi) */}
+         {user?.isAdmin && (
+            <div className="absolute top-4 right-4 z-50 animate-fade-in">
+              <Link href="/admin">
+                <Button className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full shadow-lg flex items-center gap-2 text-xs font-bold px-4 transition-all duration-300">
+                  <ShieldCheck className="w-4 h-4 text-green-300" /> ADMIN
                 </Button>
               </Link>
-            )}
+            </div>
+         )}
 
-            <h1 className="text-4xl md:text-7xl font-extrabold mb-2 tracking-tighter drop-shadow-2xl">SkillClick</h1>
-            <p className="text-xs md:text-xl font-bold text-purple-200 uppercase mb-8">{t('heroTitle')}</p>
+         <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
             
-            <div className="w-full max-w-2xl flex items-center bg-white p-1 rounded-full shadow-2xl h-12">
+            <h1 className="text-5xl md:text-7xl font-black mb-3 tracking-tight drop-shadow-2xl">
+              SkillClick
+            </h1>
+            <p className="text-sm md:text-lg font-medium text-purple-200 mb-10 max-w-xl leading-relaxed">
+              {t('heroTitle')}
+            </p>
+            
+            {/* SEARCH BAR */}
+            <div className="w-full max-w-2xl flex items-center bg-white p-1.5 rounded-full shadow-2xl h-14 md:h-16 transition-all focus-within:ring-4 focus-within:ring-purple-400/30">
                 <Input 
                     placeholder={t('searchPlaceholder')} 
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)} 
-                    className="flex-grow border-none shadow-none focus-visible:ring-0 text-gray-800 h-full bg-transparent text-sm md:text-base pl-5" 
+                    className="flex-grow border-none shadow-none focus-visible:ring-0 text-gray-800 h-full bg-transparent text-sm md:text-base pl-6 placeholder:text-gray-400" 
+                    onKeyDown={(e) => e.key === 'Enter' && router.push(`/?search=${searchQuery}`)}
                 />
-                <Button onClick={() => router.push(`/?search=${searchQuery}`)} className="h-full px-6 rounded-full bg-purple-600 font-bold text-sm hover:bg-purple-700">
+                <Button onClick={() => router.push(`/?search=${searchQuery}`)} className="h-full px-8 rounded-full bg-purple-600 font-bold text-sm md:text-base hover:bg-purple-700 shadow-md transition-colors">
                     {t('searchBtn')}
                 </Button>
             </div>
          </div>
       </main>
 
-      <section className="container mx-auto px-4 py-12 flex-grow bg-gray-50">
+      {/* OGLASI SEKCIJA */}
+      <section className="container mx-auto px-4 py-16 flex-grow bg-gray-50">
         
-        <div className="mb-6">
-            <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-1 uppercase tracking-tight">
+        <div className="mb-8 flex flex-col items-center md:items-start">
+            <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 uppercase tracking-tight">
                 {getCategoryTitle()}
             </h2>
-            <div className="h-1 w-16 bg-purple-600 rounded-full"></div>
+            <div className="h-1.5 w-20 bg-gradient-to-r from-purple-600 to-pink-500 rounded-full"></div>
         </div>
 
-        {dataLoading ? ( <div className="text-center py-10 text-gray-500 text-sm">{t('loading')}</div> ) : 
-        filteredServices.length === 0 ? ( <div className="text-center py-10 text-gray-500 text-sm">Nema rezultata.</div> ) : (
+        {dataLoading ? ( <div className="text-center py-20 text-gray-400 font-medium animate-pulse">{t('loading')}</div> ) : 
+        filteredServices.length === 0 ? ( 
+            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm">
+                <p className="text-gray-500 font-medium">Nema rezultata za ovu pretragu.</p>
+            </div> 
+        ) : (
             <>
-                {/* GRID SA MANJIM KARTICAMA (lg:grid-cols-5) */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {/* GRID KARTICA (Povećan razmak, lepše zaobljene ivice) */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     {currentServices.map((gig) => (
-                        <div key={gig.id} className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full">
+                        <div key={gig.id} className="group bg-white rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col h-full">
                             
-                            {/* Slika smanjena na h-40 */}
-                            <Link href={`/services/${gig.id}`} className="block relative h-36 md:h-40 overflow-hidden">
-                                <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(gig.id)} flex items-center justify-center transition-transform duration-500 group-hover:scale-110`}>
-                                    {gig.images && gig.images.length > 0 ? ( <img src={gig.images[0]} alt={gig.title} className="w-full h-full object-cover" /> ) : ( getSmartIcon(gig) )}
+                            {/* SLIKA KARTICE */}
+                            <Link href={`/services/${gig.id}`} className="block relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-gray-100 cursor-pointer">
+                                <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(gig.id)} flex items-center justify-center transition-transform duration-700 group-hover:scale-110`}>
+                                    {gig.images && gig.images.length > 0 ? ( 
+                                        <img src={gig.images[0]} alt={gig.title} className="w-full h-full object-cover" /> 
+                                    ) : ( 
+                                        getSmartIcon(gig) 
+                                    )}
                                 </div>
-                                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded text-xs font-bold text-purple-700 shadow-sm">
+                                {/* PREFINJENI CENA BEDŽ */}
+                                <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs md:text-sm font-black text-purple-700 shadow-sm border border-white/50">
                                     {gig.price} π
                                 </div>
                             </Link>
 
-                            <div className="p-3 flex flex-col flex-grow relative gap-1.5">
-                                <div className="flex justify-between items-start">
+                            {/* SADRŽAJ KARTICE */}
+                            <div className="p-4 flex flex-col flex-grow relative gap-2">
+                                <div className="flex justify-between items-start mb-1">
                                     {renderRating(gig.sellerRating || 0, gig.reviewCount || 0)}
                                 </div>
 
-                                {/* Naslov smanjen na text-sm */}
-                                <h3 className="text-gray-900 font-bold text-sm leading-tight line-clamp-2 hover:text-purple-600 transition-colors">
-                                  {typeof gig.title === 'object' ? (gig.title[lang] || gig.title['en']) : gig.title}
-                                </h3>
+                                <Link href={`/services/${gig.id}`} className="block cursor-pointer">
+                                    <h3 className="text-gray-900 font-bold text-sm md:text-base leading-snug line-clamp-2 group-hover:text-purple-600 transition-colors">
+                                      {typeof gig.title === 'object' ? (gig.title[lang] || gig.title['en']) : gig.title}
+                                    </h3>
+                                </Link>
                                 
-                                <div className="mt-auto pt-2 border-t flex items-center gap-1.5 text-[11px] text-gray-500 relative z-20">
-                                    <User className="w-3 h-3" />
+                                {/* PRODAVAC INFO (Fiksirano na dnu) */}
+                                <div className="mt-auto pt-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
+                                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                                        {gig.seller?.username ? gig.seller.username[0].toUpperCase() : <User className="w-3 h-3"/>}
+                                    </div>
                                     <Link 
                                       href={`/seller/${gig.seller?.username}`} 
-                                      className="truncate hover:text-purple-600 hover:underline font-medium cursor-pointer"
+                                      className="truncate hover:text-purple-600 hover:underline font-medium"
                                       onClick={(e) => e.stopPropagation()} 
                                     >
-                                        {gig.seller?.username || "Prodavac"}
+                                        {gig.seller?.username || "Korisnik"}
                                     </Link>
                                 </div>
                             </div>
@@ -194,31 +219,29 @@ function HomeContent() {
                     ))}
                 </div>
 
-                {/* PAGINACIJA DUGMIĆI */}
+                {/* PAGINACIJA */}
                 {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-4 mt-12">
+                    <div className="flex justify-center items-center gap-3 mt-14">
                         <Button 
                             variant="outline" 
-                            size="sm"
                             onClick={() => changePage(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="rounded-full text-xs font-bold px-4"
+                            className="rounded-full w-10 h-10 p-0 shadow-sm hover:bg-purple-50 hover:text-purple-700 border-gray-200"
                         >
-                            <ChevronLeft className="w-3 h-3 mr-1"/>
+                            <ChevronLeft className="w-5 h-5"/>
                         </Button>
                         
-                        <span className="text-xs font-bold text-gray-500">
-                            {currentPage} / {totalPages}
-                        </span>
+                        <div className="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-bold text-gray-600">
+                            {currentPage} <span className="text-gray-400 font-normal mx-1">/</span> {totalPages}
+                        </div>
 
                         <Button 
                             variant="outline" 
-                            size="sm"
                             onClick={() => changePage(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="rounded-full text-xs font-bold px-4"
+                            className="rounded-full w-10 h-10 p-0 shadow-sm hover:bg-purple-50 hover:text-purple-700 border-gray-200"
                         >
-                            <ChevronRight className="w-3 h-3 ml-1"/>
+                            <ChevronRight className="w-5 h-5"/>
                         </Button>
                     </div>
                 )}
