@@ -17,9 +17,10 @@ model User {
   createdAt DateTime  @default(now())
   
   piWallet  String?   // Adresa novčanika za isplatu
-
-  // 👇 NOVO POLJE ZA PRAĆENJE PRISUSTVA
   lastSeen  DateTime  @default(now())
+
+  // 👇 NOVO POLJE ZA PROFILNU SLIKU (AVATAR)
+  avatar    String?
 
   services  Service[] 
   orders    Order[]   @relation("BuyerOrders") 
