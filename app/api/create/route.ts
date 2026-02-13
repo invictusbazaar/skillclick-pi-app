@@ -55,4 +55,5 @@ export async function POST(request: Request) {
     // Vraćamo tačan opis greške nazad na telefon da znaš šta je
     return NextResponse.json({ error: error.message || "Greška na serveru" }, { status: 500 });
   }
+
 }
