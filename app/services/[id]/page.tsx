@@ -78,7 +78,6 @@ export default function ServiceDetail() {
   const currentDesc = getLocalized(service.description);
   const sellerUsername = service.author?.username || service.seller?.username || "";
   
-  // Dohvatanje lastSeen podatka za proveru
   const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
 
   return (
@@ -119,7 +118,6 @@ export default function ServiceDetail() {
                             @{sellerUsername || "User"}
                         </Link>
                         
-                        {/* DODATO: Presence Indicator */}
                         <PresenceIndicator lastSeen={userLastSeen} />
                         
                         <span className="text-gray-300">|</span>
@@ -127,10 +125,6 @@ export default function ServiceDetail() {
                             <Star className="w-3 h-3 fill-current mr-1" />
                             <span className="font-bold">{service.sellerRating?.toFixed(1) || "5.0"}</span>
                         </div>
-                    </div>
-                    {/* DODATO ZA DIJAGNOSTIKU: Ispisujemo tačno vreme koje dobijamo iz baze */}
-                    <div className="text-[10px] text-red-500 font-mono">
-                        DEBUG lastSeen: {userLastSeen ? new Date(userLastSeen).toLocaleString() : "NEMA PODATKA"}
                     </div>
                 </div>
             </div>
@@ -163,7 +157,6 @@ export default function ServiceDetail() {
           </div>
 
           {/* --- DESNA STRANA --- */}
-          {/* UKLONJENO sve što može da izazove skakanje (sticky, h-fit) */}
           <div className="md:col-span-1 space-y-4">
             
             <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg relative overflow-hidden">
