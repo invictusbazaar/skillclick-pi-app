@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import BuyButton from '@/components/BuyButton'; 
 import ChatSystem from '@/components/ChatSystem'; 
+import PresenceIndicator from '@/components/PresenceIndicator';
 
 declare global { interface Window { Pi: any; } }
 
@@ -76,6 +77,9 @@ export default function ServiceDetail() {
   const currentTitle = getLocalized(service.title);
   const currentDesc = getLocalized(service.description);
   const sellerUsername = service.author?.username || service.seller?.username || "";
+  
+  // Dohvatanje lastSeen podatka za proveru
+  const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
@@ -109,14 +113,24 @@ export default function ServiceDetail() {
                         {sellerUsername && sellerUsername[0] ? sellerUsername[0].toUpperCase() : <UserCircle />}
                     </div>
                 </Link>
-                <div className="flex items-center gap-2">
-                    <Link href={`/seller/${sellerUsername}`} className="font-bold text-sm text-gray-800 hover:text-purple-600 hover:underline">
-                        @{sellerUsername || "User"}
-                    </Link>
-                    <span className="text-gray-300">|</span>
-                    <div className="flex items-center text-amber-500 text-xs">
-                        <Star className="w-3 h-3 fill-current mr-1" />
-                        <span className="font-bold">{service.sellerRating?.toFixed(1) || "5.0"}</span>
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                        <Link href={`/seller/${sellerUsername}`} className="font-bold text-sm text-gray-800 hover:text-purple-600 hover:underline">
+                            @{sellerUsername || "User"}
+                        </Link>
+                        
+                        {/* DODATO: Presence Indicator */}
+                        <PresenceIndicator lastSeen={userLastSeen} />
+                        
+                        <span className="text-gray-300">|</span>
+                        <div className="flex items-center text-amber-500 text-xs">
+                            <Star className="w-3 h-3 fill-current mr-1" />
+                            <span className="font-bold">{service.sellerRating?.toFixed(1) || "5.0"}</span>
+                        </div>
+                    </div>
+                    {/* DODATO ZA DIJAGNOSTIKU: Ispisujemo tačno vreme koje dobijamo iz baze */}
+                    <div className="text-[10px] text-red-500 font-mono">
+                        DEBUG lastSeen: {userLastSeen ? new Date(userLastSeen).toLocaleString() : "NEMA PODATKA"}
                     </div>
                 </div>
             </div>
