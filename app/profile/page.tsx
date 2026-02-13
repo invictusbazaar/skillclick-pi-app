@@ -141,16 +141,22 @@ export default function UserProfilePage() {
       }
   };
 
-  // ✅ NOVA FUNKCIJA: Ažuriranje avatara
+  // ✅ Ažurirana funkcija sa ispisom detaljne greške
   const handleAvatarUpdate = async (base64Image: string) => {
       if (!fullProfile) return;
       try {
-          await updateUserAvatar(fullProfile.username, base64Image);
-          // Odmah ažuriramo lokalni state da se slika promeni bez osvežavanja stranice
+          const result = await updateUserAvatar(fullProfile.username, base64Image);
+          
+          if (result?.error) {
+              alert("Greška sa servera: " + result.error);
+              return;
+          }
+
           setFullProfile({ ...fullProfile, avatar: base64Image });
-      } catch (error) {
+          alert("Slika uspešno sačuvana!");
+      } catch (error: any) {
           console.error("Greška pri čuvanju slike:", error);
-          alert("Došlo je do greške pri čuvanju slike.");
+          alert("Sistemska greška: " + error.message);
       }
   };
 
