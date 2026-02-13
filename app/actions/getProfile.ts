@@ -52,10 +52,15 @@ export async function updateWalletAddress(username: string, walletAddress: strin
 
 // 3. Funkcija za čuvanje Avatar slike
 export async function updateUserAvatar(username: string, base64Image: string) {
-    await prisma.user.update({
-        where: { username },
-        data: { avatar: base64Image }
-    });
-    
-    return { success: true };
+    try {
+        await prisma.user.update({
+            where: { username },
+            data: { avatar: base64Image }
+        });
+        
+        return { success: true };
+    } catch (error: any) {
+        console.error("PRISMA GREŠKA PRI ČUVANJU AVATARA:", error);
+        return { error: error.message || "Greška pri upisu u bazu podataka" };
+    }
 }
