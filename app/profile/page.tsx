@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthContext";
 import { useLanguage } from "@/components/LanguageContext";
-import { getUserProfile, updateWalletAddress } from "@/app/actions/getProfile";
+import { getUserProfile, updateWalletAddress, updateUserAvatar } from "@/app/actions/getProfile";
 import CompleteOrderButton from "@/components/CompleteOrderButton";
-import ReviewModal from "@/components/ReviewModal"; // ✅ UVOZIMO MODAL ZA OCENE
+import ReviewModal from "@/components/ReviewModal"; 
+import AvatarUploader from "@/components/AvatarUploader"; // ✅ DODATO: Komponenta za sliku
 import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,7 @@ export default function UserProfilePage() {
         loginReq: "You must login via Pi Browser to view your profile.",
         backHome: "Back to Home",
         error: "Error loading profile data.",
-        rated: "Rated" // ✅ NOVO
+        rated: "Rated" 
     },
     sr: {
         earnings: "Zarada",
@@ -70,7 +71,7 @@ export default function UserProfilePage() {
         loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
         backHome: "Nazad na Početnu",
         error: "Greška pri učitavanju podataka profila.",
-        rated: "Ocenjeno" // ✅ NOVO
+        rated: "Ocenjeno" 
     },
     zh: {
         earnings: "收入",
@@ -95,11 +96,10 @@ export default function UserProfilePage() {
         loginReq: "您必须通过 Pi 浏览器登录才能查看个人资料。",
         backHome: "返回首页",
         error: "加载个人资料数据时出错。",
-        rated: "已评价" // ✅ NOVO
+        rated: "已评价" 
     }
   };
 
-  // Helper funkcija za izbor teksta
   const T = (key: string) => {
     const currentDict = txt[language] || txt['en'];
     return currentDict[key] || txt['en'][key];
@@ -141,10 +141,21 @@ export default function UserProfilePage() {
       }
   };
 
-  // ✅ NOVA FUNKCIJA: Da li sam već ocenio ovu porudžbinu?
+  // ✅ NOVA FUNKCIJA: Ažuriranje avatara
+  const handleAvatarUpdate = async (base64Image: string) => {
+      if (!fullProfile) return;
+      try {
+          await updateUserAvatar(fullProfile.username, base64Image);
+          // Odmah ažuriramo lokalni state da se slika promeni bez osvežavanja stranice
+          setFullProfile({ ...fullProfile, avatar: base64Image });
+      } catch (error) {
+          console.error("Greška pri čuvanju slike:", error);
+          alert("Došlo je do greške pri čuvanju slike.");
+      }
+  };
+
   const hasReviewed = (order: any) => {
     if (!fullProfile || !order.reviews) return false;
-    // Proveravamo da li postoji recenzija čiji je autor (userId) jednak mom ID-u
     return order.reviews.some((r: any) => r.userId === fullProfile.id);
   };
 
@@ -173,9 +184,13 @@ export default function UserProfilePage() {
         
         {/* ZAGLAVLJE PROFILA */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row items-center gap-6">
-            <div className="h-20 w-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center text-purple-600 shadow-inner">
-                <User className="h-10 w-10" />
-            </div>
+            {/* ✅ UBAČENA AVATAR KOMPONENTA */}
+            <AvatarUploader 
+                currentAvatar={fullProfile.avatar} 
+                username={fullProfile.username} 
+                onAvatarUpdate={handleAvatarUpdate} 
+            />
+            
             <div className="text-center md:text-left flex-1">
                 <h1 className="text-2xl font-bold text-gray-900">{fullProfile.username}</h1>
                 <p className="text-gray-500 text-sm">{T('member')}</p>

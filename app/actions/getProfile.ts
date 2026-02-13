@@ -49,3 +49,13 @@ export async function updateWalletAddress(username: string, walletAddress: strin
     
     return { success: true };
 }
+
+// 3. Funkcija za čuvanje Avatar slike
+export async function updateUserAvatar(username: string, base64Image: string) {
+    await prisma.user.update({
+        where: { username },
+        data: { avatar: base64Image }
+    });
+    
+    return { success: true };
+}

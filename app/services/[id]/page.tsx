@@ -79,6 +79,7 @@ export default function ServiceDetail() {
   const sellerUsername = service.author?.username || service.seller?.username || "";
   
   const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
+  const sellerAvatar = service.author?.avatar || service.seller?.avatar; // DODATO ZA AVATAR
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
@@ -108,9 +109,14 @@ export default function ServiceDetail() {
 
             <div className="flex items-center gap-3 py-2 border-b border-gray-200">
                 <Link href={`/seller/${sellerUsername}`}>
-                    <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold text-sm border border-white shadow-sm">
-                        {sellerUsername && sellerUsername[0] ? sellerUsername[0].toUpperCase() : <UserCircle />}
-                    </div>
+                    {/* DODATO: Prikaz prave slike ako postoji, inače inicijali */}
+                    {sellerAvatar ? (
+                        <img src={sellerAvatar} alt={sellerUsername} className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm" />
+                    ) : (
+                        <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold text-sm border border-white shadow-sm">
+                            {sellerUsername && sellerUsername[0] ? sellerUsername[0].toUpperCase() : <UserCircle />}
+                        </div>
+                    )}
                 </Link>
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
