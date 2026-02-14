@@ -281,16 +281,16 @@ export default function UserProfilePage() {
             </div>
         </div>
 
-        {/* MENI (TABS) */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-            <button onClick={() => setActiveTab("orders")} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition whitespace-nowrap ${activeTab==="orders" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
-                <ShoppingBag className="h-4 w-4"/> {T('tabOrders')}
+        {/* MENI (TABS) - ISPRAVLJENO DA STAJE NA SVE EKRANE BEZ SKROLA */}
+        <div className="grid grid-cols-3 gap-2 mb-6">
+            <button onClick={() => setActiveTab("orders")} className={`p-2 rounded-xl font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all text-[11px] sm:text-sm leading-tight text-center ${activeTab==="orders" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}>
+                <ShoppingBag className="h-4 w-4 md:h-5 md:w-5"/> <span>{T('tabOrders')}</span>
             </button>
-            <button onClick={() => setActiveTab("sales")} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition whitespace-nowrap ${activeTab==="sales" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
-                <LayoutGrid className="h-4 w-4"/> {T('tabSales')}
+            <button onClick={() => setActiveTab("sales")} className={`p-2 rounded-xl font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all text-[11px] sm:text-sm leading-tight text-center ${activeTab==="sales" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}>
+                <LayoutGrid className="h-4 w-4 md:h-5 md:w-5"/> <span>{T('tabSales')}</span>
             </button>
-            <button onClick={() => setActiveTab("settings")} className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition whitespace-nowrap ${activeTab==="settings" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"}`}>
-                <Wallet className="h-4 w-4"/> {T('tabWallet')}
+            <button onClick={() => setActiveTab("settings")} className={`p-2 rounded-xl font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all text-[11px] sm:text-sm leading-tight text-center ${activeTab==="settings" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}>
+                <Wallet className="h-4 w-4 md:h-5 md:w-5"/> <span>{T('tabWallet')}</span>
             </button>
         </div>
 
