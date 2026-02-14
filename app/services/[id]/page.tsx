@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageContext';
+import { useAuth } from '@/components/AuthContext'; // ✅ DODATO: Autentifikacija
 import { 
   ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, 
   UserCircle, Star, ShieldCheck, CheckCircle, RefreshCw, Briefcase, Video, Monitor 
@@ -18,8 +19,12 @@ export default function ServiceDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { lang, t } = useLanguage();
+  
+  const { user: authUser, loading: authLoading } = useAuth(); // ✅ DODATO: Učitavamo ko gleda oglas
+
   const [service, setService] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
+  const [accessDenied, setAccessDenied] = useState(false); // ✅ DODATO: Za blokiranje
 
   // Mapiranje kategorija (za prevod)
   const getTranslatedCategory = (catFromDb: string) => {
@@ -59,17 +64,48 @@ export default function ServiceDetail() {
   };
 
   useEffect(() => {
-    fetch('/api/services')
+    if (authLoading) return; // Čekamo da se utvrdi ko je korisnik pre nego što povučemo podatke
+
+    // ✅ DODATO: ?all=true kako bi API poslao i oglase koji su na čekanju
+    fetch('/api/services?all=true')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
             const found = data.find((s: any) => s.id.toString() === id);
-            setService(found);
-            if (found?.images && found.images.length > 0) setMainImage(found.images[0]);
+            
+            if (found) {
+                const sellerUsername = found.author?.username || found.seller?.username;
+                const isAdmin = authUser?.role === 'admin';
+                const isAuthor = authUser?.username === sellerUsername;
+
+                // ✅ BEZBEDNOSNA BLOKADA:
+                // Ako oglas NIJE odobren, a korisnik NIJE Admin i NIJE Autor -> Zabrani pristup!
+                if (found.isApproved === false && !isAdmin && !isAuthor) {
+                    setAccessDenied(true);
+                    return;
+                }
+
+                setService(found);
+                if (found?.images && found.images.length > 0) setMainImage(found.images[0]);
+            }
         }
       })
       .catch(err => console.error("Greška:", err));
-  }, [id]);
+  }, [id, authUser, authLoading]);
+
+  // Ekran za blokiran pristup
+  if (accessDenied) {
+      return (
+          <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+              <ShieldCheck className="w-20 h-20 text-amber-500 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Oglas je na čekanju</h2>
+              <p className="text-gray-500 max-w-md mb-6">Ovaj oglas još uvek nije pregledan i odobren od strane administratora, pa trenutno nije javno vidljiv.</p>
+              <button onClick={() => router.push('/')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-xl font-bold transition-colors">
+                  {t('backHome')}
+              </button>
+          </div>
+      )
+  }
 
   if (!service) return <div className="p-20 text-center text-gray-500 text-sm">{t('loading')}</div>;
   
@@ -85,8 +121,18 @@ export default function ServiceDetail() {
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
       
       {/* HEADER */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm py-2">
-          <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+          {/* ✅ DODATO: Žuta traka upozorenja ako oglas nije odobren */}
+          {service.isApproved === false && (
+              <div className="bg-amber-100 text-amber-800 text-center py-1.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-4 h-4" /> 
+                  {authUser?.role === 'admin' 
+                      ? "ADMIN PREGLED: Ovaj oglas je na čekanju i nije javno vidljiv." 
+                      : "VAŠ OGLAS: Ovaj oglas čeka odobrenje administratora."}
+              </div>
+          )}
+
+          <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
             <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 text-xs font-bold hover:text-purple-600 uppercase">
                 <ArrowLeft className="w-4 h-4" /> {t('back')}
             </button>
@@ -118,10 +164,8 @@ export default function ServiceDetail() {
                         </div>
                     )}
                 </Link>
-                {/* DODATO: min-w-0 flex-1 za pravilno funkcionisanje truncate efekta */}
                 <div className="flex flex-col gap-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                        {/* DODATO: truncate i ograničenja širine */}
                         <Link href={`/seller/${sellerUsername}`} title={`@${sellerUsername || "User"}`} className="font-bold text-sm text-gray-800 hover:text-purple-600 hover:underline truncate max-w-[120px] sm:max-w-[200px]">
                             @{sellerUsername || "User"}
                         </Link>
