@@ -7,13 +7,18 @@ export const dynamic = 'force-dynamic';
 const prisma = global.prisma || new PrismaClient();
 if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // 1. Učitavamo servise koji se prikazuju na početnoj
+    // 👇 NOVO: Proveravamo da li nam zahtev stiže iz Admin panela
+    const { searchParams } = new URL(request.url);
+    const fetchAll = searchParams.get('all') === 'true';
+
+    // 1. Učitavamo servise koji se prikazuju
     const services = await prisma.service.findMany({
+      // 👇 KLJUČNO: Ako nije Admin (fetchAll je false), traži isključivo odobrene oglase!
+      where: fetchAll ? undefined : { isApproved: true },
       include: {
         seller: {
-          // 👇 KLJUČNO: Za svakog prodavca učitavamo SVE njegove usluge i njihove recenzije
           include: {
             services: {
               include: {
@@ -52,7 +57,6 @@ export async function GET() {
       return {
         ...service,
         author: service.seller, // Frontend očekuje 'author'
-        // 👇 Šaljemo GLOBALNU ocenu prodavca, ne samo za ovaj oglas
         sellerRating: globalAverage, 
         reviewCount: totalCount
       };
