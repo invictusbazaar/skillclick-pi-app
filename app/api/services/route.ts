@@ -9,13 +9,13 @@ if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
 export async function GET(request: Request) {
   try {
-    // 👇 NOVO: Proveravamo da li nam zahtev stiže iz Admin panela
+    // Proveravamo da li nam zahtev stiže iz Admin panela
     const { searchParams } = new URL(request.url);
     const fetchAll = searchParams.get('all') === 'true';
 
     // 1. Učitavamo servise koji se prikazuju
     const services = await prisma.service.findMany({
-      // 👇 KLJUČNO: Ako nije Admin (fetchAll je false), traži isključivo odobrene oglase!
+      // Ako nije Admin (fetchAll je false), traži isključivo odobrene oglase!
       where: fetchAll ? undefined : { isApproved: true },
       include: {
         seller: {
@@ -35,28 +35,24 @@ export async function GET(request: Request) {
 
     // 2. Računamo GLOBALNI rejting prodavca
     const formattedServices = services.map(service => {
-      // Svi oglasi ovog prodavca
       const sellerServices = service.seller?.services || [];
       
       let totalStars = 0;
       let totalCount = 0;
 
-      // Prolazimo kroz svaku uslugu koju ovaj čovek nudi
       sellerServices.forEach(s => {
         const reviews = s.reviews || [];
-        // Sabiramo ocene iz te usluge
         reviews.forEach(r => {
           totalStars += (r.rating || 0);
           totalCount++;
         });
       });
       
-      // Računamo globalni prosek
       const globalAverage = totalCount > 0 ? totalStars / totalCount : 0;
 
       return {
         ...service,
-        author: service.seller, // Frontend očekuje 'author'
+        author: service.seller, 
         sellerRating: globalAverage, 
         reviewCount: totalCount
       };
@@ -71,6 +67,29 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error("Greška pri učitavanju oglasa:", error);
-    return NextResponse.json([], { status: 200 }); // Vraćamo prazno da ne pukne app
+    return NextResponse.json([], { status: 200 }); 
+  }
+}
+
+// 👇 NOVO: Dodajemo PATCH metodu koja TRAJNO čuva tvoje odobrenje u bazi!
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, isApproved } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Nedostaje ID oglasa." }, { status: 400 });
+    }
+
+    // Ažuriramo status u bazi podataka
+    const updatedService = await prisma.service.update({
+      where: { id: String(id) },
+      data: { isApproved: Boolean(isApproved) }
+    });
+
+    return NextResponse.json(updatedService);
+  } catch (error) {
+    console.error("Greška pri menjanju statusa oglasa:", error);
+    return NextResponse.json({ error: "Sistemska greška pri ažuriranju baze." }, { status: 500 });
   }
 }
