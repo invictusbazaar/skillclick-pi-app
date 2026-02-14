@@ -23,7 +23,8 @@ export default function AdminServicesPage() {
         let allServices: any[] = [];
 
         try {
-            const res = await fetch('/api/services');
+            // 👇 ISPRAVLJENO: Sada admin vuče SVE oglase (i odobrene i neodobrene)
+            const res = await fetch('/api/services?all=true');
             if (res.ok) {
                 const dbData = await res.json();
                 if (Array.isArray(dbData)) {
@@ -193,7 +194,7 @@ export default function AdminServicesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-8">
             {paginatedServices.map((service) => {
                 const authorName = getAuthorName(service.author);
-                const isApproved = service.isApproved !== false; // Pretpostavljamo da je odobren ako ne piše izričito false
+                const isApproved = service.isApproved !== false; 
                 
                 return (
                 <div key={service.id} className={`group bg-white rounded-xl border p-2 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-3 ${!isApproved ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200 hover:border-purple-200'}`}>
