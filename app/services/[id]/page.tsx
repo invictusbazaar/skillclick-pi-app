@@ -79,7 +79,7 @@ export default function ServiceDetail() {
   const sellerUsername = service.author?.username || service.seller?.username || "";
   
   const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
-  const sellerAvatar = service.author?.avatar || service.seller?.avatar; // DODATO ZA AVATAR
+  const sellerAvatar = service.author?.avatar || service.seller?.avatar;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
@@ -107,9 +107,9 @@ export default function ServiceDetail() {
                 {currentTitle}
             </h1>
 
-            <div className="flex items-center gap-3 py-2 border-b border-gray-200">
-                <Link href={`/seller/${sellerUsername}`}>
-                    {/* DODATO: Prikaz prave slike ako postoji, inače inicijali */}
+            <div className="flex items-center gap-3 py-2 border-b border-gray-200 overflow-hidden">
+                <Link href={`/seller/${sellerUsername}`} className="flex-shrink-0">
+                    {/* Prikaz prave slike ako postoji, inače inicijali */}
                     {sellerAvatar ? (
                         <img src={sellerAvatar} alt={sellerUsername} className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm" />
                     ) : (
@@ -118,16 +118,20 @@ export default function ServiceDetail() {
                         </div>
                     )}
                 </Link>
-                <div className="flex flex-col gap-1">
+                {/* DODATO: min-w-0 flex-1 za pravilno funkcionisanje truncate efekta */}
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                        <Link href={`/seller/${sellerUsername}`} className="font-bold text-sm text-gray-800 hover:text-purple-600 hover:underline">
+                        {/* DODATO: truncate i ograničenja širine */}
+                        <Link href={`/seller/${sellerUsername}`} title={`@${sellerUsername || "User"}`} className="font-bold text-sm text-gray-800 hover:text-purple-600 hover:underline truncate max-w-[120px] sm:max-w-[200px]">
                             @{sellerUsername || "User"}
                         </Link>
                         
-                        <PresenceIndicator lastSeen={userLastSeen} />
+                        <div className="flex-shrink-0">
+                            <PresenceIndicator lastSeen={userLastSeen} />
+                        </div>
                         
-                        <span className="text-gray-300">|</span>
-                        <div className="flex items-center text-amber-500 text-xs">
+                        <span className="text-gray-300 flex-shrink-0">|</span>
+                        <div className="flex items-center text-amber-500 text-xs flex-shrink-0">
                             <Star className="w-3 h-3 fill-current mr-1" />
                             <span className="font-bold">{service.sellerRating?.toFixed(1) || "5.0"}</span>
                         </div>
