@@ -116,9 +116,9 @@ function HomeContent() {
       {/* HEADER SEKCIJA */}
       <main className="relative bg-gradient-to-br from-indigo-900 via-purple-800 to-fuchsia-800 text-white py-16 md:py-28 overflow-hidden">
          
-         {/* ELEGANTNO ADMIN DUGME (Prikazano samo tebi) */}
+         {/* ELEGANTNO ADMIN DUGME (Prikazano samo tebi) - SMANJEN Z-INDEX */}
          {user?.isAdmin && (
-            <div className="absolute top-4 right-4 z-50 animate-fade-in">
+            <div className="absolute top-4 right-4 z-10 animate-fade-in">
               <Link href="/admin">
                 <Button className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full shadow-lg flex items-center gap-2 text-xs font-bold px-4 transition-all duration-300">
                   <ShieldCheck className="w-4 h-4 text-green-300" /> ADMIN
@@ -169,7 +169,7 @@ function HomeContent() {
             </div> 
         ) : (
             <>
-                {/* GRID KARTICA (Povećan razmak, lepše zaobljene ivice) */}
+                {/* GRID KARTICA */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     {currentServices.map((gig) => (
                         <div key={gig.id} className="group bg-white rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col h-full">
@@ -201,7 +201,7 @@ function HomeContent() {
                                     </h3>
                                 </Link>
                                 
-                                {/* PRODAVAC INFO (Fiksirano na dnu) */}
+                                {/* PRODAVAC INFO */}
                                 <div className="mt-auto pt-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
                                     <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
                                         {gig.seller?.username ? gig.seller.username[0].toUpperCase() : <User className="w-3 h-3"/>}
