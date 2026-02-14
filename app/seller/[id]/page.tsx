@@ -5,12 +5,12 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Star, MapPin, Calendar, MessageCircle, Share2, Layers, ShieldCheck, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useLanguage } from "@/components/LanguageContext" // ✅ UBACENO
+import { useLanguage } from "@/components/LanguageContext" 
 
 export default function SellerProfilePage() {
   const params = useParams()
   const router = useRouter()
-  // Dekodiramo username iz URL-a
+  // Dekodiramo username iz URL-a (radiće i ako se fajl zove [id] ili [username])
   const username = decodeURIComponent(params?.username as string || params?.id as string)
   
   // ✅ UČITAVAMO PREVODE
@@ -59,6 +59,29 @@ export default function SellerProfilePage() {
     }
   };
 
+  // ✅ FUNKCIJA ZA DELJENJE PROFILA
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `SkillClick Profil - @${username}`,
+          url: url
+        });
+      } catch (err) {
+        console.error("Greška pri deljenju", err);
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      alert("Link profila je kopiran!");
+    }
+  };
+
+  // ✅ FUNKCIJA ZA KONTAKT (Slanje poruke)
+  const handleContact = () => {
+    router.push(`/messages?user=${username}`);
+  };
+
   const getRandomGradient = (id: string) => {
     if (!id) return "from-purple-500 to-indigo-600";
     const num = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -82,7 +105,7 @@ export default function SellerProfilePage() {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="container mx-auto px-4 py-3">
              <Button variant="ghost" onClick={() => router.back()} className={`text-gray-600 hover:text-purple-600 -ml-2 gap-2 ${clickEffect}`}>
-                <ArrowLeft className="w-5 h-5" /> {t('back')} {/* ✅ PREVEDENO */}
+                <ArrowLeft className="w-5 h-5" /> {t('back')} 
              </Button>
         </div>
       </div>
@@ -95,26 +118,27 @@ export default function SellerProfilePage() {
             
             <div className="relative flex flex-col md:flex-row items-start md:items-end gap-6 pt-10">
                 
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center text-3xl md:text-5xl font-bold text-purple-600 z-10 overflow-hidden">
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center text-3xl md:text-5xl font-bold text-purple-600 z-10 overflow-hidden flex-shrink-0">
                     {username ? username[0].toUpperCase() : <User />}
                 </div>
 
-                <div className="flex-grow z-10 pb-2 w-full md:w-auto">
+                <div className="flex-grow z-10 pb-2 w-full md:w-auto min-w-0">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
-                                @{username} 
-                                <ShieldCheck className="w-5 h-5 text-blue-500" />
+                        <div className="min-w-0 flex-1">
+                            {/* ISPRAVKA: flex-wrap i break-all da se celo ime uvek vidi u potpunosti */}
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex flex-wrap items-center gap-2">
+                                <span className="break-all">@{username}</span> 
+                                <ShieldCheck className="w-5 h-5 text-blue-500 flex-shrink-0" />
                             </h1>
-                            <p className="text-gray-500 mt-1">{t('verifiedSeller')}</p> {/* ✅ PREVEDENO */}
+                            <p className="text-gray-500 mt-1">{t('verifiedSeller')}</p>
                         </div>
                         
-                        <div className="flex gap-3">
-                            <Button variant="outline" className={`gap-2 rounded-full ${clickEffect}`}>
+                        <div className="flex gap-3 flex-shrink-0">
+                            <Button variant="outline" onClick={handleShare} className={`gap-2 rounded-full ${clickEffect}`}>
                                 <Share2 className="w-4 h-4" /> Share
                             </Button>
-                            <Button className={`gap-2 rounded-full bg-purple-600 hover:bg-purple-700 ${clickEffect}`}>
-                                <MessageCircle className="w-4 h-4" /> {t('contact')} {/* ✅ PREVEDENO */}
+                            <Button onClick={handleContact} className={`gap-2 rounded-full bg-purple-600 hover:bg-purple-700 ${clickEffect}`}>
+                                <MessageCircle className="w-4 h-4" /> {t('contact')}
                             </Button>
                         </div>
                     </div>
@@ -122,11 +146,10 @@ export default function SellerProfilePage() {
                     <div className="flex flex-wrap gap-4 md:gap-8 mt-6 text-sm text-gray-600 border-t border-gray-100 pt-4">
                         <div className="flex items-center gap-1.5">
                             <MapPin className="w-4 h-4 text-gray-400" />
-                            <span>Global</span> {/* Promenjeno iz "Novi Sad" u "Global" da ne zbunjuje */}
+                            <span>Global</span> 
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Calendar className="w-4 h-4 text-gray-400" />
-                            {/* ✅ PREVEDENO */}
                             <span>{t('memberSince')} {sellerStats.joined}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -141,7 +164,7 @@ export default function SellerProfilePage() {
 
         {/* --- LISTA OGLASA --- */}
         <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            {t('sellerGigs')} <span className="text-purple-600">@{username}</span> {/* ✅ PREVEDENO */}
+            {t('sellerGigs')} <span className="text-purple-600 break-all">@{username}</span> 
         </h2>
 
         {sellerServices.length === 0 ? (
