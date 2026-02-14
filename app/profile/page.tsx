@@ -6,7 +6,7 @@ import { useLanguage } from "@/components/LanguageContext";
 import { getUserProfile, updateWalletAddress, updateUserAvatar } from "@/app/actions/getProfile";
 import CompleteOrderButton from "@/components/CompleteOrderButton";
 import ReviewModal from "@/components/ReviewModal"; 
-import AvatarUploader from "@/components/AvatarUploader"; // ✅ DODATO: Komponenta za sliku
+import AvatarUploader from "@/components/AvatarUploader"; 
 import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ export default function UserProfilePage() {
   const [walletInput, setWalletInput] = useState("");
   const [savingWallet, setSavingWallet] = useState(false);
 
-  // --- LOKALNI PREVODI ZA PROFIL ---
+  // --- LOKALNI PREVODI USKLAĐENI SA TVOJIM LANGUAGE CONTEXT-OM ---
   const txt: any = {
     en: {
         earnings: "Earnings",
@@ -73,6 +73,31 @@ export default function UserProfilePage() {
         error: "Greška pri učitavanju podataka profila.",
         rated: "Ocenjeno" 
     },
+    hi: {
+        earnings: "कमाई",
+        member: "SkillClick सदस्य",
+        tabOrders: "मेरी खरीदारी",
+        tabSales: "मेरी बिक्री",
+        tabWallet: "वॉलेट और जानकारी",
+        noPurchases: "अभी तक कोई खरीदारी नहीं।",
+        noSales: "अभी तक कोई बिक्री नहीं।",
+        seller: "विक्रेता",
+        buyer: "खरीदार",
+        date: "तारीख",
+        statusPaid: "भुगतान किया गया",
+        statusPending: "लंबित",
+        statusWaiting: "खरीदार की प्रतीक्षा",
+        walletTitle: "आपका Pi पेआउट वॉलेट",
+        walletDesc: "अपनी पब्लिक की (G से शुरू) दर्ज करें। कमाई स्वचालित रूप से यहां भेजी जाएगी।",
+        labelWallet: "Pi वॉलेट पता (G...)",
+        btnSave: "पता सहेजें",
+        savedMsg: "✅ पता सहेजा गया! कमाई स्वचालित रूप से आ जाएगी।",
+        notLogged: "लॉग इन नहीं है",
+        loginReq: "अपनी प्रोफ़ाइल देखने के लिए आपको Pi Browser के माध्यम से लॉग इन करना होगा।",
+        backHome: "होम पर वापस जाएं",
+        error: "प्रोफ़ाइल डेटा लोड करने में त्रुटि।",
+        rated: "रेट किया गया"
+    },
     zh: {
         earnings: "收入",
         member: "SkillClick 会员",
@@ -97,6 +122,56 @@ export default function UserProfilePage() {
         backHome: "返回首页",
         error: "加载个人资料数据时出错。",
         rated: "已评价" 
+    },
+    tw: {
+        earnings: "收入",
+        member: "SkillClick 會員",
+        tabOrders: "我的購買",
+        tabSales: "我的銷售",
+        tabWallet: "錢包 & 資訊",
+        noPurchases: "暫無購買記錄。",
+        noSales: "暫無銷售記錄。",
+        seller: "賣家",
+        buyer: "買家",
+        date: "日期",
+        statusPaid: "已支付",
+        statusPending: "待處理",
+        statusWaiting: "等待買家",
+        walletTitle: "您的 Pi 收款錢包",
+        walletDesc: "輸入您的公鑰（以 'G' 開頭）。收入將自動發送到此處。",
+        labelWallet: "Pi 錢包地址 (G...)",
+        btnSave: "保存地址",
+        savedMsg: "✅ 地址已保存！收入將自動到帳。",
+        notLogged: "未登錄",
+        loginReq: "您必須通過 Pi 瀏覽器登錄才能查看個人資料。",
+        backHome: "返回首頁",
+        error: "加載個人資料數據時出錯。",
+        rated: "已評價"
+    },
+    id: {
+        earnings: "Pendapatan",
+        member: "Anggota SkillClick",
+        tabOrders: "Pembelian Saya",
+        tabSales: "Penjualan Saya",
+        tabWallet: "Dompet & Info",
+        noPurchases: "Belum ada pembelian.",
+        noSales: "Belum ada penjualan.",
+        seller: "Penjual",
+        buyer: "Pembeli",
+        date: "Tanggal",
+        statusPaid: "DIBAYAR",
+        statusPending: "TERTUNDA",
+        statusWaiting: "Menunggu pembeli",
+        walletTitle: "Dompet Pencairan Pi Anda",
+        walletDesc: "Masukkan Public Key Anda (dimulai dengan 'G'). Pendapatan akan dikirim ke sini secara otomatis.",
+        labelWallet: "Alamat Dompet Pi (G...)",
+        btnSave: "Simpan Alamat",
+        savedMsg: "✅ Alamat disimpan! Pendapatan akan masuk secara otomatis.",
+        notLogged: "Belum Masuk",
+        loginReq: "Anda harus masuk melalui Pi Browser untuk melihat profil.",
+        backHome: "Kembali ke Beranda",
+        error: "Kesalahan memuat data profil.",
+        rated: "Dinilai"
     }
   };
 
@@ -141,7 +216,6 @@ export default function UserProfilePage() {
       }
   };
 
-  // ✅ Ažurirana funkcija sa ispisom detaljne greške
   const handleAvatarUpdate = async (base64Image: string) => {
       if (!fullProfile) return;
       try {
@@ -190,7 +264,6 @@ export default function UserProfilePage() {
         
         {/* ZAGLAVLJE PROFILA */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row items-center gap-6">
-            {/* ✅ UBAČENA AVATAR KOMPONENTA */}
             <AvatarUploader 
                 currentAvatar={fullProfile.avatar} 
                 username={fullProfile.username} 
@@ -223,7 +296,7 @@ export default function UserProfilePage() {
 
         {/* SADRŽAJ */}
         
-        {/* 1. KUPOVINE (Ocenjujem Prodavca) */}
+        {/* 1. KUPOVINE */}
         {activeTab === "orders" && (
             <div className="space-y-4">
                 {fullProfile.orders.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noPurchases')}</div>}
@@ -239,12 +312,10 @@ export default function UserProfilePage() {
                         </div>
                         
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
-                             {/* STATUS BADGE */}
                             <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>
                                 {order.status === 'completed' ? T('statusPaid') : T('statusPending')}
                             </span>
 
-                            {/* DUGME ZA ISPLATU (Samo ako nije završeno) */}
                             {order.status !== 'completed' && (
                                 <CompleteOrderButton 
                                     orderId={order.id} 
@@ -253,12 +324,10 @@ export default function UserProfilePage() {
                                 />
                             )}
 
-                            {/* ✅ DUGME ZA OCENU (Samo ako je plaćeno I nisam ocenio) */}
                             {order.status === 'completed' && !hasReviewed(order) && (
                                 <ReviewModal orderId={order.id} myUsername={authUser.username} targetRole="Seller" />
                             )}
                             
-                            {/* ✅ ZNAČKICA: OCENJENO */}
                             {hasReviewed(order) && (
                                 <span className="text-xs text-yellow-600 font-bold flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-md">
                                     <CheckCircle className="w-3 h-3"/> {T('rated')}
@@ -270,7 +339,7 @@ export default function UserProfilePage() {
             </div>
         )}
 
-        {/* 2. PRODAJE (Ocenjujem Kupca) */}
+        {/* 2. PRODAJE */}
         {activeTab === "sales" && (
             <div className="space-y-4">
                  {fullProfile.sales.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noSales')}</div>}
@@ -286,12 +355,10 @@ export default function UserProfilePage() {
                                 {sale.status === 'completed' ? T('statusPaid') : T('statusWaiting')}
                             </span>
 
-                            {/* ✅ DUGME ZA OCENU KUPCA */}
                             {sale.status === 'completed' && !hasReviewed(sale) && (
                                 <ReviewModal orderId={sale.id} myUsername={authUser.username} targetRole="Buyer" />
                             )}
                             
-                            {/* ✅ ZNAČKICA: OCENJENO */}
                             {hasReviewed(sale) && (
                                 <span className="text-xs text-yellow-600 font-bold flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-md">
                                     <CheckCircle className="w-3 h-3"/> {T('rated')}
@@ -303,7 +370,7 @@ export default function UserProfilePage() {
             </div>
         )}
 
-        {/* 3. PODEŠAVANJA (Wallet) */}
+        {/* 3. PODEŠAVANJA */}
         {activeTab === "settings" && (
             <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
