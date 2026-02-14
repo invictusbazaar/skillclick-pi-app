@@ -66,6 +66,9 @@ export default function ServiceDetail() {
   useEffect(() => {
     if (authLoading) return; 
 
+    // ✅ OBAVEZNO: Resetujemo blokadu pri svakom novom pokušaju učitavanja
+    setAccessDenied(false);
+
     fetch('/api/services?all=true')
       .then(res => res.json())
       .then(data => {
@@ -73,13 +76,17 @@ export default function ServiceDetail() {
             const found = data.find((s: any) => s.id.toString() === id);
             
             if (found) {
-                const sellerUsername = found.author?.username || found.seller?.username;
+                const sellerUsername = found.author?.username || found.seller?.username || "";
                 
-                // ✅ ISPRAVKA: Pravimo "VIP Spisak" Admina jer useAuth često ne vuče 'role' iz baze
-                const masterAdmins = ["ilijabrdar", "DraganaStekovic1977"]; 
+                // ✅ ISPRAVKA: Sve prebacujemo u MALA SLOVA da izbegnemo greške
+                const currentUserLower = authUser?.username?.toLowerCase() || "";
+                const sellerUserLower = sellerUsername.toLowerCase();
                 
-                const isAdmin = authUser?.role === 'admin' || masterAdmins.includes(authUser?.username);
-                const isAuthor = authUser?.username === sellerUsername;
+                // Naš VIP Spisak (isključivo malim slovima)
+                const masterAdmins = ["ilijabrdar", "draganastekovic1977"]; 
+                
+                const isAdmin = authUser?.role === 'admin' || masterAdmins.includes(currentUserLower);
+                const isAuthor = currentUserLower === sellerUserLower;
 
                 // Ako oglas NIJE odobren, a korisnik NIJE Admin i NIJE Autor -> Zabrani pristup!
                 if (found.isApproved === false && !isAdmin && !isAuthor) {
@@ -119,9 +126,10 @@ export default function ServiceDetail() {
   const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
   const sellerAvatar = service.author?.avatar || service.seller?.avatar;
 
-  // Provera za žutu traku
-  const masterAdmins = ["ilijabrdar", "DraganaStekovic1977"];
-  const isViewerAdmin = authUser?.role === 'admin' || masterAdmins.includes(authUser?.username);
+  // Provera za žutu traku (takođe sa malim slovima)
+  const currentUserLower = authUser?.username?.toLowerCase() || "";
+  const masterAdmins = ["ilijabrdar", "draganastekovic1977"];
+  const isViewerAdmin = authUser?.role === 'admin' || masterAdmins.includes(currentUserLower);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
