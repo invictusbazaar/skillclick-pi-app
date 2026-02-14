@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageContext';
-import { useAuth } from '@/components/AuthContext'; // ✅ DODATO: Autentifikacija
+import { useAuth } from '@/components/AuthContext'; 
 import { 
   ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, 
   UserCircle, Star, ShieldCheck, CheckCircle, RefreshCw, Briefcase, Video, Monitor 
@@ -20,11 +20,11 @@ export default function ServiceDetail() {
   const router = useRouter();
   const { lang, t } = useLanguage();
   
-  const { user: authUser, loading: authLoading } = useAuth(); // ✅ DODATO: Učitavamo ko gleda oglas
+  const { user: authUser, loading: authLoading } = useAuth(); 
 
   const [service, setService] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
-  const [accessDenied, setAccessDenied] = useState(false); // ✅ DODATO: Za blokiranje
+  const [accessDenied, setAccessDenied] = useState(false); 
 
   // Mapiranje kategorija (za prevod)
   const getTranslatedCategory = (catFromDb: string) => {
@@ -64,9 +64,8 @@ export default function ServiceDetail() {
   };
 
   useEffect(() => {
-    if (authLoading) return; // Čekamo da se utvrdi ko je korisnik pre nego što povučemo podatke
+    if (authLoading) return; 
 
-    // ✅ DODATO: ?all=true kako bi API poslao i oglase koji su na čekanju
     fetch('/api/services?all=true')
       .then(res => res.json())
       .then(data => {
@@ -75,10 +74,13 @@ export default function ServiceDetail() {
             
             if (found) {
                 const sellerUsername = found.author?.username || found.seller?.username;
-                const isAdmin = authUser?.role === 'admin';
+                
+                // ✅ ISPRAVKA: Pravimo "VIP Spisak" Admina jer useAuth često ne vuče 'role' iz baze
+                const masterAdmins = ["ilijabrdar", "DraganaStekovic1977"]; 
+                
+                const isAdmin = authUser?.role === 'admin' || masterAdmins.includes(authUser?.username);
                 const isAuthor = authUser?.username === sellerUsername;
 
-                // ✅ BEZBEDNOSNA BLOKADA:
                 // Ako oglas NIJE odobren, a korisnik NIJE Admin i NIJE Autor -> Zabrani pristup!
                 if (found.isApproved === false && !isAdmin && !isAuthor) {
                     setAccessDenied(true);
@@ -117,16 +119,20 @@ export default function ServiceDetail() {
   const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
   const sellerAvatar = service.author?.avatar || service.seller?.avatar;
 
+  // Provera za žutu traku
+  const masterAdmins = ["ilijabrdar", "DraganaStekovic1977"];
+  const isViewerAdmin = authUser?.role === 'admin' || masterAdmins.includes(authUser?.username);
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
       
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-          {/* ✅ DODATO: Žuta traka upozorenja ako oglas nije odobren */}
+          {/* Žuta traka upozorenja ako oglas nije odobren */}
           {service.isApproved === false && (
               <div className="bg-amber-100 text-amber-800 text-center py-1.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-2">
                   <ShieldCheck className="w-4 h-4" /> 
-                  {authUser?.role === 'admin' 
+                  {isViewerAdmin 
                       ? "ADMIN PREGLED: Ovaj oglas je na čekanju i nije javno vidljiv." 
                       : "VAŠ OGLAS: Ovaj oglas čeka odobrenje administratora."}
               </div>
