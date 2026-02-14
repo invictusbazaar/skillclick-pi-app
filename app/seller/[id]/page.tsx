@@ -10,10 +10,8 @@ import { useLanguage } from "@/components/LanguageContext"
 export default function SellerProfilePage() {
   const params = useParams()
   const router = useRouter()
-  // Dekodiramo username iz URL-a (radiće i ako se fajl zove [id] ili [username])
   const username = decodeURIComponent(params?.username as string || params?.id as string)
   
-  // ✅ UČITAVAMO PREVODE
   const { t } = useLanguage();
 
   const [sellerServices, setSellerServices] = useState<any[]>([])
@@ -34,13 +32,11 @@ export default function SellerProfilePage() {
         const data = await res.json();
         
         if (Array.isArray(data)) {
-            // Filtriramo oglase SAMO za ovog prodavca
             const myServices = data.filter((s: any) => 
                 s.seller?.username === username || s.author?.username === username
             );
             setSellerServices(myServices);
 
-            // Statistika
             if (myServices.length > 0) {
                 const s = myServices[0];
                 setSellerStats({
@@ -59,9 +55,9 @@ export default function SellerProfilePage() {
     }
   };
 
-  // ✅ FUNKCIJA ZA DELJENJE PROFILA
   const handleShare = async () => {
     const url = window.location.href;
+    // Otvara nativni meni (Viber, WhatsApp) samo na pravim mobilnim uređajima
     if (navigator.share) {
       try {
         await navigator.share({
@@ -72,12 +68,12 @@ export default function SellerProfilePage() {
         console.error("Greška pri deljenju", err);
       }
     } else {
+      // Fallback za kompjuter ili nepodržane browsere
       navigator.clipboard.writeText(url);
       alert("Link profila je kopiran!");
     }
   };
 
-  // ✅ FUNKCIJA ZA KONTAKT (Slanje poruke)
   const handleContact = () => {
     router.push(`/messages?user=${username}`);
   };
@@ -124,13 +120,16 @@ export default function SellerProfilePage() {
 
                 <div className="flex-grow z-10 pb-2 w-full md:w-auto min-w-0">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        
+                        {/* ISPRAVKA: Ime u jednom redu sa tri tačkice */}
                         <div className="min-w-0 flex-1">
-                            {/* ISPRAVKA: flex-wrap i break-all da se celo ime uvek vidi u potpunosti */}
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex flex-wrap items-center gap-2">
-                                <span className="break-all">@{username}</span> 
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
+                                    @{username}
+                                </h1>
                                 <ShieldCheck className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                            </h1>
-                            <p className="text-gray-500 mt-1">{t('verifiedSeller')}</p>
+                            </div>
+                            <p className="text-gray-500 mt-1 truncate">{t('verifiedSeller')}</p>
                         </div>
                         
                         <div className="flex gap-3 flex-shrink-0">
@@ -164,7 +163,7 @@ export default function SellerProfilePage() {
 
         {/* --- LISTA OGLASA --- */}
         <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            {t('sellerGigs')} <span className="text-purple-600 break-all">@{username}</span> 
+            {t('sellerGigs')} <span className="text-purple-600 truncate">@{username}</span> 
         </h2>
 
         {sellerServices.length === 0 ? (
