@@ -6,7 +6,7 @@ import { useLanguage } from '@/components/LanguageContext';
 import { useAuth } from '@/components/AuthContext'; 
 import { 
   ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, 
-  UserCircle, Star, ShieldCheck, CheckCircle, RefreshCw, Briefcase, Video, Monitor 
+  UserCircle, Star, ShieldCheck, CheckCircle, Briefcase, Video, Monitor, Loader2 
 } from 'lucide-react';
 import Link from 'next/link';
 import BuyButton from '@/components/BuyButton'; 
@@ -24,7 +24,7 @@ export default function ServiceDetail() {
 
   const [service, setService] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
-  const [accessDenied, setAccessDenied] = useState(false); 
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Mapiranje kategorija (za prevod)
   const getTranslatedCategory = (catFromDb: string) => {
@@ -64,46 +64,47 @@ export default function ServiceDetail() {
   };
 
   useEffect(() => {
-    if (authLoading) return; 
-
-    // ✅ OBAVEZNO: Resetujemo blokadu pri svakom novom pokušaju učitavanja
-    setAccessDenied(false);
-
     fetch('/api/services?all=true')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
             const found = data.find((s: any) => s.id.toString() === id);
-            
             if (found) {
-                const sellerUsername = found.author?.username || found.seller?.username || "";
-                
-                // ✅ ISPRAVKA: Sve prebacujemo u MALA SLOVA da izbegnemo greške
-                const currentUserLower = authUser?.username?.toLowerCase() || "";
-                const sellerUserLower = sellerUsername.toLowerCase();
-                
-                // Naš VIP Spisak (isključivo malim slovima)
-                const masterAdmins = ["ilijabrdar", "draganastekovic1977"]; 
-                
-                const isAdmin = authUser?.role === 'admin' || masterAdmins.includes(currentUserLower);
-                const isAuthor = currentUserLower === sellerUserLower;
-
-                // Ako oglas NIJE odobren, a korisnik NIJE Admin i NIJE Autor -> Zabrani pristup!
-                if (found.isApproved === false && !isAdmin && !isAuthor) {
-                    setAccessDenied(true);
-                    return;
-                }
-
                 setService(found);
                 if (found?.images && found.images.length > 0) setMainImage(found.images[0]);
             }
         }
+        setDataLoaded(true);
       })
-      .catch(err => console.error("Greška:", err));
-  }, [id, authUser, authLoading]);
+      .catch(err => {
+          console.error("Greška:", err);
+          setDataLoaded(true);
+      });
+  }, [id]);
 
-  // Ekran za blokiran pristup
-  if (accessDenied) {
+  if (!dataLoaded) return <div className="p-20 text-center text-gray-500 text-sm">{t('loading')}</div>;
+  if (!service) return <div className="p-20 text-center text-gray-500 text-sm">Oglas nije pronađen.</div>;
+
+  // --- PRAVA BEZBEDNOSNA LOGIKA (Reaguje trenutno) ---
+  const isPending = service.isApproved === false;
+  const currentUserLower = authUser?.username?.toLowerCase() || "";
+  const sellerUserLower = (service.author?.username || service.seller?.username || "").toLowerCase();
+  
+  const masterAdmins = ["ilijabrdar", "draganastekovic1977"];
+  const isViewerAdmin = authUser?.role === 'admin' || masterAdmins.includes(currentUserLower);
+  const isAuthor = currentUserLower === sellerUserLower;
+
+  // Ako je oglas na čekanju, a ti NISI admin i NISI autor, dižemo zaštitni zid
+  if (isPending && !isViewerAdmin && !isAuthor) {
+      // Dajemo sistemu šansu da učita korisnika pre nego što zalupimo vrata
+      if (authLoading || !authUser) {
+          return (
+              <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                  <Loader2 className="animate-spin w-10 h-10 text-purple-600" />
+              </div>
+          );
+      }
+
       return (
           <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
               <ShieldCheck className="w-20 h-20 text-amber-500 mb-4" />
@@ -113,11 +114,10 @@ export default function ServiceDetail() {
                   {t('backHome')}
               </button>
           </div>
-      )
+      );
   }
 
-  if (!service) return <div className="p-20 text-center text-gray-500 text-sm">{t('loading')}</div>;
-  
+  // --- RENDEROVANJE OGLASA ---
   const getLocalized = (field: any) => (typeof field === 'string' ? field : field[lang] || field['en'] || "");
   const currentTitle = getLocalized(service.title);
   const currentDesc = getLocalized(service.description);
@@ -126,23 +126,18 @@ export default function ServiceDetail() {
   const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
   const sellerAvatar = service.author?.avatar || service.seller?.avatar;
 
-  // Provera za žutu traku (takođe sa malim slovima)
-  const currentUserLower = authUser?.username?.toLowerCase() || "";
-  const masterAdmins = ["ilijabrdar", "draganastekovic1977"];
-  const isViewerAdmin = authUser?.role === 'admin' || masterAdmins.includes(currentUserLower);
-
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
       
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
           {/* Žuta traka upozorenja ako oglas nije odobren */}
-          {service.isApproved === false && (
-              <div className="bg-amber-100 text-amber-800 text-center py-1.5 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-2">
-                  <ShieldCheck className="w-4 h-4" /> 
+          {isPending && (
+              <div className="bg-amber-100 text-amber-800 text-center py-2 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-2 shadow-inner">
+                  <ShieldCheck className="w-4 h-4 shrink-0" /> 
                   {isViewerAdmin 
-                      ? "ADMIN PREGLED: Ovaj oglas je na čekanju i nije javno vidljiv." 
-                      : "VAŠ OGLAS: Ovaj oglas čeka odobrenje administratora."}
+                      ? "ADMIN PREGLED: Ovaj oglas je na čekanju i nije javno vidljiv na početnoj stranici." 
+                      : "VAŠ OGLAS: Ovaj oglas trenutno čeka odobrenje administratora."}
               </div>
           )}
 
@@ -169,7 +164,6 @@ export default function ServiceDetail() {
 
             <div className="flex items-center gap-3 py-2 border-b border-gray-200 overflow-hidden">
                 <Link href={`/seller/${sellerUsername}`} className="flex-shrink-0">
-                    {/* Prikaz prave slike ako postoji, inače inicijali */}
                     {sellerAvatar ? (
                         <img src={sellerAvatar} alt={sellerUsername} className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm" />
                     ) : (
@@ -197,7 +191,7 @@ export default function ServiceDetail() {
                 </div>
             </div>
 
-            {/* SLIKA - Fiksna visina */}
+            {/* SLIKA */}
             <div className="relative w-full h-52 rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-gray-100">
                 {mainImage ? (
                     <img src={mainImage} alt={currentTitle} className="w-full h-full object-cover" /> 
@@ -254,7 +248,7 @@ export default function ServiceDetail() {
                 />
             </div>
 
-            {/* CHAT - Prikazujemo samo ako ima prodavca */}
+            {/* CHAT */}
             {sellerUsername && (
                 <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
                      <ChatSystem sellerUsername={sellerUsername} />
