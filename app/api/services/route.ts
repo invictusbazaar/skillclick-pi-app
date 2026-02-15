@@ -15,8 +15,13 @@ export async function GET(request: Request) {
 
     // 1. Učitavamo servise koji se prikazuju
     const services = await prisma.service.findMany({
-      // Ako nije Admin (fetchAll je false), traži isključivo odobrene oglase!
-      where: fetchAll ? undefined : { isApproved: true },
+      // 🚀 DODATO: Traži isključivo odobrene oglase I čiji prodavac NIJE banovan!
+      where: fetchAll ? undefined : { 
+          isApproved: true,
+          seller: {
+              isBanned: false 
+          }
+      },
       include: {
         seller: {
           include: {
