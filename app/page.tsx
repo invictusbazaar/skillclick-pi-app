@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { 
-  Star, Wrench, Car, ShieldCheck, Layers, User, ChevronLeft, ChevronRight 
+  Star, Wrench, Car, ShieldCheck, Layers, User, ChevronLeft, ChevronRight, Heart 
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,9 @@ function HomeContent() {
   // 1. Paginacija - State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; // Max 12 oglasa po strani
+
+  // Omiljeni oglasi - State
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   const { user } = useAuth(); 
   const router = useRouter();
@@ -65,6 +68,54 @@ function HomeContent() {
     };
     fetchServices();
   }, [selectedCategory, searchTerm]);
+
+  // Učitavanje omiljenih oglasa za trenutnog korisnika
+  useEffect(() => {
+    if (user?.id) {
+      fetch(`/api/favorites?userId=${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setFavorites(data.map((fav: any) => fav.serviceId));
+          }
+        })
+        .catch(console.error);
+    }
+  }, [user?.id]);
+
+  // Funkcija za dodavanje/brisanje iz omiljenih
+  const toggleFavorite = async (e: React.MouseEvent, serviceId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user?.id) {
+      alert("Morate biti prijavljeni da biste dodali oglas u omiljene.");
+      return;
+    }
+
+    const isFavorited = favorites.includes(serviceId);
+    
+    // Optimistično ažuriranje UI-ja
+    setFavorites(prev => 
+      isFavorited ? prev.filter(id => id !== serviceId) : [...prev, serviceId]
+    );
+
+    try {
+      const res = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, serviceId })
+      });
+
+      if (!res.ok) throw new Error("Greška pri čuvanju");
+    } catch (error) {
+      console.error("Greška:", error);
+      // Vraćamo stanje nazad ako API zahtev ne prođe
+      setFavorites(prev => 
+        isFavorited ? [...prev, serviceId] : prev.filter(id => id !== serviceId)
+      );
+    }
+  };
 
   // 2. Logika za seckanje niza (Paginacija)
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -172,8 +223,16 @@ function HomeContent() {
                 {/* GRID KARTICA */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     {currentServices.map((gig) => (
-                        <div key={gig.id} className="group bg-white rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col h-full">
+                        <div key={gig.id} className="group bg-white rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col h-full relative">
                             
+                            {/* DUGME ZA OMILJENO SRCE */}
+                            <button 
+                                onClick={(e) => toggleFavorite(e, gig.id)}
+                                className="absolute top-3 left-3 z-20 p-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:scale-110 transition-transform border border-white/50"
+                            >
+                                <Heart className={`w-4 h-4 ${favorites.includes(gig.id) ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-500 transition-colors'}`} />
+                            </button>
+
                             {/* SLIKA KARTICE */}
                             <Link href={`/services/${gig.id}`} className="block relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-gray-100 cursor-pointer">
                                 <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(gig.id)} flex items-center justify-center transition-transform duration-700 group-hover:scale-110`}>
@@ -184,7 +243,7 @@ function HomeContent() {
                                     )}
                                 </div>
                                 {/* PREFINJENI CENA BEDŽ */}
-                                <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs md:text-sm font-black text-purple-700 shadow-sm border border-white/50">
+                                <div className="absolute top-3 right-3 z-10 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs md:text-sm font-black text-purple-700 shadow-sm border border-white/50">
                                     {gig.price} π
                                 </div>
                             </Link>
@@ -201,10 +260,16 @@ function HomeContent() {
                                     </h3>
                                 </Link>
                                 
-                                {/* PRODAVAC INFO */}
+                                {/* PRODAVAC INFO - DODAT AVATAR */}
                                 <div className="mt-auto pt-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
-                                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
-                                        {gig.seller?.username ? gig.seller.username[0].toUpperCase() : <User className="w-3 h-3"/>}
+                                    <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0 overflow-hidden">
+                                        {gig.seller?.avatar ? (
+                                            <img src={gig.seller.avatar} alt={gig.seller?.username} className="w-full h-full object-cover" />
+                                        ) : gig.seller?.username ? (
+                                            gig.seller.username[0].toUpperCase()
+                                        ) : (
+                                            <User className="w-3 h-3"/>
+                                        )}
                                     </div>
                                     <Link 
                                       href={`/seller/${gig.seller?.username}`} 
