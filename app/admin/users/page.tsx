@@ -1,191 +1,146 @@
-"use client"
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { ArrowLeft, Ban, ShieldCheck, Mail, Users, ArrowRight } from "lucide-react";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Ban, ShieldCheck, ShieldAlert, Trash2, Search, Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// 🚀 DODATO: Zabranjujemo keširanje! Uvek prikazuje najnovije stanje.
+export const dynamic = "force-dynamic";
 
-// 👇 ISPRAVLJENO: Ostao je samo TVOJ ADMIN NALOG, ostali su obrisani
-const MOCK_USERS = [
-  { id: 1, username: "ilijabrdar", email: "iliajbrdar.777@gmail.com", role: "admin", status: "active" }
-];
+// --- SERVER ACTION ZA BANOVANJE ---
+async function toggleBanUser(formData: FormData) {
+  "use server";
+  const userId = formData.get("userId") as string;
+  const currentStatus = formData.get("currentStatus") === "true";
 
-export default function AdminUsersPage() {
-  const router = useRouter();
-  const [users, setUsers] = useState(MOCK_USERS);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // 👇 NOVO: Stanje za vizuelni efekat na mobilnom
-  const [isBackActive, setIsBackActive] = useState(false);
-
-  // 👇 NOVO: Pametna funkcija za Nazad
-  const handleBack = () => {
-    // Proveravamo širinu ekrana da vidimo da li je mobilni
-    const isMobile = window.innerWidth < 768;
-
-    if (isMobile) {
-        // MOBILNI: Aktiviraj boju, sačekaj 0.5s, pa idi nazad
-        setIsBackActive(true);
-        setTimeout(() => {
-            router.back();
-        }, 500);
-    } else {
-        // PC: Idi nazad odmah (hover rešava boju)
-        router.back();
-    }
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isBanned: !currentStatus },
+    });
+    revalidatePath("/admin/users");
+  } catch (error) {
+    console.error("Greška pri banovanju:", error);
   }
+}
 
-  const handleBan = (id: number) => {
-    if (confirm("Da li sigurno želiš da BANUJEŠ ovog korisnika?")) {
-        setUsers(users.map(user => 
-            user.id === id ? { ...user, status: 'banned' } : user
-        ));
-    }
-  };
-
-  const handleDelete = (id: number) => {
-    if (confirm("Trajno obrisati korisnika?")) {
-        setUsers(users.filter(user => user.id !== id));
-    }
-  };
-
-  const getGradient = (id: number) => {
-    const gradients = [
-      "from-fuchsia-500 to-pink-600",
-      "from-violet-500 to-purple-600",
-      "from-blue-500 to-indigo-600",
-      "from-emerald-400 to-teal-500"
-    ];
-    return gradients[(id - 1) % gradients.length];
-  };
-
-  const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+export default async function AdminUsersPage() {
+  // --- POVLAČENJE PRAVIH PODATAKA IZ BAZE ---
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { orders: true, sales: true } } },
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-20">
-      
-      {/* HEADER SA GLASS EFEKTOM */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-             
-             {/* 👇 NOVO DUGME NAZAD */}
-             <button 
-                onClick={handleBack}
-                className={`
-                    flex items-center gap-2 font-bold transition-all duration-200 outline-none
-                    /* PC Hover efekat */
-                    hover:text-purple-600 hover:scale-105
-                    /* Mobilni aktivni efekat (kad je isBackActive true) */
-                    ${isBackActive ? "text-purple-600 scale-95" : "text-gray-600"}
-                `}
-                style={{ WebkitTapHighlightColor: "transparent" }}
-             >
-                <ArrowLeft className={`w-5 h-5 transition-transform ${isBackActive ? '-translate-x-1' : ''}`} />
-                <span>Nazad</span>
-             </button>
+    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 font-sans pb-20">
+      <div className="max-w-6xl mx-auto space-y-6"> 
+        
+        {/* ZAGLAVLJE */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+             <div className="flex items-center gap-4 w-full md:w-auto">
+                 <Link href="/admin" className="p-4 bg-gray-100 text-gray-600 rounded-2xl hover:bg-purple-100 hover:text-purple-600 transition-colors">
+                    <ArrowLeft className="h-6 w-6" />
+                 </Link>
+                 <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-blue-200">
+                    <Users className="h-8 w-8" />
+                 </div>
+                 <div>
+                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Korisnici</h1>
+                    <p className="text-gray-500 font-medium text-sm flex items-center gap-2">
+                        Upravljanje registrovanim nalozima
+                    </p>
+                 </div>
+             </div>
 
-             <div className="border-l border-gray-300 h-6 mx-2 hidden md:block"></div>
-
-             <div>
-                <h1 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">Korisnici</h1>
-                <p className="text-xs text-gray-500 font-medium">Admin Kontrola</p>
+             <div className="w-full md:w-auto bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-4">
+                <div className="p-3 bg-white text-blue-600 rounded-xl shadow-sm">
+                    <Users className="h-6 w-6"/>
+                </div>
+                <div>
+                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">Ukupno</p>
+                    <p className="text-2xl font-black text-gray-900">{users.length}</p>
+                </div>
              </div>
         </div>
-      </div>
 
-      <main className="container mx-auto px-4 py-8 max-w-5xl">
-        
-        {/* SEARCH BAR */}
-        <div className="bg-white p-2 rounded-2xl shadow-xl shadow-purple-900/5 border border-gray-100 mb-8 flex items-center gap-3 relative">
-            <div className="pl-3 text-gray-400"><Search className="w-5 h-5" /></div>
-            <Input 
-                placeholder="Pretraži korisnike po imenu ili emailu..." 
-                className="border-none shadow-none text-lg focus-visible:ring-0 h-12 bg-transparent"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
-        </div>
+        {/* 👥 TABELA KORISNIKA SA PRAVIM PODACIMA */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50/50 text-gray-500 font-bold uppercase text-xs">
+                <tr>
+                  <th className="p-4">Korisnik (Pi Network)</th>
+                  <th className="p-4 hidden sm:table-cell">Aktivnost (Kupio / Prodao)</th>
+                  <th className="p-4 text-center">Status</th>
+                  <th className="p-4 text-right">Akcija</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition">
+                    
+                    {/* INFO O KORISNIKU */}
+                    <td className="p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                                {user.username[0].toUpperCase()}
+                            </div>
+                            <div className="font-bold text-gray-900 text-base">
+                                {user.username}
+                                {/* Prikaz novčanika ako postoji */}
+                                {user.piWallet && (
+                                    <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate max-w-[150px]">
+                                        Wallet: {user.piWallet.substring(0,8)}...
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </td>
 
-        {/* LISTA KORISNIKA */}
-        <div className="grid grid-cols-1 gap-4">
-            {filteredUsers.length === 0 ? (
-                <div className="text-center py-10 text-gray-500">
-                    Nema pronađenih korisnika.
-                </div>
-            ) : (
-                filteredUsers.map((user) => (
-                    <div key={user.id} className="group bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:border-purple-100 transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    {/* STATISTIKA */}
+                    <td className="p-4 hidden sm:table-cell text-gray-600">
+                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs mr-2 font-medium border border-blue-100">🛒 {user._count.orders}</span>
+                        <span className="bg-green-50 text-green-700 px-2 py-1 rounded-md text-xs font-medium border border-green-100">💰 {user._count.sales}</span>
+                    </td>
+
+                    {/* STATUS KARTICA */}
+                    <td className="p-4 text-center">
+                         {user.isBanned ? (
+                            <span className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold border border-red-100 inline-flex items-center gap-1">
+                                <Ban className="w-3 h-3" /> BLOKIRAN
+                            </span>
+                         ) : (
+                            <span className="bg-green-50 text-green-600 px-3 py-1 rounded-lg text-xs font-bold border border-green-100 inline-flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3" /> AKTIVAN
+                            </span>
+                         )}
+                    </td>
+
+                    {/* KONTROLA BAN / UNBAN */}
+                    <td className="p-4 text-right">
+                      <form action={toggleBanUser}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <input type="hidden" name="currentStatus" value={String(user.isBanned)} />
                         
-                        {/* LEVI DEO */}
-                        <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getGradient(user.id)} flex items-center justify-center text-white shadow-md shadow-purple-200 group-hover:scale-105 transition-transform`}>
-                                <span className="text-xl font-bold">{user.username[0].toUpperCase()}</span>
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-lg font-bold text-gray-900">{user.username}</h3>
-                                    {user.role === 'admin' && (
-                                        <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-purple-200 flex items-center gap-1">
-                                            <ShieldCheck className="w-3 h-3" /> ADMIN
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                                    <Mail className="w-3 h-3" /> {user.email}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* SREDNJI DEO */}
-                        <div className="flex items-center gap-2">
-                             {user.status === 'banned' ? (
-                                <span className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold border border-red-100 flex items-center gap-1">
-                                    <Ban className="w-3 h-3" /> BANNED
-                                </span>
-                             ) : user.status === 'reported' ? (
-                                <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-xs font-bold border border-orange-100 flex items-center gap-1">
-                                    <ShieldAlert className="w-3 h-3" /> REPORTED
-                                </span>
-                             ) : (
-                                <span className="bg-green-50 text-green-600 px-3 py-1 rounded-lg text-xs font-bold border border-green-100 flex items-center gap-1">
-                                    <ShieldCheck className="w-3 h-3" /> ACTIVE
-                                </span>
-                             )}
-                        </div>
-
-                        {/* DESNI DEO */}
-                        <div className="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 border-gray-100 pt-3 md:pt-0 mt-2 md:mt-0">
-                            {user.role !== 'admin' && user.status !== 'banned' && (
-                                <Button 
-                                    onClick={() => handleBan(user.id)}
-                                    variant="outline" 
-                                    className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-10 px-4 font-bold"
-                                >
-                                    <Ban className="w-4 h-4 mr-2" /> Banuj
-                                </Button>
-                            )}
-                            {user.role !== 'admin' && (
-                                 <Button 
-                                    onClick={() => handleDelete(user.id)}
-                                    variant="ghost" 
-                                    size="icon"
-                                    className="rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </Button>
-                            )}
-                        </div>
-
-                    </div>
-                ))
-            )}
+                        {/* Zastita da admin ne moze da banuje samog sebe (Ilija1969) */}
+                        {user.username !== "Ilija1969" && (
+                            <button type="submit" className={`px-4 py-2 rounded-xl text-xs font-bold transition-transform active:scale-95 shadow-sm border ${
+                                user.isBanned
+                                  ? "bg-white text-green-600 border-green-200 hover:bg-green-50"
+                                  : "bg-white text-red-600 border-red-200 hover:bg-red-50"
+                              }`}>
+                              {user.isBanned ? "ODBLOKIRAJ" : "BLOKIRAJ"}
+                            </button>
+                        )}
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-      </main>
+      </div>
     </div>
   );
 }
