@@ -11,60 +11,41 @@ import { Button } from "@/components/ui/button";
 
 export default function HelpPage() {
   const router = useRouter();
-  // State za praćenje klika na "Back to Home"
   const [isBackActive, setIsBackActive] = useState(false);
 
-  // Funkcija sa delay efektom za mobilni osećaj
   const handleBackClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsBackActive(true); // Odmah oboji u ljubičasto
-
+    setIsBackActive(true); 
     setTimeout(() => {
-      router.push('/'); // Prebaci nakon 500ms
+      router.push('/'); 
     }, 500);
   };
 
-  // --- PAMETNA FUNKCIJA ZA PODRŠKU (UPDATED) ---
   const handleContactSupport = (e: React.MouseEvent) => {
     e.preventDefault();
-    
     const email = "invictusbazaar@gmail.com";
     const subject = "SkillClick Support";
-
-    // Proveravamo da li je korisnik na mobilnom uređaju
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     if (isMobile) {
-      // MOBILNI: Otvara podrazumevanu aplikaciju
       window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
     } else {
-      // KOMPJUTER: Otvara Gmail Pop-up
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}`;
-      
       const width = 600;
       const height = 600;
       const left = (window.screen.width / 2) - (width / 2);
       const top = (window.screen.height / 2) - (height / 2);
-
-      window.open(
-        gmailUrl, 
-        'GmailCompose', 
-        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
-      );
+      window.open(gmailUrl, 'GmailCompose', `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 py-8 px-4">
-      
-      {/* --- GLAVNI KONTEJNER (JEDAN JEDINI) --- */}
       <div className="container mx-auto max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden">
-
-        {/* --- DEO 1: ZAGLAVLJE (Tamno ljubičasto) --- */}
+        
+        {/* ZAGLAVLJE */}
         <div className="bg-[#2A1A3A] text-white relative">
             <div className="px-6 py-10 md:px-10 md:py-12 relative z-10">
-                
-                {/* Back to Home Button sa efektom */}
                 <Link 
                   href="/" 
                   onClick={handleBackClick}
@@ -90,19 +71,13 @@ export default function HelpPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Dekoracija */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-purple-600/20 blur-[100px] rounded-full pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-blue-600/20 blur-[60px] rounded-full pointer-events-none"></div>
         </div>
 
-        {/* --- DEO 2: SADRŽAJ --- */}
+        {/* SADRŽAJ */}
         <main className="p-6 md:p-12 space-y-12">
-
-            {/* --- Grid sa informacijama (2 kolone) --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Sekcija 1: Plaćanje */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all hover:border-purple-200 group">
                 <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-100 transition-colors">
                   <Wallet className="w-6 h-6" />
@@ -113,7 +88,6 @@ export default function HelpPage() {
                 </p>
               </div>
 
-              {/* Sekcija 2: Sigurnost */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all hover:border-blue-200 group">
                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
                   <ShieldCheck className="w-6 h-6" />
@@ -124,7 +98,6 @@ export default function HelpPage() {
                 </p>
               </div>
 
-              {/* Sekcija 3: Verifikacija */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all hover:border-green-200 group">
                 <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-100 transition-colors">
                   <User className="w-6 h-6" />
@@ -135,7 +108,6 @@ export default function HelpPage() {
                 </p>
               </div>
 
-               {/* Sekcija 4: Naknade */}
                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all hover:border-orange-200 group">
                 <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
                   <Info className="w-6 h-6" />
@@ -145,11 +117,10 @@ export default function HelpPage() {
                   Posting a service is free. SkillClick charges a small service fee only on successful transactions to maintain the platform and support the community.
                 </p>
               </div>
-
             </div>
 
-            {/* --- KONTAKT SEKCIJA (Dole) --- */}
-            <div className="bg-gray-50 rounded-3xl p-8 md:p-10 text-center border border-gray-100">
+            {/* KONTAKT SEKCIJA (ISPRAVLJENO DUGME) */}
+            <div className="bg-gray-50 rounded-3xl p-5 md:p-10 text-center border border-gray-100">
                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-purple-600">
                   <Mail className="w-7 h-7" />
                </div>
@@ -158,12 +129,12 @@ export default function HelpPage() {
                  Our support team is here to help you with any questions or issues.
                </p>
                
-               {/* DUGME: Prilagođeno za mobilne ekrane */}
                <Button 
                  onClick={handleContactSupport}
-                 className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto px-4 md:px-10 py-5 md:py-6 rounded-xl font-bold text-sm md:text-base shadow-lg hover:shadow-xl transition-all mb-6 flex items-center justify-center"
+                 className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto px-4 md:px-10 py-4 md:py-6 h-auto whitespace-normal text-center rounded-xl font-bold text-sm md:text-base shadow-lg hover:shadow-xl transition-all mb-6 flex items-center justify-center gap-2"
                >
-                  <Mail className="w-5 h-5 mr-2 shrink-0" /> Contact Support Team
+                  <Mail className="w-5 h-5 shrink-0" /> 
+                  <span>Contact Support Team</span>
                </Button>
 
                <div className="bg-white inline-block px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
@@ -172,7 +143,6 @@ export default function HelpPage() {
                  </p>
                </div>
             </div>
-
         </main>
       </div>
     </div>
