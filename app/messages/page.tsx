@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { ArrowLeft, Send, MessageSquare, Search, CheckCheck, Loader2, ChevronRight, Paperclip, FileText, Download } from "lucide-react"
+import { ArrowLeft, Send, MessageSquare, Search, CheckCheck, Loader2, ChevronRight, Paperclip, FileText, Download, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/LanguageContext"
 import { useAuth } from "@/components/AuthContext"
@@ -160,7 +160,6 @@ function ChatInterface() {
     const file = e.target.files?.[0];
     if (!file || !user || !sellerName) return;
 
-    // Provera veličine (Max 4MB zbog servera)
     if (file.size > 4 * 1024 * 1024) {
         alert("Fajl je prevelik! Maksimalna dozvoljena veličina je 4MB.");
         return;
@@ -168,13 +167,11 @@ function ChatInterface() {
 
     setIsUploading(true);
     
-    // Pretvaramo fajl u Base64 format
     const reader = new FileReader();
     reader.onload = async (event) => {
         const base64File = event.target?.result as string;
         const fileName = file.name;
 
-        // Optimističan prikaz u čatu
         const optimisticMsg = { 
             id: "temp-file-" + Date.now(), 
             text: `Poslat fajl: ${fileName}`, 
@@ -192,7 +189,7 @@ function ChatInterface() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    content: `📎 Fajl: ${fileName}`, // Tekstualna reprezentacija u bazi
+                    content: `📎 Fajl: ${fileName}`,
                     senderUsername: user.username,
                     receiverUsername: sellerName,
                     fileUrl: base64File,
@@ -207,6 +204,29 @@ function ChatInterface() {
         }
     };
     reader.readAsDataURL(file);
+  };
+
+  // 5. BRISANJE PORUKE
+  const handleDeleteMessage = async (messageId: string) => {
+      if (!user?.username) return;
+
+      // Optimistično brisanje sa ekrana
+      setChatHistory(prev => prev.filter(msg => msg.id !== messageId));
+
+      try {
+          const res = await fetch('/api/messages/delete', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ messageId, username: user.username })
+          });
+          
+          if (!res.ok) {
+              throw new Error("Greška pri brisanju");
+          }
+      } catch (error) {
+          console.error("Greška pri brisanju poruke:", error);
+          alert("Nije uspelo brisanje poruke. Molimo pokušajte ponovo.");
+      }
   };
 
   const isOnline = (lastSeenDate: string) => {
@@ -326,10 +346,8 @@ function ChatInterface() {
                   <div className={`max-w-[85%] md:max-w-[70%] p-3 px-4 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed break-words
                       ${msg.sender === "me" ? "bg-purple-600 text-white rounded-br-none" : msg.sender === "system" ? "bg-purple-50 text-purple-800 text-center text-xs w-full shadow-none my-2 italic border border-purple-100" : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"}`}>
                       
-                      {/* Prikaz fajla ako postoji */}
                       {msg.fileUrl ? (
                           <div className="flex flex-col gap-2">
-                              {/* Ako je slika, prikaži je */}
                               {msg.fileUrl.startsWith('data:image') ? (
                                   <img src={msg.fileUrl} alt={msg.fileName} className="max-w-full rounded-lg shadow-sm" />
                               ) : (
@@ -339,18 +357,31 @@ function ChatInterface() {
                                       <Download className={`w-4 h-4 ml-2 shrink-0 ${msg.sender === "me" ? "text-white" : "text-gray-600"}`} />
                                   </a>
                               )}
-                              {/* Ispis tekstualne poruke ispod fajla (opciono) */}
                               {msg.text && !msg.text.includes("📎 Fajl:") && !msg.text.includes("Poslat fajl:") && <p>{msg.text}</p>}
                           </div>
                       ) : (
                           <p>{msg.text}</p>
                       )}
 
+                      {/* Vreme, Kanta za smeće i Štiklice */}
                       {msg.sender !== "system" && (
-                        <div className={`text-[10px] mt-1 flex justify-end items-center gap-1 opacity-70 ${msg.sender === "me" ? "text-purple-100" : "text-gray-400"}`}>
+                        <div className={`text-[10px] mt-1 flex justify-end items-center gap-2 opacity-70 ${msg.sender === "me" ? "text-purple-100" : "text-gray-400"}`}>
+                            
+                            {/* DUGME ZA BRISANJE (samo za tvoje poruke) */}
+                            {msg.sender === "me" && msg.id && !msg.id.startsWith("temp") && (
+                                <button 
+                                    onClick={() => handleDeleteMessage(msg.id)} 
+                                    className="hover:text-red-300 transition-colors p-1"
+                                    title="Obriši poruku"
+                                >
+                                    <Trash className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+
                             <span>{msg.time}</span>
+                            
                             {msg.sender === "me" && (
-                                <CheckCheck className={`w-3 h-3 ${msg.isRead ? "text-green-300" : "text-purple-300"}`} />
+                                <CheckCheck className={`w-3.5 h-3.5 ${msg.isRead ? "text-green-300" : "text-purple-300"}`} />
                             )}
                         </div>
                       )}
@@ -365,7 +396,6 @@ function ChatInterface() {
             <div className="p-3 md:p-4 w-full max-w-2xl mx-auto">
                 <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm">
                     
-                    {/* DUGME ZA UPLOAD FAJLOVA */}
                     <input 
                         type="file" 
                         id="file-upload" 
