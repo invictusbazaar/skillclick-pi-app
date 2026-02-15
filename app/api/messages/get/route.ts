@@ -28,7 +28,8 @@ export async function POST(req: Request) {
       },
       orderBy: { createdAt: 'asc' }, // Poređano hronološki
       include: {
-        sender: true
+        sender: true 
+        // ✅ Prisma automatski povlači sve podatke o poruci, uključujući fileUrl i fileName!
       }
     });
 

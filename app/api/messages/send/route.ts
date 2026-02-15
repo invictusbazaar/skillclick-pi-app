@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { content, senderUsername, receiverUsername } = body;
+    // ✅ DODATO: Prihvatamo fileUrl i fileName iz frontend zahteva
+    const { content, senderUsername, receiverUsername, fileUrl, fileName } = body;
 
     if (!content || !senderUsername || !receiverUsername) {
       return NextResponse.json({ error: 'Nedostaju podaci.' }, { status: 400 });
@@ -23,7 +24,9 @@ export async function POST(req: Request) {
         content,
         senderId: sender.id,
         receiverId: receiver.id,
-        isRead: false
+        isRead: false,
+        fileUrl,   // ✅ DODATO: Čuvamo fajl u bazi
+        fileName   // ✅ DODATO: Čuvamo ime fajla u bazi
       }
     });
 

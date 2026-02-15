@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { ArrowLeft, Send, MessageSquare, Search, CheckCheck, Loader2, ChevronRight } from "lucide-react"
+import { ArrowLeft, Send, MessageSquare, Search, CheckCheck, Loader2, ChevronRight, Paperclip, FileText, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/LanguageContext"
 import { useAuth } from "@/components/AuthContext"
@@ -23,6 +23,7 @@ function ChatInterface() {
   const [loadingInbox, setLoadingInbox] = useState(true)
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   
   const [chatHistory, setChatHistory] = useState<any[]>([])
 
@@ -82,7 +83,9 @@ function ChatInterface() {
                     text: m.content,
                     sender: m.sender.username === user.username ? "me" : "other",
                     time: new Date(m.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    isRead: m.isRead
+                    isRead: m.isRead,
+                    fileUrl: m.fileUrl,
+                    fileName: m.fileName
                 }));
                 
                 if (serviceName) {
@@ -118,7 +121,7 @@ function ChatInterface() {
   }, [sellerName, user, serviceName, t]);
 
 
-  // 3. SLANJE PORUKE
+  // 3. SLANJE OBIČNE PORUKE
   const handleSend = async () => {
     if (!message.trim() || !user || !sellerName) return;
     const contentToSend = message;
@@ -150,6 +153,60 @@ function ChatInterface() {
     } finally {
         setIsSending(false);
     }
+  };
+
+  // 4. SLANJE FAJLOVA
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !sellerName) return;
+
+    // Provera veličine (Max 4MB zbog servera)
+    if (file.size > 4 * 1024 * 1024) {
+        alert("Fajl je prevelik! Maksimalna dozvoljena veličina je 4MB.");
+        return;
+    }
+
+    setIsUploading(true);
+    
+    // Pretvaramo fajl u Base64 format
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        const base64File = event.target?.result as string;
+        const fileName = file.name;
+
+        // Optimističan prikaz u čatu
+        const optimisticMsg = { 
+            id: "temp-file-" + Date.now(), 
+            text: `Poslat fajl: ${fileName}`, 
+            sender: "me", 
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            isRead: false,
+            fileUrl: base64File,
+            fileName: fileName
+        };
+        setChatHistory(prev => [...prev, optimisticMsg]);
+        setTimeout(scrollToBottom, 100);
+
+        try {
+            await fetch('/api/messages/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: `📎 Fajl: ${fileName}`, // Tekstualna reprezentacija u bazi
+                    senderUsername: user.username,
+                    receiverUsername: sellerName,
+                    fileUrl: base64File,
+                    fileName: fileName
+                }),
+            });
+        } catch (error) {
+            console.error("Greška pri slanju fajla:", error);
+            alert("Došlo je do greške pri slanju fajla.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+    reader.readAsDataURL(file);
   };
 
   const isOnline = (lastSeenDate: string) => {
@@ -268,7 +325,27 @@ function ChatInterface() {
               <div key={index} className={`flex w-full ${msg.sender === "me" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] md:max-w-[70%] p-3 px-4 rounded-2xl shadow-sm text-sm md:text-base leading-relaxed break-words
                       ${msg.sender === "me" ? "bg-purple-600 text-white rounded-br-none" : msg.sender === "system" ? "bg-purple-50 text-purple-800 text-center text-xs w-full shadow-none my-2 italic border border-purple-100" : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"}`}>
-                      <p>{msg.text}</p>
+                      
+                      {/* Prikaz fajla ako postoji */}
+                      {msg.fileUrl ? (
+                          <div className="flex flex-col gap-2">
+                              {/* Ako je slika, prikaži je */}
+                              {msg.fileUrl.startsWith('data:image') ? (
+                                  <img src={msg.fileUrl} alt={msg.fileName} className="max-w-full rounded-lg shadow-sm" />
+                              ) : (
+                                  <a href={msg.fileUrl} download={msg.fileName} className={`flex items-center gap-2 p-3 rounded-xl border transition-colors ${msg.sender === "me" ? "bg-white/10 hover:bg-white/20 border-white/20" : "bg-gray-50 hover:bg-gray-100 border-gray-200"}`}>
+                                      <FileText className={`w-6 h-6 shrink-0 ${msg.sender === "me" ? "text-purple-200" : "text-purple-500"}`} />
+                                      <span className="font-medium text-sm truncate">{msg.fileName}</span>
+                                      <Download className={`w-4 h-4 ml-2 shrink-0 ${msg.sender === "me" ? "text-white" : "text-gray-600"}`} />
+                                  </a>
+                              )}
+                              {/* Ispis tekstualne poruke ispod fajla (opciono) */}
+                              {msg.text && !msg.text.includes("📎 Fajl:") && !msg.text.includes("Poslat fajl:") && <p>{msg.text}</p>}
+                          </div>
+                      ) : (
+                          <p>{msg.text}</p>
+                      )}
+
                       {msg.sender !== "system" && (
                         <div className={`text-[10px] mt-1 flex justify-end items-center gap-1 opacity-70 ${msg.sender === "me" ? "text-purple-100" : "text-gray-400"}`}>
                             <span>{msg.time}</span>
@@ -283,19 +360,36 @@ function ChatInterface() {
           <div ref={messagesEndRef} />
         </main>
 
-        {/* 👇 INPUT ZONA - POPRAVLJENO */}
-        {/* Koristimo z-40 i fiksiranu poziciju, ali sa px-4 da odmaknemo od ivice */}
+        {/* INPUT ZONA */}
         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 z-40 pb-safe">
             <div className="p-3 md:p-4 w-full max-w-2xl mx-auto">
                 <div className="flex gap-2 items-center bg-gray-50 border border-gray-200 rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-purple-100 transition-all shadow-sm">
+                    
+                    {/* DUGME ZA UPLOAD FAJLOVA */}
+                    <input 
+                        type="file" 
+                        id="file-upload" 
+                        className="hidden" 
+                        onChange={handleFileUpload} 
+                        accept="image/*,.pdf,.zip,.doc,.docx,.rar" 
+                    />
+                    <label 
+                        htmlFor="file-upload" 
+                        className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl cursor-pointer transition-all ml-1 shrink-0"
+                        title="Pošalji fajl (Max 4MB)"
+                    >
+                        {isUploading ? <Loader2 className="w-5 h-5 animate-spin text-purple-600" /> : <Paperclip className="w-5 h-5" />}
+                    </label>
+
                     <input 
                       type="text" 
                       value={message} 
                       onChange={(e) => setMessage(e.target.value)} 
                       placeholder={t('msgPlaceholder')} 
-                      className="flex-1 bg-transparent border-0 px-3 py-2 text-gray-700 outline-none text-base min-w-0" 
+                      className="flex-1 bg-transparent border-0 px-1 py-2 text-gray-700 outline-none text-base min-w-0" 
                       onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()} 
                     />
+                    
                     <Button onClick={handleSend} disabled={isSending} size="icon" className="shrink-0 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md disabled:opacity-50 w-10 h-10 mr-1">
                         {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                     </Button>
