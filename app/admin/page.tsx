@@ -1,37 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma"; 
-import { revalidatePath } from "next/cache";
 import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
-import { ShieldCheck, Users, Layers, ArrowRight, Banknote, AlertCircle, TrendingUp, Wallet } from "lucide-react";
+import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp } from "lucide-react";
 
-// 🚀 DODATO: Striktna naredba Next.js-u da nikada ne kešira ovu stranicu. 
-// Uvek će povlačiti najnovije korisnike i transakcije čim osvežiš stranu!
+// 🚀 Zabranjujemo keširanje, uvek vuče najnovije podatke!
 export const dynamic = "force-dynamic";
 
-// --- 1. SERVER ACTION: BANOVANJE ---
-async function toggleBan(formData: FormData) {
-  "use server";
-
-  const userId = formData.get("userId") as string;
-  const currentStatus = formData.get("currentStatus") === "true";
-
-  try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isBanned: !currentStatus },
-    });
-    revalidatePath("/admin"); 
-  } catch (error) {
-    console.error("Greška pri banovanju:", error);
-  }
-}
-
 export default async function AdminDashboard() {
-  // --- 2. DOHVATANJE PODATAKA ---
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { orders: true, sales: true } } },
-  });
+  // --- DOHVATANJE PODATAKA ---
+  // Umesto da vučemo sve korisnike, sada vučemo SAMO njihov broj (mnogo brže!)
+  const usersCount = await prisma.user.count();
 
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
@@ -65,7 +43,7 @@ export default async function AdminDashboard() {
                  </div>
              </div>
 
-             {/* KARTICA ZARADE (NOVO) */}
+             {/* KARTICA ZARADE */}
              <div className="w-full md:w-auto bg-green-50 border border-green-100 p-4 rounded-2xl flex items-center gap-4">
                 <div className="p-3 bg-white text-green-600 rounded-xl shadow-sm">
                     <TrendingUp className="h-6 w-6"/>
@@ -100,13 +78,13 @@ export default async function AdminDashboard() {
                     </div>
                     <div>
                         <h2 className="font-bold text-gray-900">Korisnici</h2>
-                        <p className="text-xs text-gray-500">{users.length} registrovanih</p>
+                        <p className="text-xs text-gray-500">{usersCount} registrovanih</p>
                     </div>
                 </div>
             </Link>
         </div>
 
-        {/* 💰 SEKCIJA TRANSAKCIJE (Responsive: Card View na mobilnom, Table na PC) */}
+        {/* 💰 SEKCIJA TRANSAKCIJE (Samo ovo ostaje od tabela!) */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -116,7 +94,7 @@ export default async function AdminDashboard() {
             <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">{orders.length} ukupno</span>
           </div>
           
-          {/* DESKTOP TABELA (Sakrivena na mobilnom) */}
+          {/* DESKTOP TABELA */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50/50 text-gray-500 font-bold uppercase text-xs tracking-wider">
@@ -175,7 +153,7 @@ export default async function AdminDashboard() {
             </table>
           </div>
 
-          {/* 📱 MOBILE CARDS (Vidljivo samo na mobilnom) */}
+          {/* 📱 MOBILE CARDS */}
           <div className="md:hidden flex flex-col divide-y divide-gray-100">
              {orders.map((order) => (
                 <div key={order.id} className="p-5 flex flex-col gap-3">
@@ -202,7 +180,6 @@ export default async function AdminDashboard() {
                         </div>
                     </div>
 
-                    {/* Finansije na mobilnom */}
                     <div className="flex justify-between items-center">
                          {order.status === 'completed' ? (
                             <div className="flex flex-col">
@@ -213,7 +190,6 @@ export default async function AdminDashboard() {
                              <span className="font-bold text-gray-900 text-lg">{order.amount} π</span>
                          )}
 
-                         {/* Dugme za isplatu */}
                          {order.status !== "completed" && (
                              <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
                          )}
@@ -221,58 +197,6 @@ export default async function AdminDashboard() {
                 </div>
              ))}
              {orders.length === 0 && <div className="p-8 text-center text-gray-400">Nema transakcija</div>}
-          </div>
-        </div>
-
-        {/* 👥 TABELA KORISNIKA (Responsive) */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><AlertCircle className="h-5 w-5" /></div>
-            <h2 className="text-lg font-bold text-gray-900">Korisnici</h2>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50/50 text-gray-500 font-bold uppercase text-xs">
-                <tr>
-                  <th className="p-4">Korisnik</th>
-                  <th className="p-4 hidden sm:table-cell">Statistika</th>
-                  <th className="p-4 text-right">Kontrola</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition">
-                    <td className="p-4">
-                        <div className="font-bold text-gray-900 flex items-center gap-2">
-                            {user.username}
-                            {user.isBanned && <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded font-bold">BANNED</span>}
-                        </div>
-                        <div className="text-xs text-gray-500 sm:hidden">
-                           🛒 {user._count.orders} | 💰 {user._count.sales}
-                        </div>
-                    </td>
-                    <td className="p-4 hidden sm:table-cell text-gray-600">
-                        <span className="bg-gray-100 px-2 py-1 rounded text-xs mr-2">Kupio: <b>{user._count.orders}</b></span>
-                        <span className="bg-gray-100 px-2 py-1 rounded text-xs">Prodao: <b>{user._count.sales}</b></span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <form action={toggleBan}>
-                        <input type="hidden" name="userId" value={user.id} />
-                        <input type="hidden" name="currentStatus" value={String(user.isBanned)} />
-                        <button type="submit" className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-transform active:scale-95 shadow-sm border ${
-                            user.isBanned
-                              ? "bg-white text-green-600 border-green-200 hover:bg-green-50"
-                              : "bg-white text-red-600 border-red-200 hover:bg-red-50"
-                          }`}>
-                          {user.isBanned ? "ODBLOKIRAJ" : "BLOKIRAJ"}
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
 
