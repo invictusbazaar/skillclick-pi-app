@@ -15,14 +15,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 🚀 DODATO: Funkcija za tihu registraciju u bazu
+  const syncUserToDatabase = async (username: string) => {
+    try {
+        await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+    } catch (error) {
+        console.error("Greška pri sinhronizaciji sa bazom:", error);
+    }
+  };
+
   useEffect(() => {
     // 1. PROVERA: Da li smo na kompjuteru (localhost)?
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         console.log("🖥️ PC DETEKTOVAN: Forsiram login kao Admin...");
         setTimeout(() => {
-            setUser({ username: "Ilija1969", isAdmin: true });
+            const adminUser = "Ilija1969";
+            setUser({ username: adminUser, isAdmin: true });
+            syncUserToDatabase(adminUser); // 🚀 TIHA REGISTRACIJA
             setIsLoading(false);
-            console.log("✅ Ulogovan si kao: Ilija1969");
+            console.log("✅ Ulogovan si kao: " + adminUser);
         }, 500);
         return; 
     }
@@ -36,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             Pi.authenticate(['username', 'payments'], () => {}).then((res: any) => {
                 const u = res.user;
                 setUser({ username: u.username, isAdmin: u.username === ADMIN_USERNAME });
+                syncUserToDatabase(u.username); // 🚀 TIHA REGISTRACIJA ZA PI KORISNIKE
                 setIsLoading(false);
             }).catch(() => setIsLoading(false));
         }).catch(() => setIsLoading(false));
