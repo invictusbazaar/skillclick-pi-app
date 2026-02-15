@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
 import { ShieldCheck, Users, Layers, ArrowRight, Banknote, AlertCircle, TrendingUp, Wallet } from "lucide-react";
 
+// 🚀 DODATO: Striktna naredba Next.js-u da nikada ne kešira ovu stranicu. 
+// Uvek će povlačiti najnovije korisnike i transakcije čim osvežiš stranu!
+export const dynamic = "force-dynamic";
+
 // --- 1. SERVER ACTION: BANOVANJE ---
 async function toggleBan(formData: FormData) {
   "use server";
