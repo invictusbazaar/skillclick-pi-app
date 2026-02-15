@@ -162,9 +162,9 @@ export default function TrustPage() {
                {/* DUGME */}
                <Button 
                  onClick={handleContactSupport}
-                 className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto px-10 py-6 rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all mb-6"
+                 className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto px-4 md:px-10 py-5 md:py-6 rounded-xl font-bold text-sm md:text-base shadow-lg hover:shadow-xl transition-all mb-6 flex items-center justify-center"
                >
-                  <Mail className="w-5 h-5 mr-2" /> Contact Safety Team
+                  <Mail className="w-5 h-5 mr-2 shrink-0" /> Contact Safety Team
                </Button>
 
                <div className="bg-white inline-block px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
