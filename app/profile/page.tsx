@@ -7,9 +7,25 @@ import { getUserProfile, updateWalletAddress, updateUserAvatar } from "@/app/act
 import CompleteOrderButton from "@/components/CompleteOrderButton";
 import ReviewModal from "@/components/ReviewModal"; 
 import AvatarUploader from "@/components/AvatarUploader"; 
-import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save, CheckCircle } from "lucide-react";
+import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save, CheckCircle, Heart, Trash, Star, Wrench, Car, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
+
+const getGradient = (id: string) => {
+  if (!id) return "from-indigo-500 to-purple-600";
+  const sum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const gradients = ["from-fuchsia-600 to-pink-600", "from-violet-600 to-indigo-600", "from-blue-600 to-cyan-500", "from-emerald-500 to-teal-600"];
+  return gradients[sum % gradients.length];
+};
+
+const getSmartIcon = (service: any) => {
+  const iconClass = "h-12 w-12 text-white/90 drop-shadow-md"; 
+  const title = (typeof service.title === 'string' ? service.title : (service.title?.en || "")).toLowerCase();
+  if (title.includes('auto') || title.includes('alfa')) return <Car className={iconClass} />;
+  if (title.includes('popravka') || title.includes('servis')) return <Wrench className={iconClass} />;
+  return <Layers className={iconClass} />;
+};
 
 export default function UserProfilePage() {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -21,7 +37,9 @@ export default function UserProfilePage() {
   const [walletInput, setWalletInput] = useState("");
   const [savingWallet, setSavingWallet] = useState(false);
 
-  // --- LOKALNI PREVODI USKLAĐENI SA TVOJIM LANGUAGE CONTEXT-OM ---
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [loadingFavs, setLoadingFavs] = useState(false);
+
   const txt: any = {
     en: {
         earnings: "Earnings",
@@ -29,8 +47,10 @@ export default function UserProfilePage() {
         tabOrders: "My Purchases",
         tabSales: "My Sales",
         tabWallet: "Wallet & Info",
+        tabFavorites: "Favorites",
         noPurchases: "No purchases yet.",
         noSales: "No sales yet.",
+        noFavorites: "No favorite ads yet.",
         seller: "Seller",
         buyer: "Buyer",
         date: "Date",
@@ -54,8 +74,10 @@ export default function UserProfilePage() {
         tabOrders: "Moje Kupovine",
         tabSales: "Moje Prodaje",
         tabWallet: "Novčanik & Info",
+        tabFavorites: "Omiljeno",
         noPurchases: "Nemaš kupovina.",
         noSales: "Nemaš prodaja.",
+        noFavorites: "Nemaš omiljenih oglasa.",
         seller: "Prodavac",
         buyer: "Kupac",
         date: "Datum",
@@ -79,8 +101,10 @@ export default function UserProfilePage() {
         tabOrders: "मेरी खरीदारी",
         tabSales: "मेरी बिक्री",
         tabWallet: "वॉलेट और जानकारी",
+        tabFavorites: "पसंदीदा",
         noPurchases: "अभी तक कोई खरीदारी नहीं।",
         noSales: "अभी तक कोई बिक्री नहीं।",
+        noFavorites: "कोई पसंदीदा विज्ञापन नहीं।",
         seller: "विक्रेता",
         buyer: "खरीदार",
         date: "तारीख",
@@ -104,8 +128,10 @@ export default function UserProfilePage() {
         tabOrders: "我的购买",
         tabSales: "我的销售",
         tabWallet: "钱包 & 信息",
+        tabFavorites: "收藏",
         noPurchases: "暂无购买记录。",
         noSales: "暂无销售记录。",
+        noFavorites: "没有最喜欢的广告。",
         seller: "卖家",
         buyer: "买家",
         date: "日期",
@@ -129,8 +155,10 @@ export default function UserProfilePage() {
         tabOrders: "我的購買",
         tabSales: "我的銷售",
         tabWallet: "錢包 & 資訊",
+        tabFavorites: "收藏",
         noPurchases: "暫無購買記錄。",
         noSales: "暫無銷售記錄。",
+        noFavorites: "沒有最喜歡的廣告。",
         seller: "賣家",
         buyer: "買家",
         date: "日期",
@@ -154,8 +182,10 @@ export default function UserProfilePage() {
         tabOrders: "Pembelian Saya",
         tabSales: "Penjualan Saya",
         tabWallet: "Dompet & Info",
+        tabFavorites: "Favorit",
         noPurchases: "Belum ada pembelian.",
         noSales: "Belum ada penjualan.",
+        noFavorites: "Tidak ada iklan favorit.",
         seller: "Penjual",
         buyer: "Pembeli",
         date: "Tanggal",
@@ -203,6 +233,19 @@ export default function UserProfilePage() {
     fetchProfileData();
   }, [authUser, authLoading]);
 
+  useEffect(() => {
+    if (activeTab === "favorites" && authUser?.username) {
+        setLoadingFavs(true);
+        fetch(`/api/favorites?username=${authUser.username}`)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setFavorites(data);
+            })
+            .catch(console.error)
+            .finally(() => setLoadingFavs(false));
+    }
+  }, [activeTab, authUser?.username]);
+
   const handleSaveWallet = async () => {
       if (!fullProfile) return;
       setSavingWallet(true);
@@ -234,6 +277,25 @@ export default function UserProfilePage() {
       }
   };
 
+  const removeFavorite = async (e: React.MouseEvent, serviceId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!authUser?.username) return;
+      
+      setFavorites(prev => prev.filter(f => f.serviceId !== serviceId));
+      
+      try {
+          await fetch('/api/favorites', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: authUser.username, serviceId })
+          });
+      } catch (error) {
+          console.error("Greška pri brisanju:", error);
+      }
+  };
+
   const hasReviewed = (order: any) => {
     if (!fullProfile || !order.reviews) return false;
     return order.reviews.some((r: any) => r.userId === fullProfile.id);
@@ -262,7 +324,6 @@ export default function UserProfilePage() {
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         
-        {/* ZAGLAVLJE PROFILA */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row items-center gap-6">
             <AvatarUploader 
                 currentAvatar={fullProfile.avatar} 
@@ -281,22 +342,21 @@ export default function UserProfilePage() {
             </div>
         </div>
 
-        {/* MENI (TABS) - ISPRAVLJENO DA STAJE NA SVE EKRANE BEZ SKROLA */}
-        <div className="grid grid-cols-3 gap-2 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
             <button onClick={() => setActiveTab("orders")} className={`p-2 rounded-xl font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all text-[11px] sm:text-sm leading-tight text-center ${activeTab==="orders" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}>
                 <ShoppingBag className="h-4 w-4 md:h-5 md:w-5"/> <span>{T('tabOrders')}</span>
             </button>
             <button onClick={() => setActiveTab("sales")} className={`p-2 rounded-xl font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all text-[11px] sm:text-sm leading-tight text-center ${activeTab==="sales" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}>
                 <LayoutGrid className="h-4 w-4 md:h-5 md:w-5"/> <span>{T('tabSales')}</span>
             </button>
+            <button onClick={() => setActiveTab("favorites")} className={`p-2 rounded-xl font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all text-[11px] sm:text-sm leading-tight text-center ${activeTab==="favorites" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}>
+                <Heart className={`h-4 w-4 md:h-5 md:w-5 ${activeTab==="favorites" ? "fill-white" : ""}`}/> <span>{T('tabFavorites')}</span>
+            </button>
             <button onClick={() => setActiveTab("settings")} className={`p-2 rounded-xl font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all text-[11px] sm:text-sm leading-tight text-center ${activeTab==="settings" ? "bg-purple-600 text-white shadow-md" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"}`}>
                 <Wallet className="h-4 w-4 md:h-5 md:w-5"/> <span>{T('tabWallet')}</span>
             </button>
         </div>
-
-        {/* SADRŽAJ */}
         
-        {/* 1. KUPOVINE */}
         {activeTab === "orders" && (
             <div className="space-y-4">
                 {fullProfile.orders.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noPurchases')}</div>}
@@ -339,7 +399,6 @@ export default function UserProfilePage() {
             </div>
         )}
 
-        {/* 2. PRODAJE */}
         {activeTab === "sales" && (
             <div className="space-y-4">
                  {fullProfile.sales.length === 0 && <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noSales')}</div>}
@@ -370,7 +429,76 @@ export default function UserProfilePage() {
             </div>
         )}
 
-        {/* 3. PODEŠAVANJA */}
+        {/* 3. OMILJENO KARTICE (SA KANTOM ZA SMEĆE) */}
+        {activeTab === "favorites" && (
+            <div className="space-y-4">
+                 {loadingFavs ? (
+                    <div className="p-10 text-center"><Loader2 className="animate-spin mx-auto text-purple-600"/></div>
+                 ) : favorites.length === 0 ? (
+                    <div className="text-center p-10 bg-white rounded-xl text-gray-400 border border-dashed">{T('noFavorites')}</div>
+                 ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                        {favorites.map((fav: any) => {
+                            const gig = fav.service;
+                            return (
+                                <div key={fav.id} className="group bg-white rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col h-full relative">
+                                    
+                                    {/* KANTA ZA SMEĆE VRAĆENA OVDE */}
+                                    <button 
+                                        onClick={(e) => removeFavorite(e, fav.serviceId)}
+                                        className="absolute top-3 left-3 z-20 p-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:scale-110 hover:bg-red-50 transition-transform border border-red-100"
+                                        title="Ukloni iz omiljenih"
+                                    >
+                                        <Trash className="w-4 h-4 text-red-500" />
+                                    </button>
+
+                                    <Link href={`/services/${gig.id}`} className="block relative aspect-[4/3] md:aspect-[3/2] overflow-hidden bg-gray-100 cursor-pointer">
+                                        <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(gig.id)} flex items-center justify-center transition-transform duration-700 group-hover:scale-110`}>
+                                            {gig.images && gig.images.length > 0 ? ( 
+                                                <img src={gig.images[0]} alt={typeof gig.title === 'string' ? gig.title : 'Slika oglasa'} className="w-full h-full object-cover" /> 
+                                            ) : ( 
+                                                getSmartIcon(gig) 
+                                            )}
+                                        </div>
+                                        <div className="absolute top-3 right-3 z-10 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs md:text-sm font-black text-purple-700 shadow-sm border border-white/50">
+                                            {gig.price} π
+                                        </div>
+                                    </Link>
+
+                                    <div className="p-4 flex flex-col flex-grow relative gap-2">
+                                        <Link href={`/services/${gig.id}`} className="block cursor-pointer">
+                                            <h3 className="text-gray-900 font-bold text-sm md:text-base leading-snug line-clamp-2 group-hover:text-purple-600 transition-colors">
+                                              {typeof gig.title === 'object' ? (gig.title[language] || gig.title['en']) : gig.title}
+                                            </h3>
+                                        </Link>
+                                        
+                                        <div className="mt-auto pt-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
+                                            <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0 overflow-hidden">
+                                                {gig.seller?.avatar ? (
+                                                    <img src={gig.seller.avatar} alt={gig.seller?.username} className="w-full h-full object-cover" />
+                                                ) : gig.seller?.username ? (
+                                                    gig.seller.username[0].toUpperCase()
+                                                ) : (
+                                                    <User className="w-3 h-3"/>
+                                                )}
+                                            </div>
+                                            <Link 
+                                              href={gig.seller?.username ? `/seller/${gig.seller.username}` : "#"} 
+                                              className="truncate hover:text-purple-600 hover:underline font-medium"
+                                              onClick={(e) => e.stopPropagation()} 
+                                            >
+                                                {gig.seller?.username || "Nepoznat prodavac"}
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                 )}
+            </div>
+        )}
+
         {activeTab === "settings" && (
             <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-200 shadow-sm">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">

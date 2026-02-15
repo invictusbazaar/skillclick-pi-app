@@ -22,7 +22,13 @@ export async function GET(request: Request) {
 
     const favorites = await prisma.favorite.findMany({
       where: { userId: dbUser.id },
-      include: { service: true }, 
+      include: { 
+        service: {
+          include: {
+            seller: true // ✅ DODATO: Učitavamo i podatke o prodavcu (avatar i username)
+          }
+        } 
+      }, 
     });
 
     return NextResponse.json(favorites, { status: 200 });
