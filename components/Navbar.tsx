@@ -77,12 +77,11 @@ function NavbarContent() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // 👇 2. NOVA LOGIKA ZA HEARTBEAT (Prisustvo)
+  // 2. NOVA LOGIKA ZA HEARTBEAT (Prisustvo)
   useEffect(() => {
     const sendHeartbeat = async () => {
       if (user?.username) {
         try {
-            // Šaljemo signal na API koji smo napravili u Koraku 2
             await fetch('/api/presence/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -94,10 +93,7 @@ function NavbarContent() {
       }
     };
 
-    // Pošalji signal ODMAH čim korisnik uđe
     sendHeartbeat();
-
-    // Ponavljaj signal svakih 60 sekundi (1 minut)
     const heartbeatInterval = setInterval(sendHeartbeat, 60000);
 
     return () => clearInterval(heartbeatInterval);
@@ -152,7 +148,7 @@ function NavbarContent() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-[50] shadow-sm flex flex-col font-sans overflow-hidden">
       <div className="container mx-auto px-2 md:px-4 h-16 md:h-20 flex items-center relative">
         
-        {/* LOGO */}
+        {/* LOGO - VRAĆEN NA ORIGINALNU VELIČINU */}
         <Link href="/" className="flex-shrink-0 ml-[-110px] md:ml-[-190px] z-0"> 
           <Image 
             src="/skillclick_logo.png" 
@@ -324,11 +320,13 @@ function NavbarContent() {
         </div>
       </div>
       
+      {/* SUŽENA TRAKA SA LINKOVIMA KATEGORIJA */}
       <div className="block border-t border-gray-100 bg-white/95 backdrop-blur-md shadow-sm">
-         <div className="container mx-auto px-4">
-            <div className="flex items-center gap-6 overflow-x-auto py-3 scrollbar-hide no-scrollbar">
+         <div className="container mx-auto px-2 md:px-4">
+            {/* Smanjen vertikalni padding (py-1.5 umesto py-3) i manji razmak */}
+            <div className="flex items-center gap-4 md:gap-6 overflow-x-auto py-1.5 md:py-2 scrollbar-hide no-scrollbar">
                 {categories.map((cat) => (
-                    <Link key={cat.slug} href={`/?category=${encodeURIComponent(cat.slug)}`} className={`whitespace-nowrap flex-shrink-0 text-xs md:text-sm font-bold uppercase tracking-wide transition-colors ${activeCategory === cat.slug ? "text-purple-600 border-b-2 border-purple-600 pb-1" : "text-gray-500 hover:text-purple-500"}`}>
+                    <Link key={cat.slug} href={`/?category=${encodeURIComponent(cat.slug)}`} className={`whitespace-nowrap flex-shrink-0 text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wide transition-colors ${activeCategory === cat.slug ? "text-purple-600 border-b-2 border-purple-600 pb-0.5" : "text-gray-500 hover:text-purple-500"}`}>
                       {t(cat.key)} 
                     </Link>
                 ))}
