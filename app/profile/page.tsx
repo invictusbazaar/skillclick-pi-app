@@ -144,7 +144,6 @@ export default function UserProfilePage() {
 
           if (!res.ok) throw new Error("Greška pri pokretanju spora");
 
-          // Ažuriramo lokalni state kako bi se promena odmah videla na ekranu
           setFullProfile((prev: any) => {
               const newProfile = { ...prev };
               if (newProfile.orders) {
@@ -157,6 +156,43 @@ export default function UserProfilePage() {
           });
 
           alert("Spor je uspešno pokrenut. Admin je obavešten.");
+      } catch (error: any) {
+          console.error(error);
+          alert("Došlo je do greške: " + error.message);
+      } finally {
+          setDisputingId(null);
+      }
+  };
+
+  const handleCancelDispute = async (orderId: string) => {
+      if (!confirm("Da li ste sigurni da želite da poništite spor? Narudžbina će se vratiti na čekanje.")) return;
+      
+      setDisputingId(orderId);
+      try {
+          const res = await fetch('/api/orders/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  orderId, 
+                  newStatus: 'pending',
+                  username: authUser?.username 
+              })
+          });
+
+          if (!res.ok) throw new Error("Greška pri poništavanju spora");
+
+          setFullProfile((prev: any) => {
+              const newProfile = { ...prev };
+              if (newProfile.orders) {
+                  newProfile.orders = newProfile.orders.map((o: any) => o.id === orderId ? { ...o, status: 'pending' } : o);
+              }
+              if (newProfile.sales) {
+                  newProfile.sales = newProfile.sales.map((s: any) => s.id === orderId ? { ...s, status: 'pending' } : s);
+              }
+              return newProfile;
+          });
+
+          alert("Spor je uspešno poništen.");
       } catch (error: any) {
           console.error(error);
           alert("Došlo je do greške: " + error.message);
@@ -265,6 +301,19 @@ export default function UserProfilePage() {
                                 </div>
                             )}
 
+                            {order.status === 'disputed' && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-green-600 border-green-200 hover:bg-green-50 bg-white font-bold h-9 mt-1"
+                                    onClick={() => handleCancelDispute(order.id)}
+                                    disabled={disputingId === order.id}
+                                >
+                                    {disputingId === order.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2"/>}
+                                    Poništi spor
+                                </Button>
+                            )}
+
                             {order.status === 'completed' && !hasReviewed(order) && (
                                 <ReviewModal orderId={order.id} myUsername={authUser.username} targetRole="Seller" />
                             )}
@@ -305,6 +354,19 @@ export default function UserProfilePage() {
                                 >
                                     {disputingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2"/>}
                                     Pokreni spor
+                                </Button>
+                            )}
+
+                            {sale.status === 'disputed' && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-green-600 border-green-200 hover:bg-green-50 bg-white font-bold h-8 mt-1"
+                                    onClick={() => handleCancelDispute(sale.id)}
+                                    disabled={disputingId === sale.id}
+                                >
+                                    {disputingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2"/>}
+                                    Poništi spor
                                 </Button>
                             )}
 
