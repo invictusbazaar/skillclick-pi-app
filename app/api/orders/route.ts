@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { serviceId, amount, sellerUsername, buyerUsername } = body;
+    // ✅ DODATO: Sada hvatamo paymentId i txid koji dolaze sa frontenda (iz Pi SDK-a)
+    const { serviceId, amount, sellerUsername, buyerUsername, paymentId, txid } = body;
 
     // 1. Provera podataka
     if (!serviceId || !amount || !sellerUsername || !buyerUsername) {
@@ -24,18 +25,21 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Ne možeš kupiti svoju uslugu.' }, { status: 400 });
     }
 
-    // 4. Kreiraj Order
+    // 4. Kreiraj Order sa dokazom o uplati
     const newOrder = await prisma.order.create({
       data: {
         amount: parseFloat(amount),
         status: 'pending',
         buyerId: buyer.id,
         sellerId: seller.id,
-        serviceId: serviceId
+        serviceId: serviceId,
+        // ✅ KLJUČNA ISPRAVKA: Čuvamo dokaze sa blokčejna u bazu
+        paymentId: paymentId || null,
+        txid: txid || null
       }
     });
 
-    // 5. Kreiraj notifikaciju (ovo je falilo ranije)
+    // 5. Kreiraj notifikaciju
     try {
         await prisma.notification.create({
             data: {
