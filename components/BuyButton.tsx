@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -20,6 +21,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const { language } = useLanguage(); 
   const router = useRouter();
 
+  // Prevodi
   const txt: any = {
     en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service." },
     sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu." },
@@ -36,6 +38,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         return;
     }
     
+    // Zabrana kupovine sopstvenog oglasa
     if (user.username === sellerUsername) {
         alert(T('selfBuy'));
         return;
@@ -45,72 +48,39 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
 
     setLoading(true);
 
-    // Provera da li se aplikacija pokreće unutar Pi Browsera
-    // @ts-ignore
-    if (typeof window !== "undefined" && window.Pi) {
+    try {
+        // ✅ ISPRAVKA: Sada gađamo tačnu putanju gde si kreirao fajl
+        const res = await fetch('/api/orders', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                serviceId,
+                amount,
+                sellerUsername,
+                buyerUsername: user.username 
+            })
+        });
+        
+        const text = await res.text();
+        let data;
         try {
-            // @ts-ignore
-            const Pi = window.Pi;
-            
-            Pi.createPayment({
-                amount: amount,
-                memo: `Usluga: ${title}`,
-                metadata: { serviceId, sellerUsername, buyerUsername: user.username },
-            }, {
-                onReadyForServerApproval: async (paymentId: string) => {
-                    // 1. Aplikacija traži od tvog servera odobrenje za početak transakcije
-                    const res = await fetch('/api/payments/approve', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ paymentId })
-                    });
-                    if (!res.ok) throw new Error("Server nije odobrio transakciju.");
-                },
-                onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                    // 2. Aplikacija obaveštava tvoj server da je uplata prošla i da upiše u bazu
-                    const res = await fetch('/api/payments/complete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ paymentId, txid, serviceId, amount, sellerUsername, buyerUsername: user.username })
-                    });
-                    if (!res.ok) throw new Error("Greška pri završetku transakcije.");
-                    
-                    alert(`🎉 ${T('success')}`);
-                    setLoading(false);
-                    router.push('/profile');
-                    router.refresh();
-                },
-                onCancel: (paymentId: string) => {
-                    setLoading(false);
-                },
-                onError: (error: any, payment: any) => {
-                    setLoading(false);
-                    alert(`${T('error')}: ` + error.message);
-                }
-            });
-        } catch (error: any) {
-            setLoading(false);
-            alert(`${T('error')}: ` + error.message);
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error("Server error: " + text);
         }
-    } else {
-        // FALLBACK ZA PC: Ako testiraš sa kompjutera gde nema Pi novčanika, 
-        // zadržavamo stari način kako bi i dalje mogao da proveravaš dizajn.
-        try {
-            const res = await fetch('/api/orders', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ serviceId, amount, sellerUsername, buyerUsername: user.username })
-            });
-            
-            if (!res.ok) throw new Error("Došlo je do greške.");
-            alert(`🎉 Test kupovina uspešna (PC režim)`);
-            router.push('/profile'); 
-            router.refresh();
-        } catch (error: any) {
-            alert(`${T('error')}: ` + error.message);
-        } finally {
-            setLoading(false);
-        }
+
+        if (!res.ok) throw new Error(data.error || "Došlo je do greške.");
+
+        alert(`🎉 ${T('success')}`);
+        
+        // Preusmeravanje na profil
+        router.push('/profile'); 
+        router.refresh();
+
+    } catch (error: any) {
+        alert(`${T('error')}: ` + error.message);
+    } finally {
+        setLoading(false);
     }
   };
 
