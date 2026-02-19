@@ -4,19 +4,23 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username } = body;
+    // ✅ Sada hvatamo i 'uid' iz tela zahteva
+    const { username, uid } = body;
 
     if (!username) {
       return NextResponse.json({ error: 'Nedostaje username.' }, { status: 400 });
     }
 
-    // Prisma upsert: Ako korisnik postoji u bazi, ne diraj ništa.
-    // Ako NE postoji, odmah mu kreiraj prazan profil!
+    // Prisma upsert: Ako korisnik postoji, ažuriraj mu piUid (ako je poslat).
+    // Ako NE postoji, kreiraj mu profil sa username i piUid!
     const user = await prisma.user.upsert({
       where: { username: username },
-      update: {}, 
+      update: {
+        ...(uid && { piUid: uid }) // Ažuriraj piUid samo ako je prosleđen
+      }, 
       create: {
-        username: username
+        username: username,
+        ...(uid && { piUid: uid }) // Postavi piUid pri kreiranju novog korisnika
       }
     });
 
