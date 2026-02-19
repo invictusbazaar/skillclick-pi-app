@@ -1,34 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma"; 
 import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
+import AdminDisputeButtons from "@/components/AdminDisputeButtons"; // ✅ Nova komponenta za sporove
 import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle } from "lucide-react";
-import { revalidatePath } from "next/cache";
 
 // 🚀 Zabranjujemo keširanje, uvek vuče najnovije podatke!
 export const dynamic = "force-dynamic";
 
-// SERVER AKCIJA ZA RUČNO REŠAVANJE SPOROVA I ZAGLAVLJENIH UGOVORA
-async function manualResolve(formData: FormData) {
-  "use server";
-  const orderId = formData.get("orderId")?.toString();
-  const actionType = formData.get("actionType")?.toString();
-
-  if (!orderId || !actionType) return;
-
-  const newStatus = actionType === "refund" ? "refunded" : "completed";
-
-  await prisma.order.update({
-    where: { id: orderId },
-    data: { status: newStatus }
-  });
-
-  // Osvežavamo stranicu kako bi se promene odmah prikazale
-  revalidatePath("/admin");
-}
-
 export default async function AdminDashboard() {
   // --- DOHVATANJE PODATAKA ---
-  // Umesto da vučemo sve korisnike, sada vučemo SAMO njihov broj (mnogo brže!)
   const usersCount = await prisma.user.count();
 
   const orders = await prisma.order.findMany({
@@ -104,7 +84,7 @@ export default async function AdminDashboard() {
             </Link>
         </div>
 
-        {/* 💰 SEKCIJA TRANSAKCIJE (Samo ovo ostaje od tabela!) */}
+        {/* 💰 SEKCIJA TRANSAKCIJE */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -165,7 +145,7 @@ export default async function AdminDashboard() {
                          order.status === 'disputed' ? 'U SPORU' : 'NA ČEKANJU'}
                       </span>
                     </td>
-                    <td className="p-5 text-right">
+                    <td className="p-5 text-right flex justify-end">
                        {order.status === "completed" && (
                           <ShieldCheck className="w-5 h-5 text-green-300 ml-auto" />
                        )}
@@ -173,29 +153,18 @@ export default async function AdminDashboard() {
                           <span className="text-gray-400 font-bold text-xs bg-gray-50 px-2 py-1 rounded">Vraćeno</span>
                        )}
                        {(order.status === "pending" || order.status === "disputed") && (
-                          <div className="flex flex-col gap-2 items-end">
+                          <div className="flex flex-col gap-2 items-end w-full max-w-[200px]">
                              {order.status === "pending" && (
                                  <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
                              )}
                              {order.status === "disputed" && (
-                                 <span className="text-xs font-black text-red-600 flex items-center gap-1 mb-1">
-                                     <AlertTriangle className="w-4 h-4"/> ZAHTEVA PAŽNJU
-                                 </span>
+                                 <>
+                                     <span className="text-xs font-black text-red-600 flex items-center gap-1 mb-1">
+                                         <AlertTriangle className="w-4 h-4"/> ZAHTEVA PAŽNJU
+                                     </span>
+                                     <AdminDisputeButtons orderId={order.id} amount={order.amount} />
+                                 </>
                              )}
-                             
-                             {/* Hitne ručne akcije za Master Admina */}
-                             <form action={manualResolve} className="flex flex-col items-end gap-1 border-t border-gray-100 pt-2 mt-1 w-full">
-                                 <span className="text-[9px] text-gray-400 uppercase font-bold text-right w-full">Hitno rešavanje:</span>
-                                 <input type="hidden" name="orderId" value={order.id} />
-                                 <div className="flex gap-1 justify-end w-full">
-                                     <button type="submit" name="actionType" value="refund" className="px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-bold rounded transition-colors">
-                                         Refundiraj
-                                     </button>
-                                     <button type="submit" name="actionType" value="release" className="px-2 py-1.5 bg-green-50 hover:bg-green-100 text-green-600 border border-green-200 text-[10px] font-bold rounded transition-colors">
-                                         Oslobodi
-                                     </button>
-                                 </div>
-                             </form>
                           </div>
                        )}
                     </td>
@@ -250,15 +219,13 @@ export default async function AdminDashboard() {
                          )}
 
                          {(order.status === "pending" || order.status === "disputed") && (
-                            <div className="flex flex-col items-end gap-2">
+                            <div className="flex flex-col items-end gap-2 w-full max-w-[150px]">
                                 {order.status === "pending" && (
                                     <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
                                 )}
-                                <form action={manualResolve} className="flex gap-1 mt-1">
-                                     <input type="hidden" name="orderId" value={order.id} />
-                                     <button type="submit" name="actionType" value="refund" className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded">Refundiraj</button>
-                                     <button type="submit" name="actionType" value="release" className="px-3 py-1.5 bg-green-50 text-green-600 border border-green-200 text-[10px] font-bold rounded">Oslobodi</button>
-                                </form>
+                                {order.status === "disputed" && (
+                                    <AdminDisputeButtons orderId={order.id} amount={order.amount} />
+                                )}
                             </div>
                          )}
                     </div>
