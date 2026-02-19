@@ -15,13 +15,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🚀 DODATO: Funkcija za tihu registraciju u bazu
-  const syncUserToDatabase = async (username: string) => {
+  // 🚀 DODATO: Funkcija za tihu registraciju u bazu sada prima i opciono 'uid'
+  const syncUserToDatabase = async (username: string, uid?: string) => {
     try {
         await fetch('/api/auth/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username, uid }) // ✅ Sada šaljemo i uid na backend
         });
     } catch (error) {
         console.error("Greška pri sinhronizaciji sa bazom:", error);
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => {
             const adminUser = "Ilija1969";
             setUser({ username: adminUser, isAdmin: true });
-            syncUserToDatabase(adminUser); // 🚀 TIHA REGISTRACIJA
+            syncUserToDatabase(adminUser, "mock-admin-uid-123"); // 🚀 TIHA REGISTRACIJA sa test uid-om
             setIsLoading(false);
             console.log("✅ Ulogovan si kao: " + adminUser);
         }, 500);
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             Pi.authenticate(['username', 'payments'], () => {}).then((res: any) => {
                 const u = res.user;
                 setUser({ username: u.username, isAdmin: u.username === ADMIN_USERNAME });
-                syncUserToDatabase(u.username); // 🚀 TIHA REGISTRACIJA ZA PI KORISNIKE
+                syncUserToDatabase(u.username, u.uid); // 🚀 TIHA REGISTRACIJA sada hvata pravi Pi uid!
                 setIsLoading(false);
             }).catch(() => setIsLoading(false));
         }).catch(() => setIsLoading(false));
