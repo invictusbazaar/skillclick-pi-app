@@ -7,7 +7,7 @@ import { getUserProfile, updateWalletAddress, updateUserAvatar } from "@/app/act
 import CompleteOrderButton from "@/components/CompleteOrderButton";
 import ReviewModal from "@/components/ReviewModal"; 
 import AvatarUploader from "@/components/AvatarUploader"; 
-import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save, CheckCircle, Heart, Trash, Star, Wrench, Car, Layers } from "lucide-react";
+import { Loader2, ShoppingBag, Wallet, LayoutGrid, User, Save, CheckCircle, Heart, Trash, AlertTriangle, Wrench, Car, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -39,6 +39,7 @@ export default function UserProfilePage() {
 
   const [favorites, setFavorites] = useState<any[]>([]);
   const [loadingFavs, setLoadingFavs] = useState(false);
+  const [disputingId, setDisputingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -126,6 +127,44 @@ export default function UserProfilePage() {
       }
   };
 
+  const handleDispute = async (orderId: string) => {
+      if (!confirm("Da li ste sigurni da želite da pokrenete spor? Sredstva će biti zamrznuta.")) return;
+      
+      setDisputingId(orderId);
+      try {
+          const res = await fetch('/api/orders/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  orderId, 
+                  newStatus: 'disputed',
+                  username: authUser?.username 
+              })
+          });
+
+          if (!res.ok) throw new Error("Greška pri pokretanju spora");
+
+          // Ažuriramo lokalni state kako bi se promena odmah videla na ekranu
+          setFullProfile((prev: any) => {
+              const newProfile = { ...prev };
+              if (newProfile.orders) {
+                  newProfile.orders = newProfile.orders.map((o: any) => o.id === orderId ? { ...o, status: 'disputed' } : o);
+              }
+              if (newProfile.sales) {
+                  newProfile.sales = newProfile.sales.map((s: any) => s.id === orderId ? { ...s, status: 'disputed' } : s);
+              }
+              return newProfile;
+          });
+
+          alert("Spor je uspešno pokrenut. Admin je obavešten.");
+      } catch (error: any) {
+          console.error(error);
+          alert("Došlo je do greške: " + error.message);
+      } finally {
+          setDisputingId(null);
+      }
+  };
+
   const hasReviewed = (order: any) => {
     if (!fullProfile || !order.reviews) return false;
     return order.reviews.some((r: any) => r.userId === fullProfile.id);
@@ -202,16 +241,28 @@ export default function UserProfilePage() {
                         </div>
                         
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
-                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>
-                                {order.status === 'completed' ? t('statusPaid') : t('statusPending')}
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed' ? 'bg-green-100 text-green-700' : order.status==='disputed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                {order.status === 'completed' ? t('statusPaid') : order.status === 'disputed' ? "U SPORU" : t('statusPending')}
                             </span>
 
-                            {order.status !== 'completed' && (
-                                <CompleteOrderButton 
-                                    orderId={order.id} 
-                                    amount={order.amount} 
-                                    sellerWallet={order.seller.piWallet || ""} 
-                                />
+                            {order.status !== 'completed' && order.status !== 'disputed' && (
+                                <div className="flex flex-col md:flex-row gap-2 mt-1">
+                                    <CompleteOrderButton 
+                                        orderId={order.id} 
+                                        amount={order.amount} 
+                                        sellerWallet={order.seller.piWallet || ""} 
+                                    />
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="text-red-600 border-red-200 hover:bg-red-50 bg-white font-bold h-9"
+                                        onClick={() => handleDispute(order.id)}
+                                        disabled={disputingId === order.id}
+                                    >
+                                        {disputingId === order.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2"/>}
+                                        Pokreni spor
+                                    </Button>
+                                </div>
                             )}
 
                             {order.status === 'completed' && !hasReviewed(order) && (
@@ -240,9 +291,22 @@ export default function UserProfilePage() {
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                             <p className="font-bold text-green-600 text-lg">+{sale.amount} π</p>
-                            <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed'?'bg-green-100 text-green-600':'bg-gray-100 text-gray-500'}`}>
-                                {sale.status === 'completed' ? t('statusPaid') : t('statusWaiting')}
+                            <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed' ? 'bg-green-100 text-green-600' : sale.status==='disputed' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                {sale.status === 'completed' ? t('statusPaid') : sale.status === 'disputed' ? "U SPORU" : t('statusWaiting')}
                             </span>
+
+                            {sale.status !== 'completed' && sale.status !== 'disputed' && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-red-600 border-red-200 hover:bg-red-50 bg-white font-bold h-8 mt-1"
+                                    onClick={() => handleDispute(sale.id)}
+                                    disabled={disputingId === sale.id}
+                                >
+                                    {disputingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2"/>}
+                                    Pokreni spor
+                                </Button>
+                            )}
 
                             {sale.status === 'completed' && !hasReviewed(sale) && (
                                 <ReviewModal orderId={sale.id} myUsername={authUser.username} targetRole="Buyer" />
