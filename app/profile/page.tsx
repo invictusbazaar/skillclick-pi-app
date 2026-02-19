@@ -277,11 +277,12 @@ export default function UserProfilePage() {
                         </div>
                         
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
-                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed' ? 'bg-green-100 text-green-700' : order.status==='disputed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                {order.status === 'completed' ? t('statusPaid') : order.status === 'disputed' ? "U SPORU" : t('statusPending')}
+                            {/* ✅ POPRAVLJENO: Sada prepoznaje 'refunded' status */}
+                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed' ? 'bg-green-100 text-green-700' : order.status==='disputed' ? 'bg-red-100 text-red-700' : order.status==='refunded' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-700'}`}>
+                                {order.status === 'completed' ? t('statusPaid') : order.status === 'disputed' ? "U SPORU" : order.status === 'refunded' ? "REFUNDIRANO" : t('statusPending')}
                             </span>
 
-                            {order.status !== 'completed' && order.status !== 'disputed' && (
+                            {order.status !== 'completed' && order.status !== 'disputed' && order.status !== 'refunded' && (
                                 <div className="flex flex-col md:flex-row gap-2 mt-1">
                                     <CompleteOrderButton 
                                         orderId={order.id} 
@@ -340,11 +341,12 @@ export default function UserProfilePage() {
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                             <p className="font-bold text-green-600 text-lg">+{sale.amount} π</p>
-                            <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed' ? 'bg-green-100 text-green-600' : sale.status==='disputed' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
-                                {sale.status === 'completed' ? t('statusPaid') : sale.status === 'disputed' ? "U SPORU" : t('statusWaiting')}
+                            {/* ✅ POPRAVLJENO: Sada prepoznaje 'refunded' status i kod prodaje */}
+                            <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed' ? 'bg-green-100 text-green-600' : sale.status==='disputed' ? 'bg-red-100 text-red-600' : sale.status==='refunded' ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-500'}`}>
+                                {sale.status === 'completed' ? t('statusPaid') : sale.status === 'disputed' ? "U SPORU" : sale.status === 'refunded' ? "REFUNDIRANO" : t('statusWaiting')}
                             </span>
 
-                            {sale.status !== 'completed' && sale.status !== 'disputed' && (
+                            {sale.status !== 'completed' && sale.status !== 'disputed' && sale.status !== 'refunded' && (
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
@@ -385,7 +387,6 @@ export default function UserProfilePage() {
             </div>
         )}
 
-        {/* 3. OMILJENO KARTICE (SA KANTOM ZA SMEĆE) */}
         {activeTab === "favorites" && (
             <div className="space-y-4">
                  {loadingFavs ? (
@@ -399,7 +400,6 @@ export default function UserProfilePage() {
                             return (
                                 <div key={fav.id} className="group bg-white rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden flex flex-col h-full relative">
                                     
-                                    {/* KANTA ZA SMEĆE VRAĆENA OVDE */}
                                     <button 
                                         onClick={(e) => removeFavorite(e, fav.serviceId)}
                                         className="absolute top-3 left-3 z-20 p-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:scale-110 hover:bg-red-50 transition-transform border border-red-100"

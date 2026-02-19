@@ -1,31 +1,34 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import axios from 'axios';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // ✅ DODATO: Sada hvatamo paymentId i txid koji dolaze sa frontenda (iz Pi SDK-a)
     const { serviceId, amount, sellerUsername, buyerUsername, paymentId, txid } = body;
 
-    // 1. Provera podataka
-    if (!serviceId || !amount || !sellerUsername || !buyerUsername) {
-      return NextResponse.json({ error: 'Nedostaju podaci.' }, { status: 400 });
+    if (!serviceId || !amount || !sellerUsername || !buyerUsername || !paymentId) {
+      return NextResponse.json({ error: 'Nedostaju podaci za obradu.' }, { status: 400 });
     }
 
-    // 2. Nađi korisnike
+    // 🚀 1. OBAVEZAN KORAK: Potvrda Pi Serveru (da se ne čeka 60s)
+    try {
+        await axios.post(`https://api.minepi.com/v2/payments/${paymentId}/complete`, 
+        { txid }, 
+        { headers: { 'Authorization': `Key ${process.env.PI_API_KEY}` } });
+        console.log("✅ Pi Server potvrdio transakciju.");
+    } catch (e: any) {
+        console.error("❌ Pi Server Error:", e.response?.data || e.message);
+        // Čak i ako ovde baci grešku, nastavljamo jer je novac možda već prošao
+    }
+
+    // 2. Pronalaženje korisnika
     const buyer = await prisma.user.findUnique({ where: { username: buyerUsername } });
     const seller = await prisma.user.findUnique({ where: { username: sellerUsername } });
 
-    if (!buyer || !seller) {
-      return NextResponse.json({ error: 'Korisnik nije pronađen.' }, { status: 404 });
-    }
+    if (!buyer || !seller) return NextResponse.json({ error: 'Korisnik nije pronađen.' }, { status: 404 });
 
-    // 3. Zabrana kupovine od samog sebe
-    if (buyer.id === seller.id) {
-        return NextResponse.json({ error: 'Ne možeš kupiti svoju uslugu.' }, { status: 400 });
-    }
-
-    // 4. Kreiraj Order sa dokazom o uplati
+    // 3. Kreiranje narudžbine u bazi
     const newOrder = await prisma.order.create({
       data: {
         amount: parseFloat(amount),
@@ -33,26 +36,21 @@ export async function POST(req: Request) {
         buyerId: buyer.id,
         sellerId: seller.id,
         serviceId: serviceId,
-        // ✅ KLJUČNA ISPRAVKA: Čuvamo dokaze sa blokčejna u bazu
-        paymentId: paymentId || null,
-        txid: txid || null
+        paymentId,
+        txid
       }
     });
 
-    // 5. Kreiraj notifikaciju
-    try {
-        await prisma.notification.create({
-            data: {
-                userId: seller.id, 
-                type: 'order',
-                message: `🎉 Nova porudžbina! ${buyerUsername} je kupio vašu uslugu!`,
-                link: `/orders`, 
-                isRead: false
-            }
-        });
-    } catch (notifError) {
-        console.error("Greška pri kreiranju notifikacije:", notifError);
-    }
+    // 4. Notifikacija prodavcu
+    await prisma.notification.create({
+        data: {
+            userId: seller.id, 
+            type: 'order',
+            message: `🎉 Nova porudžbina! ${buyerUsername} je kupio uslugu!`,
+            link: `/profile`, 
+            isRead: false
+        }
+    }).catch(e => console.error("Notif Error:", e));
 
     return NextResponse.json({ success: true, order: newOrder });
 
