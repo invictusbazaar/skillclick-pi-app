@@ -38,7 +38,11 @@ function NavbarContent() {
     hi: { label: "Hindi", flag: "🇮🇳" },
     zh: { label: "Chinese", flag: "🇨🇳" },
     tw: { label: "Chinese (Trad)", flag: "🇹🇼" },
-    id: { label: "Indonesia", flag: "🇮🇩" }
+    id: { label: "Indonesia", flag: "🇮🇩" },
+    ko: { label: "한국어", flag: "🇰🇷" },
+    de: { label: "Deutsch", flag: "🇩🇪" },
+    ru: { label: "Русский", flag: "🇷🇺" },
+    fr: { label: "Français", flag: "🇫🇷" }
   };
   const currentLangObj = languages[language] || languages['en'];
   
