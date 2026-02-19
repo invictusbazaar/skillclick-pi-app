@@ -1,10 +1,30 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma"; 
 import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
-import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp } from "lucide-react";
+import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle } from "lucide-react";
+import { revalidatePath } from "next/cache";
 
 // 🚀 Zabranjujemo keširanje, uvek vuče najnovije podatke!
 export const dynamic = "force-dynamic";
+
+// SERVER AKCIJA ZA RUČNO REŠAVANJE SPOROVA I ZAGLAVLJENIH UGOVORA
+async function manualResolve(formData: FormData) {
+  "use server";
+  const orderId = formData.get("orderId")?.toString();
+  const actionType = formData.get("actionType")?.toString();
+
+  if (!orderId || !actionType) return;
+
+  const newStatus = actionType === "refund" ? "refunded" : "completed";
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status: newStatus }
+  });
+
+  // Osvežavamo stranicu kako bi se promene odmah prikazale
+  revalidatePath("/admin");
+}
 
 export default async function AdminDashboard() {
   // --- DOHVATANJE PODATAKA ---
@@ -127,6 +147,8 @@ export default async function AdminDashboard() {
                                 <div className="text-sm font-bold text-gray-700">Prodavac: <span className="text-green-600">{(order.amount * 0.95).toFixed(2)} π</span></div>
                                 <div className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded w-fit">App: +{(order.amount * 0.05).toFixed(2)} π</div>
                             </div>
+                        ) : order.status === 'refunded' ? (
+                            <span className="text-gray-400 font-bold">0.00 π</span>
                         ) : (
                             <span className="font-bold text-gray-900 text-lg">{order.amount} π</span>
                         )}
@@ -134,17 +156,47 @@ export default async function AdminDashboard() {
                     <td className="p-5">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                         order.status === "completed" ? "bg-green-50 text-green-700 border-green-100" :
-                        order.status === "pending" ? "bg-yellow-50 text-yellow-700 border-yellow-100" :
-                        "bg-gray-50 text-gray-700 border-gray-100"
+                        order.status === "refunded" ? "bg-gray-100 text-gray-600 border-gray-200" :
+                        order.status === "disputed" ? "bg-red-50 text-red-700 border-red-100 animate-pulse" :
+                        "bg-yellow-50 text-yellow-700 border-yellow-100"
                       }`}>
-                        {order.status === 'completed' ? 'ISPLAĆENO' : 'NA ČEKANJU'}
+                        {order.status === 'completed' ? 'ISPLAĆENO' : 
+                         order.status === 'refunded' ? 'REFUNDIRANO' : 
+                         order.status === 'disputed' ? 'U SPORU' : 'NA ČEKANJU'}
                       </span>
                     </td>
                     <td className="p-5 text-right">
-                       {order.status !== "completed" ? (
-                          <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
-                       ) : (
+                       {order.status === "completed" && (
                           <ShieldCheck className="w-5 h-5 text-green-300 ml-auto" />
+                       )}
+                       {order.status === "refunded" && (
+                          <span className="text-gray-400 font-bold text-xs bg-gray-50 px-2 py-1 rounded">Vraćeno</span>
+                       )}
+                       {(order.status === "pending" || order.status === "disputed") && (
+                          <div className="flex flex-col gap-2 items-end">
+                             {order.status === "pending" && (
+                                 <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
+                             )}
+                             {order.status === "disputed" && (
+                                 <span className="text-xs font-black text-red-600 flex items-center gap-1 mb-1">
+                                     <AlertTriangle className="w-4 h-4"/> ZAHTEVA PAŽNJU
+                                 </span>
+                             )}
+                             
+                             {/* Hitne ručne akcije za Master Admina */}
+                             <form action={manualResolve} className="flex flex-col items-end gap-1 border-t border-gray-100 pt-2 mt-1 w-full">
+                                 <span className="text-[9px] text-gray-400 uppercase font-bold text-right w-full">Hitno rešavanje:</span>
+                                 <input type="hidden" name="orderId" value={order.id} />
+                                 <div className="flex gap-1 justify-end w-full">
+                                     <button type="submit" name="actionType" value="refund" className="px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-[10px] font-bold rounded transition-colors">
+                                         Refundiraj
+                                     </button>
+                                     <button type="submit" name="actionType" value="release" className="px-2 py-1.5 bg-green-50 hover:bg-green-100 text-green-600 border border-green-200 text-[10px] font-bold rounded transition-colors">
+                                         Oslobodi
+                                     </button>
+                                 </div>
+                             </form>
+                          </div>
                        )}
                     </td>
                   </tr>
@@ -162,10 +214,15 @@ export default async function AdminDashboard() {
                             <h3 className="font-bold text-gray-900 line-clamp-1">{order.service.title}</h3>
                             <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</p>
                         </div>
-                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${
-                            order.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
+                            order.status === "completed" ? "bg-green-100 text-green-700 border-green-200" : 
+                            order.status === "refunded" ? "bg-gray-100 text-gray-600 border-gray-200" :
+                            order.status === "disputed" ? "bg-red-100 text-red-700 border-red-200 animate-pulse" : 
+                            "bg-yellow-100 text-yellow-700 border-yellow-200"
                         }`}>
-                            {order.status === 'completed' ? 'ISPLAĆENO' : 'ČEKA'}
+                            {order.status === 'completed' ? 'ISPLAĆENO' : 
+                             order.status === 'refunded' ? 'REFUNDIRANO' : 
+                             order.status === 'disputed' ? 'U SPORU' : 'ČEKA'}
                         </span>
                     </div>
 
@@ -180,18 +237,29 @@ export default async function AdminDashboard() {
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mt-2">
                          {order.status === 'completed' ? (
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-gray-400">Profit (5%):</span>
                                 <span className="font-bold text-purple-600 text-lg">+{(order.amount * 0.05).toFixed(2)} π</span>
                             </div>
+                         ) : order.status === 'refunded' ? (
+                            <span className="text-gray-400 font-bold text-sm">Vraćeno kupcu</span>
                          ) : (
                              <span className="font-bold text-gray-900 text-lg">{order.amount} π</span>
                          )}
 
-                         {order.status !== "completed" && (
-                             <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
+                         {(order.status === "pending" || order.status === "disputed") && (
+                            <div className="flex flex-col items-end gap-2">
+                                {order.status === "pending" && (
+                                    <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
+                                )}
+                                <form action={manualResolve} className="flex gap-1 mt-1">
+                                     <input type="hidden" name="orderId" value={order.id} />
+                                     <button type="submit" name="actionType" value="refund" className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded">Refundiraj</button>
+                                     <button type="submit" name="actionType" value="release" className="px-3 py-1.5 bg-green-50 text-green-600 border border-green-200 text-[10px] font-bold rounded">Oslobodi</button>
+                                </form>
+                            </div>
                          )}
                     </div>
                 </div>
