@@ -12,6 +12,7 @@ datasource db {
 model User {
   id        String    @id @default(cuid())
   username  String    @unique // Pi Network username
+  piUid     String?   @unique // ✅ DODATO: Neophodno za A2U isplate
   role      String    @default("user") // "user" ili "admin"
   isBanned  Boolean   @default(false)
   createdAt DateTime  @default(now())
