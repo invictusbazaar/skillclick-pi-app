@@ -21,8 +21,8 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const router = useRouter();
 
   const txt: any = {
-    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
-    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
+    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled.", cleaned: "System cleared your stuck transaction. Please click buy again." },
+    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano.", cleaned: "Sistem je očistio zapelu transakciju. Molim te, klikni ponovo na kupovinu." },
     // ... ostali jezici ostaju isti
   };
   const T = (key: string) => txt[language]?.[key] || txt['en'][key];
@@ -49,7 +49,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     setLoading(true);
 
     try {
-        // 1. POKRETANJE PI PLAĆANJA (Vraćamo nazad tvoj perfektni sistem)
+        // 1. POKRETANJE PI PLAĆANJA
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
@@ -65,7 +65,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 });
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                // 2. KREIRANJE PORUDŽBINE U BAZI (Tek nakon što je Pi prebačen!)
+                // 2. KREIRANJE PORUDŽBINE U BAZI
                 const res = await fetch('/api/orders', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -92,6 +92,25 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             onError: (error: any) => {
                 setLoading(false);
                 alert(`${T('payError')}: ` + error.message);
+            },
+            // 🚀 DODATO: Presretanje zapelog plaćanja direktno na dugmetu
+            onIncompletePaymentFound: async (payment: any) => {
+                console.log("⚠️ Pronađeno zapelo plaćanje pri pokušaju kupovine:", payment);
+                try {
+                    await fetch('/api/payments/resolve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            paymentId: payment.identifier, 
+                            txid: payment.transaction?.txid || "N/A" 
+                        })
+                    });
+                    alert(T('cleaned'));
+                } catch (err) {
+                    console.error("Greška pri čišćenju zapelog plaćanja:", err);
+                } finally {
+                    setLoading(false);
+                }
             }
         });
 
