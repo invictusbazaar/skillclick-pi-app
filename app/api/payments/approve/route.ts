@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-// Tvoj API Key je već ovde, to je dobro.
-const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp"; 
+// Povlačimo iz .env-a, ali koristimo tvoj postojeći kao sigurnosnu rezervu
+const PI_API_KEY = process.env.PI_API_KEY || "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp"; 
 
 export async function POST(req: Request) {
   try {
