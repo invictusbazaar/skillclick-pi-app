@@ -7,7 +7,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { serviceId, amount, sellerUsername, buyerUsername, paymentId, txid } = body;
 
-    if (!serviceId || !amount || !sellerUsername || !buyerUsername || !paymentId) {
+    // Dodato: txid je obavezan da bi /complete poziv Pi serveru bio uspešan
+    if (!serviceId || !amount || !sellerUsername || !buyerUsername || !paymentId || !txid) {
       return NextResponse.json({ error: 'Nedostaju podaci za obradu.' }, { status: 400 });
     }
 
