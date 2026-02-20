@@ -10,7 +10,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nedostaje paymentId.' }, { status: 400 });
     }
 
-    const apiKey = process.env.PI_API_KEY;
+    // 🚀 DODATO: Sigurnosna rezerva za API ključ kako bi Pi server prihvatio zahtev
+    const apiKey = process.env.PI_API_KEY || "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp";
 
     if (txid && txid !== "N/A") {
         // 1. Pokušavamo da završimo transakciju ako postoji txid
