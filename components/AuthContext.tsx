@@ -48,7 +48,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // @ts-ignore
         const Pi = window.Pi;
         Pi.init({ version: "2.0", sandbox: false }).then(() => {
-            Pi.authenticate(['username', 'payments'], () => {}).then((res: any) => {
+            
+            // 🚀 DODATO: Funkcija za automatsko čišćenje zapelih plaćanja
+            const onIncompletePaymentFound = (payment: any) => {
+                console.log("⚠️ Pronađeno zapelo plaćanje:", payment);
+                // Šaljemo podatke backendu da ga odglavi (kroz /complete ili endpoint za rešavanje)
+                fetch('/api/payments/resolve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        paymentId: payment.identifier, 
+                        txid: payment.transaction?.txid || "N/A" 
+                    })
+                }).catch(err => console.error("Greška pri čišćenju zapelog plaćanja:", err));
+            };
+
+            // Ubacujemo našu funkciju kao drugi parametar u authenticate
+            Pi.authenticate(['username', 'payments'], onIncompletePaymentFound).then((res: any) => {
                 const u = res.user;
                 setUser({ username: u.username, isAdmin: u.username === ADMIN_USERNAME });
                 syncUserToDatabase(u.username, u.uid); // 🚀 TIHA REGISTRACIJA sada hvata pravi Pi uid!
