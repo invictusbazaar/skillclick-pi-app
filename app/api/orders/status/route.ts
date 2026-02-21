@@ -43,13 +43,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Nemate dozvolu da menjate status ove narudžbine!" }, { status: 403 });
     }
 
-    // --- 4. OSLOBAĐANJE PI TRANSAKCIJE PRI REFUNDACIJI ---
-    // Ako se status menja u otkazan ili refundiran, šaljemo signal Pi serveru
+    // --- 4. TRAJNO REŠENJE: OSLOBAĐANJE PI TRANSAKCIJE PRI REFUNDACIJI ---
+    // Ako se status menja u otkazan ili refundiran, automatski čistimo Pi server
     const cancelStatuses = ["canceled", "CANCELED", "refunded", "REFUNDED"];
     
     if (cancelStatuses.includes(newStatus) && order.paymentId) {
       try {
-        const piResponse = await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/cancel`, {
+        // Prvo pokušavamo da otkažemo (Cancel)
+        let piResponse = await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/cancel`, {
           method: 'POST',
           headers: {
             'Authorization': `Key ${PI_API_KEY}`,
@@ -57,20 +58,31 @@ export async function POST(req: Request) {
           }
         });
 
+        // Ako Pi server odbije otkazivanje jer su sredstva već prošla (txid postoji), 
+        // onda moramo da pošaljemo komandu za kompletiranje (Complete) da bi se oslobodilo.
+        if (!piResponse.ok && order.txid) {
+            piResponse = await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/complete`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Key ${PI_API_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ txid: order.txid })
+            });
+        }
+        
         if (piResponse.ok) {
-          console.log(`Pi transakcija ${order.paymentId} uspešno otkazana.`);
+          console.log(`Pi transakcija ${order.paymentId} uspešno rešena na Pi serveru.`);
         } else {
-          const errorData = await piResponse.json();
-          console.error("Pi server je vratio grešku pri otkazivanju:", errorData);
+          console.error("Pi server nije oslobodio transakciju.");
         }
       } catch (piError) {
-        console.error("Mrežna greška pri komunikaciji sa Pi serverom:", piError);
-        // Ne prekidamo funkciju, želimo da se baza svakako ažurira
+        console.error("Greška pri komunikaciji sa Pi serverom:", piError);
       }
     }
-    // ------------------------------------------------------
+    // ---------------------------------------------------------------------
 
-    // 5. Ažuriramo status u bazi
+    // 5. Ažuriramo status u bazi (ovo je kod tebe već radilo savršeno)
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: { status: newStatus }
