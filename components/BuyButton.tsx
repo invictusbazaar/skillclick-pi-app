@@ -48,7 +48,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     setLoading(true);
 
     try {
-        // 1. POKRETANJE PI PLAĆANJA 
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
@@ -63,7 +62,8 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 });
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                const res = await fetch('/api/orders', { 
+                // ISPRAVKA: Pozivamo TVOJ originalni fajl koji sve rešava!
+                const res = await fetch('/api/payments/complete', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -90,7 +90,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 setLoading(false);
                 alert(`${T('payError')}: ` + error.message);
             },
-            // ---> DODATO: Ciscenje zaglavljenih transakcija <---
+            // HVATAČ ZAGLAVLJENIH TRANSAKCIJA
             onIncompletePaymentFound: async (payment: any) => {
                 console.log("Pronađeno zaostalo plaćanje, čistim...");
                 try {
@@ -99,13 +99,12 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ payment })
                     });
-                    alert("✅ Sistem je pronašao i obrisao tvoju staru zaglavljenu transakciju! Molim te, klikni ponovo na dugme za kupovinu.");
+                    alert("✅ Zaglavljena transakcija je očišćena! Klikni na 'Kupi Odmah' ponovo.");
                 } catch (err) {
                     console.error("Greška pri čišćenju", err);
                 }
                 setLoading(false);
             }
-            // ----------------------------------------------------
         });
 
     } catch (error: any) {
