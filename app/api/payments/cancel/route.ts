@@ -1,4 +1,3 @@
-// app/api/payments/cancel/route.ts
 import { NextResponse } from "next/server";
 import axios from "axios";
 
@@ -10,7 +9,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nedostaje paymentId" }, { status: 400 });
     }
 
-    // Šaljemo komandu Pi serveru da otkaže zaglavljeno plaćanje
+    if (!process.env.PI_API_KEY) {
+      return NextResponse.json({ error: "Nije podešen PI_API_KEY na serveru!" }, { status: 500 });
+    }
+
+    // Šaljemo komandu Pi serveru
     await axios.post(
       `https://api.minepi.com/v2/payments/${paymentId}/cancel`,
       {},
@@ -21,10 +24,11 @@ export async function POST(req: Request) {
       }
     );
 
-    console.log(`Zaglavljena transakcija ${paymentId} je uspešno otkazana.`);
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("Greška pri otkazivanju zaglavljene transakcije:", error.response?.data || error.message);
-    return NextResponse.json({ error: "Greška pri komunikaciji sa Pi API" }, { status: 500 });
+    // Ovde hvatamo tačan razlog zašto Pi Network odbija brisanje
+    const piError = error.response?.data?.error?.message || error.message;
+    console.error("Greška sa Pi API-ja:", piError);
+    return NextResponse.json({ error: piError }, { status: 500 });
   }
 }
