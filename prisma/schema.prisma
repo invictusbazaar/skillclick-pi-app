@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- MODELI (TABELE) ---
+
+model User {
+  id        String    @id @default(cuid())
+  username  String    @unique // Pi Network username
+  piUid     String?   @unique // ✅ DODATO: Neophodno za A2U isplate
+  role      String    @default("user") // "user" ili "admin"
+  isBanned  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  
+  piWallet  String?   // Adresa novčanika za isplatu
+  lastSeen  DateTime  @default(now())
+
+  // 👇 NOVO POLJE ZA PROFILNU SLIKU (AVATAR)
+  avatar    String?
+
+  services  Service[] 
+  orders    Order[]   @relation("BuyerOrders") 
+  sales     Order[]   @relation("SellerOrders") 
+  reviews   Review[]  // Recenzije koje je korisnik napisao
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  
+  notifications    Notification[]
+
+  favorites        Favorite[] // ✅ Dodato: Relacija za omiljene oglase
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Float
+  category    String
+  images      String[] 
+  isApproved  Boolean  @default(false) // ✅ NOVO POLJE: Oglas je automatski na čekanju!
+  createdAt   DateTime @default(now())
+  
+  userId      String
+  seller      User     @relation(fields: [userId], references: [id])
+  
+  orders      Order[]
+  reviews     Review[] 
+
+  favoritedBy Favorite[] // ✅ Dodato: Relacija za omiljene oglase
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  status    String   @default("pending")
+  amount    Float
+  createdAt DateTime @default(now())
+  
+  paymentId String?  @unique
+  txid      String?
+
+  buyerId   String
+  buyer     User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  
+  sellerId  String
+  seller    User     @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+
+  reviews   Review[] 
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  language  String   @default("en")
+
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id]) 
+
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id]) 
+
+  orderId   String   
+  order     Order    @relation(fields: [orderId], references: [id]) 
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  fileUrl   String?  // ✅ Dodato: Za upload slika/fajlova (ZIP, PDF...)
+  fileName  String?  // ✅ Dodato: Da bismo ispisali pravo ime fajla u chatu
+
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  message   String   
+  type      String   
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// ✅ NOVI MODEL: Omiljeni oglasi (Wishlist)
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  serviceId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serviceId]) // Sprečava duplo dodavanje istog oglasa u omiljene
+}
