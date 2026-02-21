@@ -1,47 +1,62 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp";
 
+// Tačna 3 ID-ja koja su ostala zaglavljena
+const STUCK_IDS = [
+  "5OplMIGJuSf8tItmYbKDji2U157M",
+  "MWQOvXkYc78lcOIl4IhbdPXvOwuW",
+  "dPLVCIwTIFYaJoTILAAHZrQX6MJx"
+];
+
 export async function GET() {
-    try {
-        // Pronalazi sve narudžbine koje bi mogle biti zaglavljene na Pi serveru
-        const stuckOrders = await prisma.order.findMany({
-            where: {
-                status: { in: ["refunded", "canceled", "pending"] },
-                paymentId: { not: null }
+    let results = [];
+
+    for (const paymentId of STUCK_IDS) {
+        try {
+            // 1. Pitamo direktno Pi server za pravi status
+            const getRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}`, {
+                headers: { 'Authorization': `Key ${PI_API_KEY}` }
+            });
+            
+            if (!getRes.ok) {
+                results.push({ id: paymentId, error: "Nije pronađeno na Pi serveru" });
+                continue;
             }
-        });
 
-        let results = [];
+            const piData = await getRes.json();
+            const txid = piData.transaction?.txid;
 
-        for (const order of stuckOrders) {
-            if (!order.paymentId) continue;
+            let actionRes;
 
-            try {
-                let res;
-                if (order.txid) {
-                    // Sredstva su prešla, kompletiramo na Pi serveru
-                    res = await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/complete`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Key ${PI_API_KEY}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ txid: order.txid })
-                    });
-                } else {
-                    // Sredstva nisu prešla, otkazujemo na Pi serveru
-                    res = await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/cancel`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Key ${PI_API_KEY}`, 'Content-Type': 'application/json' }
-                    });
-                }
-                results.push({ id: order.paymentId, status: res.status });
-            } catch (e) {
-                results.push({ id: order.paymentId, error: "Mrežna greška" });
+            if (txid) {
+                // 2. Pare su prešle, šaljemo Pi serveru NJEGOV txid da kompletira
+                actionRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Key ${PI_API_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ txid: txid })
+                });
+            } else {
+                // 3. Pare nisu prešle, bezbedno otkazujemo
+                actionRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Key ${PI_API_KEY}`, 'Content-Type': 'application/json' }
+                });
             }
+
+            const finalData = await actionRes.json().catch(() => null);
+
+            results.push({ 
+                id: paymentId, 
+                akcija: txid ? "KOMPLETIRANO" : "OTKAZANO",
+                status_kod: actionRes.status,
+                odgovor_servera: finalData
+            });
+
+        } catch (e: any) {
+            results.push({ id: paymentId, error: e.message });
         }
-
-        return NextResponse.json({ message: "Čišćenje je završeno!", detalji: results });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    return NextResponse.json({ message: "Pametno čišćenje duhova završeno", detalji: results });
 }
