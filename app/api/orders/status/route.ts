@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Tvoj provereni API ključ
-const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp";
-
 export async function POST(req: Request) {
   try {
+    // Dodali smo 'username' koji ćemo slati sa frontenda
     const { orderId, newStatus, username } = await req.json();
 
     if (!orderId || !newStatus || !username) {
         return NextResponse.json({ error: "Nedostaju potrebni podaci." }, { status: 400 });
     }
 
-    // 1. Preuzmi narudžbinu iz baze
+    // 1. Preuzmi narudžbinu iz baze i uključi podatke o kupcu i prodavcu
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -25,7 +23,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Narudžbina nije pronađena." }, { status: 404 });
     }
 
-    // 2. Pronađi korisnika koji šalje zahtev
+    // 2. Pronađi korisnika koji šalje zahtev kako bismo proverili njegove privilegije
     const requestUser = await prisma.user.findUnique({
         where: { username: username }
     });
@@ -34,55 +32,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Korisnik nije validan." }, { status: 401 });
     }
 
-    // 3. Provera autorizacije
+    // 3. Provera autorizacije: Da li je korisnik kupac, prodavac ili admin?
     const isBuyer = order.buyer.username === username;
     const isSeller = order.seller.username === username;
     const isAdmin = requestUser.isAdmin === true;
 
+    // Ako korisnik nije ni kupac, ni prodavac, ni admin, odbijamo zahtev!
     if (!isBuyer && !isSeller && !isAdmin) {
         return NextResponse.json({ error: "Nemate dozvolu da menjate status ove narudžbine!" }, { status: 403 });
     }
 
-    // --- 4. TRAJNO REŠENJE: OSLOBAĐANJE PI TRANSAKCIJE PRI REFUNDACIJI ---
-    // Ako se status menja u otkazan ili refundiran, automatski čistimo Pi server
-    const cancelStatuses = ["canceled", "CANCELED", "refunded", "REFUNDED"];
-    
-    if (cancelStatuses.includes(newStatus) && order.paymentId) {
-      try {
-        // Prvo pokušavamo da otkažemo (Cancel)
-        let piResponse = await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/cancel`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Key ${PI_API_KEY}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        // Ako Pi server odbije otkazivanje jer su sredstva već prošla (txid postoji), 
-        // onda moramo da pošaljemo komandu za kompletiranje (Complete) da bi se oslobodilo.
-        if (!piResponse.ok && order.txid) {
-            piResponse = await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/complete`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Key ${PI_API_KEY}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ txid: order.txid })
-            });
-        }
-        
-        if (piResponse.ok) {
-          console.log(`Pi transakcija ${order.paymentId} uspešno rešena na Pi serveru.`);
-        } else {
-          console.error("Pi server nije oslobodio transakciju.");
-        }
-      } catch (piError) {
-        console.error("Greška pri komunikaciji sa Pi serverom:", piError);
-      }
-    }
-    // ---------------------------------------------------------------------
-
-    // 5. Ažuriramo status u bazi (ovo je kod tebe već radilo savršeno)
+    // 4. Ako je autorizacija uspešna, ažuriramo status
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: { status: newStatus }
