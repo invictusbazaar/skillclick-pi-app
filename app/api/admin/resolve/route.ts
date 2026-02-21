@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 var StellarSdk = require('stellar-sdk');
 const PI_HORIZON_URL = "https://api.testnet.minepi.com";
+const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp";
 
 export async function POST(req: Request) {
   try {
@@ -70,6 +71,39 @@ export async function POST(req: Request) {
     console.log(`🚀 Šaljem transakciju na Blockchain (${actionType})...`);
     const result = await server.submitTransaction(transaction);
     console.log("✅ ISPLATA USPEŠNA! Hash:", result.hash);
+
+    // ---> DODATO: TRAJNO OSLOBAĐANJE PI TRANSAKCIJE <---
+    // Nakon što smo uspešno prebacili novac, odmah čistimo Pi server
+    if (order.paymentId) {
+        try {
+            if (order.txid) {
+                // Ako je novac prebačen aplikaciji (postoji txid), zatvaramo je kompletiranjem
+                await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Key ${PI_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ txid: order.txid })
+                });
+                console.log(`✅ Pi transakcija ${order.paymentId} uspešno KOMPLETIRANA i oslobođena.`);
+            } else {
+                // Ako iz nekog razloga nema txid, bezbedno otkazujemo
+                await fetch(`https://api.minepi.com/v2/payments/${order.paymentId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Key ${PI_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log(`✅ Pi transakcija ${order.paymentId} uspešno OTKAZANA i oslobođena.`);
+            }
+        } catch (piError) {
+            console.error("❌ Greška pri oslobađanju Pi transakcije:", piError);
+            // Ne prekidamo ovde, jer je Blockchain transakcija već prošla
+        }
+    }
+    // ----------------------------------------------------
 
     // 4. AŽURIRANJE BAZE
     await prisma.order.update({
