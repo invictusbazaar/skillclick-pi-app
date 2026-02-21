@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 
+// Tvoj ključ iz route.ts koji provereno radi
+const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp";
+
 export async function POST(req: Request) {
   try {
     const { paymentId } = await req.json();
@@ -9,24 +12,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nedostaje paymentId" }, { status: 400 });
     }
 
-    if (!process.env.PI_API_KEY) {
-      return NextResponse.json({ error: "Nije podešen PI_API_KEY na serveru!" }, { status: 500 });
-    }
-
-    // Šaljemo komandu Pi serveru
+    // Šaljemo komandu Pi serveru sa tvojim direktnim ključem
     await axios.post(
       `https://api.minepi.com/v2/payments/${paymentId}/cancel`,
       {},
       {
         headers: {
-          Authorization: `Key ${process.env.PI_API_KEY}`,
+          Authorization: `Key ${PI_API_KEY}`,
         },
       }
     );
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    // Ovde hvatamo tačan razlog zašto Pi Network odbija brisanje
     const piError = error.response?.data?.error?.message || error.message;
     console.error("Greška sa Pi API-ja:", piError);
     return NextResponse.json({ error: piError }, { status: 500 });
