@@ -1,2 +1,2 @@
 # skillclick-pi-app
-Freelance marketplace for Pi Network ecosystem 
+Freelance marketplace for Pi Network ecosystem
