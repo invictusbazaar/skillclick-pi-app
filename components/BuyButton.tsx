@@ -27,7 +27,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   };
   const T = (key: string) => txt[language]?.[key] || txt['en'][key];
 
-  // NORMALAN PROCES KUPOVINE
   const handleBuy = async () => {
     if (!user) return router.push('/auth/login');
     if (user.username === sellerUsername) return alert(T('selfBuy'));
@@ -75,27 +74,27 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     }
   };
 
-  // FUNKCIJA ZA ČIŠĆENJE ZAGLAVLJENIH TRANSAKCIJA
   const handleFixPending = async () => {
     setFixing(true);
     try {
         // @ts-ignore
         await window.Pi.authenticate(['payments'], async (payment: any) => {
-            alert(`Pronađeno plaćanje ID: ${payment.identifier}. Šaljem zahtev serveru za brisanje...`);
+            // Izvlačimo txid ako on postoji
+            const txid = payment.transaction?.txid || null;
+            alert(`Pronađeno plaćanje ID: ${payment.identifier}. ${txid ? 'Transakcija ima TXID, šaljem komandu za KOMPLETIRANJE...' : 'Nema TXID, šaljem komandu za BRISANJE...'}`);
             
             const res = await fetch('/api/payments/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId: payment.identifier })
+                body: JSON.stringify({ paymentId: payment.identifier, txid: txid })
             });
             
             const data = await res.json();
             
             if (!res.ok) {
-                // SADA ĆEMO KONAČNO VIDETI PRAVU GREŠKU!
                 alert(`❌ Server greška: ${data.error}`);
             } else {
-                alert("✅ Transakcija je USPEŠNO OBRISANA. Sada možeš da kupiš oglas.");
+                alert(`✅ USPEŠNO OČIŠĆENO! Poruka sistema: ${data.message}. Sada možeš nesmetano da kupiš oglas.`);
             }
         });
     } catch (err: any) {
