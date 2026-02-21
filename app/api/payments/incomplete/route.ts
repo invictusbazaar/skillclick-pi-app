@@ -9,14 +9,14 @@ export async function POST(req: Request) {
     const txid = payment.transaction?.txid;
 
     if (txid) {
-      // Sredstva su prešla, kompletiramo da oslobodimo nalog
+      // Pare su prešle, moramo kompletirati da oslobodimo nalog
       await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
         method: 'POST',
         headers: { 'Authorization': `Key ${PI_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ txid })
       });
     } else {
-      // Sredstva nisu prešla, otkazujemo
+      // Pare nisu prešle, otkazujemo i oslobađamo nalog
       await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
         method: 'POST',
         headers: { 'Authorization': `Key ${PI_API_KEY}`, 'Content-Type': 'application/json' }
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error("Greška pri čišćenju zaostale transakcije:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
