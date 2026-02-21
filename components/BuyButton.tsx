@@ -23,7 +23,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const txt: any = {
     en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
     sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
-    // ... ostali jezici ostaju isti
   };
   const T = (key: string) => txt[language]?.[key] || txt['en'][key];
 
@@ -49,7 +48,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     setLoading(true);
 
     try {
-        // 1. POKRETANJE PI PLAĆANJA (Vraćamo nazad tvoj perfektni sistem)
+        // 1. POKRETANJE PI PLAĆANJA 
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
@@ -57,7 +56,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             metadata: { serviceId: serviceId, seller: sellerUsername }
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
-                // Obaveštavamo tvoj server da odobri plaćanje
                 await fetch('/api/payments/approve', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -65,7 +63,6 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 });
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                // 2. KREIRANJE PORUDŽBINE U BAZI (Tek nakon što je Pi prebačen!)
                 const res = await fetch('/api/orders', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -92,7 +89,23 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             onError: (error: any) => {
                 setLoading(false);
                 alert(`${T('payError')}: ` + error.message);
+            },
+            // ---> DODATO: Ciscenje zaglavljenih transakcija <---
+            onIncompletePaymentFound: async (payment: any) => {
+                console.log("Pronađeno zaostalo plaćanje, čistim...");
+                try {
+                    await fetch('/api/payments/incomplete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ payment })
+                    });
+                    alert("✅ Sistem je pronašao i obrisao tvoju staru zaglavljenu transakciju! Molim te, klikni ponovo na dugme za kupovinu.");
+                } catch (err) {
+                    console.error("Greška pri čišćenju", err);
+                }
+                setLoading(false);
             }
+            // ----------------------------------------------------
         });
 
     } catch (error: any) {
