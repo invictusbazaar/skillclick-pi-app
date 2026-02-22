@@ -9,62 +9,58 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Nedostaju potrebni podaci." }, { status: 400 });
     }
 
-    // 1. Preuzmi narudžbinu iz baze
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         buyer: true,
         seller: true,
-        service: true // Uključujemo i servis da bismo dobili naziv oglasa
+        service: true 
       }
     });
 
-    if (!order) {
-        return NextResponse.json({ error: "Narudžbina nije pronađena." }, { status: 404 });
-    }
+    if (!order) return NextResponse.json({ error: "Narudžbina nije pronađena." }, { status: 404 });
 
-    // 2. Pronađi korisnika koji šalje zahtev
     const requestUser = await prisma.user.findUnique({
         where: { username: username }
     });
 
-    if (!requestUser) {
-        return NextResponse.json({ error: "Korisnik nije validan." }, { status: 401 });
-    }
+    if (!requestUser) return NextResponse.json({ error: "Korisnik nije validan." }, { status: 401 });
 
-    // 3. Provera autorizacije
     const isBuyer = order.buyer.username === username;
     const isSeller = order.seller.username === username;
-    const isAdmin = requestUser.role === "admin"; // Ispravljeno prema tvojoj šemi (role: "admin")
+    const isAdmin = requestUser.role === "admin"; // ✅ Ispravno čitanje tvoje baze
 
     if (!isBuyer && !isSeller && !isAdmin) {
         return NextResponse.json({ error: "Nemate dozvolu da menjate status ove narudžbine!" }, { status: 403 });
     }
 
-    // 4. Ažuriramo status
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: { status: newStatus }
     });
 
-    // --- 5. NOTIFIKACIJE ZA SPOR ---
-    if (newStatus === "disputed") {
-      try {
-        const serviceTitle = order.service.title;
+    // --- LOGIKA ZA NOTIFIKACIJE ---
+    try {
+      const serviceTitle = typeof order.service.title === 'string' 
+        ? order.service.title 
+        : (order.service.title as any)?.sr || "uslugu";
 
-        // A. Notifikacija za PRODAVCA
+      // 1. KADA KUPAC POKRENE SPOR
+      if (newStatus === "disputed") {
+        
+        // Poruka za prodavca
         await prisma.notification.create({
           data: {
             userId: order.seller.id,
             type: "dispute",
-            message: `⚠️ Kupac ${order.buyer.username} je otvorio spor za tvoj oglas: "${serviceTitle}".`,
+            message: `⚠️ Kupac ${order.buyer.username} je otvorio spor za: "${serviceTitle}".`,
             link: "/profile" 
           }
         });
 
-        // B. Notifikacije za ADMINA
+        // Poruka za admina (✅ Ispravna pretraga baze)
         const admins = await prisma.user.findMany({
-          where: { role: "admin" } // Ispravljeno prema tvojoj šemi
+          where: { role: "admin" } 
         });
 
         for (const admin of admins) {
@@ -72,15 +68,44 @@ export async function POST(req: Request) {
             data: {
               userId: admin.id,
               type: "admin_dispute",
-              message: `🚨 NOVI SPOR: Kupac ${order.buyer.username} vs Prodavac ${order.seller.username} za "${serviceTitle}".`,
+              message: `🚨 OTVOREN SPOR: ${order.buyer.username} vs ${order.seller.username} za "${serviceTitle}".`,
               link: "/admin"
             }
           });
         }
-        
-      } catch (notifError) {
-        console.error("Greška pri slanju notifikacija:", notifError);
       }
+
+      // 2. KADA KUPAC PONIŠTI SPOR (Dugme "Poništi spor" iz tvog page.tsx)
+      if (newStatus === "pending" && isBuyer) {
+        // Obaveštavamo prodavca
+        await prisma.notification.create({
+          data: {
+            userId: order.seller.id,
+            type: "dispute_resolved",
+            message: `✅ Kupac ${order.buyer.username} je poništio spor. Narudžbina je ponovo aktivna.`,
+            link: "/profile" 
+          }
+        });
+
+        // Obaveštavamo admina
+        const admins = await prisma.user.findMany({
+          where: { role: "admin" } 
+        });
+
+        for (const admin of admins) {
+          await prisma.notification.create({
+            data: {
+              userId: admin.id,
+              type: "admin_info",
+              message: `ℹ️ SPOR PONIŠTEN: Kupac ${order.buyer.username} je povukao spor.`,
+              link: "/admin"
+            }
+          });
+        }
+      }
+
+    } catch (notifError) {
+      console.error("Greška pri kreiranju notifikacija:", notifError);
     }
     // ------------------------------------------
 
