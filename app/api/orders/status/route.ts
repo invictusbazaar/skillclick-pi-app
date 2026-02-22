@@ -28,7 +28,6 @@ export async function POST(req: Request) {
 
     const isBuyer = order.buyer.username === username;
     const isSeller = order.seller.username === username;
-    // Priznajemo admina čak i ako je na frontendu označen drugačije
     const isAdmin = requestUser.role === "admin" || (requestUser as any).isAdmin === true; 
 
     if (!isBuyer && !isSeller && !isAdmin) {
@@ -47,58 +46,57 @@ export async function POST(req: Request) {
         : (order.service.title as any)?.sr || "uslugu";
 
       // 1. KADA KUPAC POKRENE SPOR
-      if (newStatus === "disputed") {
+      if (newStatus === "disputed_buyer") {
+        await prisma.notification.create({
+          data: { userId: order.buyer.id, type: "dispute_info", message: `✅ Uspešno si otvorio spor za: "${serviceTitle}".`, link: "/profile" }
+        });
+        await prisma.notification.create({
+          data: { userId: order.seller.id, type: "dispute", message: `⚠️ Kupac ${order.buyer.username} je otvorio spor za tvoj oglas: "${serviceTitle}".`, link: "/profile" }
+        });
         
-        // A. Poruka za KUPCA (Da znaš da je tvoj zahtev prošao!)
-        await prisma.notification.create({
-          data: {
-            userId: order.buyer.id,
-            type: "dispute_info",
-            message: `✅ Uspešno si otvorio spor za: "${serviceTitle}".`,
-            link: "/profile" 
-          }
-        });
-
-        // B. Poruka za PRODAVCA
-        await prisma.notification.create({
-          data: {
-            userId: order.seller.id,
-            type: "dispute",
-            message: `⚠️ Kupac ${order.buyer.username} je otvorio spor za: "${serviceTitle}".`,
-            link: "/profile" 
-          }
-        });
-
-        // C. Poruka za ADMINA
-        const admins = await prisma.user.findMany({
-          where: { role: "admin" } 
-        });
-
+        const admins = await prisma.user.findMany({ where: { role: "admin" } });
         for (const admin of admins) {
-          // Nećemo slati duplu poruku ako je admin ujedno i kupac
           if (admin.id !== order.buyer.id) {
              await prisma.notification.create({
-               data: {
-                 userId: admin.id,
-                 type: "admin_dispute",
-                 message: `🚨 OTVOREN SPOR: ${order.buyer.username} vs ${order.seller.username} za "${serviceTitle}".`,
-                 link: "/admin"
-               }
+               data: { userId: admin.id, type: "admin_dispute", message: `🚨 OTVOREN SPOR (Od Kupca): ${order.buyer.username} vs ${order.seller.username} za "${serviceTitle}".`, link: "/admin" }
              });
           }
         }
       }
 
-      // 2. KADA KUPAC PONIŠTI SPOR
-      if (newStatus === "pending" && isBuyer) {
+      // 2. KADA PRODAVAC POKRENE SPOR
+      if (newStatus === "disputed_seller") {
         await prisma.notification.create({
-          data: {
-            userId: order.seller.id,
-            type: "dispute_resolved",
-            message: `✅ Kupac ${order.buyer.username} je poništio spor. Narudžbina je ponovo aktivna.`,
-            link: "/profile" 
-          }
+          data: { userId: order.seller.id, type: "dispute_info", message: `✅ Uspešno si otvorio spor za: "${serviceTitle}".`, link: "/profile" }
         });
+        await prisma.notification.create({
+          data: { userId: order.buyer.id, type: "dispute", message: `⚠️ Prodavac ${order.seller.username} je otvorio spor jer zadržavaš sredstva za: "${serviceTitle}".`, link: "/profile" }
+        });
+        
+        const admins = await prisma.user.findMany({ where: { role: "admin" } });
+        for (const admin of admins) {
+          if (admin.id !== order.seller.id) {
+             await prisma.notification.create({
+               data: { userId: admin.id, type: "admin_dispute", message: `🚨 OTVOREN SPOR (Od Prodavca): ${order.seller.username} se žali na ${order.buyer.username} za "${serviceTitle}".`, link: "/admin" }
+             });
+          }
+        }
+      }
+
+      // 3. KADA KUPAC ILI PRODAVAC PONIŠTI SPOR
+      if (newStatus === "pending") {
+        // Ako je kupac poništio svoj spor
+        if (isBuyer && order.status === "disputed_buyer") {
+          await prisma.notification.create({
+            data: { userId: order.seller.id, type: "dispute_resolved", message: `✅ Kupac ${order.buyer.username} je poništio spor. Narudžbina je ponovo aktivna.`, link: "/profile" }
+          });
+        } 
+        // Ako je prodavac poništio svoj spor
+        else if (isSeller && order.status === "disputed_seller") {
+          await prisma.notification.create({
+            data: { userId: order.buyer.id, type: "dispute_resolved", message: `✅ Prodavac ${order.seller.username} je poništio spor. Narudžbina je ponovo aktivna.`, link: "/profile" }
+          });
+        }
       }
 
     } catch (notifError) {
