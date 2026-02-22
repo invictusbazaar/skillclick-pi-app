@@ -107,130 +107,141 @@ export default async function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50 transition group">
-                    <td className="p-5">
-                        <div className="font-bold text-gray-900">{order.service.title}</div>
-                        <div className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</div>
-                    </td>
-                    <td className="p-5">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="font-bold text-blue-600">{order.buyer.username}</span>
-                        <ArrowRight className="w-3 h-3 text-gray-300"/>
-                        <span className="font-bold text-purple-600">{order.seller.username}</span>
-                      </div>
-                    </td>
-                    <td className="p-5">
-                        {order.status === 'completed' ? (
-                            <div className="flex flex-col gap-1">
-                                <span className="text-xs text-gray-400 line-through">Ukupno: {order.amount} π</span>
-                                <div className="text-sm font-bold text-gray-700">Prodavac: <span className="text-green-600">{(order.amount * 0.95).toFixed(2)} π</span></div>
-                                <div className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded w-fit">App: +{(order.amount * 0.05).toFixed(2)} π</div>
+                {orders.map((order) => {
+                  // ✅ DEFINIŠEMO ŠTA JE SPOR (Kupac ili Prodavac)
+                  const isInDispute = order.status === "disputed_buyer" || order.status === "disputed_seller" || order.status === "disputed";
+
+                  return (
+                    <tr key={order.id} className="hover:bg-gray-50 transition group">
+                      <td className="p-5">
+                          <div className="font-bold text-gray-900">{order.service.title}</div>
+                          <div className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</div>
+                      </td>
+                      <td className="p-5">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-bold text-blue-600">{order.buyer.username}</span>
+                          <ArrowRight className="w-3 h-3 text-gray-300"/>
+                          <span className="font-bold text-purple-600">{order.seller.username}</span>
+                        </div>
+                      </td>
+                      <td className="p-5">
+                          {order.status === 'completed' ? (
+                              <div className="flex flex-col gap-1">
+                                  <span className="text-xs text-gray-400 line-through">Ukupno: {order.amount} π</span>
+                                  <div className="text-sm font-bold text-gray-700">Prodavac: <span className="text-green-600">{(order.amount * 0.95).toFixed(2)} π</span></div>
+                                  <div className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded w-fit">App: +{(order.amount * 0.05).toFixed(2)} π</div>
+                              </div>
+                          ) : order.status === 'refunded' ? (
+                              <span className="text-gray-400 font-bold">0.00 π</span>
+                          ) : (
+                              <span className="font-bold text-gray-900 text-lg">{order.amount} π</span>
+                          )}
+                      </td>
+                      <td className="p-5">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                          order.status === "completed" ? "bg-green-50 text-green-700 border-green-100" :
+                          order.status === "refunded" ? "bg-gray-100 text-gray-600 border-gray-200" :
+                          isInDispute ? "bg-red-50 text-red-700 border-red-100 animate-pulse" :
+                          "bg-yellow-50 text-yellow-700 border-yellow-100"
+                        }`}>
+                          {order.status === 'completed' ? 'ISPLAĆENO' : 
+                           order.status === 'refunded' ? 'REFUNDIRANO' : 
+                           order.status === 'disputed_buyer' ? 'SPOR (KUPAC)' :
+                           order.status === 'disputed_seller' ? 'SPOR (PRODAVAC)' :
+                           order.status === 'disputed' ? 'U SPORU' : 'NA ČEKANJU'}
+                        </span>
+                      </td>
+                      <td className="p-5 text-right flex justify-end">
+                         {order.status === "completed" && (
+                            <ShieldCheck className="w-5 h-5 text-green-300 ml-auto" />
+                         )}
+                         {order.status === "refunded" && (
+                            <span className="text-gray-400 font-bold text-xs bg-gray-50 px-2 py-1 rounded">Vraćeno</span>
+                         )}
+                         {(order.status === "pending" || isInDispute) && (
+                            <div className="flex flex-col gap-2 items-end w-full max-w-[200px]">
+                               {order.status === "pending" && (
+                                   <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
+                               )}
+                               {isInDispute && (
+                                   <>
+                                       <span className="text-xs font-black text-red-600 flex items-center gap-1 mb-1">
+                                           <AlertTriangle className="w-4 h-4"/> ZAHTEVA PAŽNJU
+                                       </span>
+                                       <AdminDisputeButtons orderId={order.id} amount={order.amount} />
+                                   </>
+                               )}
                             </div>
-                        ) : order.status === 'refunded' ? (
-                            <span className="text-gray-400 font-bold">0.00 π</span>
-                        ) : (
-                            <span className="font-bold text-gray-900 text-lg">{order.amount} π</span>
-                        )}
-                    </td>
-                    <td className="p-5">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                        order.status === "completed" ? "bg-green-50 text-green-700 border-green-100" :
-                        order.status === "refunded" ? "bg-gray-100 text-gray-600 border-gray-200" :
-                        order.status === "disputed" ? "bg-red-50 text-red-700 border-red-100 animate-pulse" :
-                        "bg-yellow-50 text-yellow-700 border-yellow-100"
-                      }`}>
-                        {order.status === 'completed' ? 'ISPLAĆENO' : 
-                         order.status === 'refunded' ? 'REFUNDIRANO' : 
-                         order.status === 'disputed' ? 'U SPORU' : 'NA ČEKANJU'}
-                      </span>
-                    </td>
-                    <td className="p-5 text-right flex justify-end">
-                       {order.status === "completed" && (
-                          <ShieldCheck className="w-5 h-5 text-green-300 ml-auto" />
-                       )}
-                       {order.status === "refunded" && (
-                          <span className="text-gray-400 font-bold text-xs bg-gray-50 px-2 py-1 rounded">Vraćeno</span>
-                       )}
-                       {(order.status === "pending" || order.status === "disputed") && (
-                          <div className="flex flex-col gap-2 items-end w-full max-w-[200px]">
-                             {order.status === "pending" && (
-                                 <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
-                             )}
-                             {order.status === "disputed" && (
-                                 <>
-                                     <span className="text-xs font-black text-red-600 flex items-center gap-1 mb-1">
-                                         <AlertTriangle className="w-4 h-4"/> ZAHTEVA PAŽNJU
-                                     </span>
-                                     <AdminDisputeButtons orderId={order.id} amount={order.amount} />
-                                 </>
-                             )}
-                          </div>
-                       )}
-                    </td>
-                  </tr>
-                ))}
+                         )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
 
           {/* 📱 MOBILE CARDS */}
           <div className="md:hidden flex flex-col divide-y divide-gray-100">
-             {orders.map((order) => (
-                <div key={order.id} className="p-5 flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h3 className="font-bold text-gray-900 line-clamp-1">{order.service.title}</h3>
-                            <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
-                            order.status === "completed" ? "bg-green-100 text-green-700 border-green-200" : 
-                            order.status === "refunded" ? "bg-gray-100 text-gray-600 border-gray-200" :
-                            order.status === "disputed" ? "bg-red-100 text-red-700 border-red-200 animate-pulse" : 
-                            "bg-yellow-100 text-yellow-700 border-yellow-200"
-                        }`}>
-                            {order.status === 'completed' ? 'ISPLAĆENO' : 
-                             order.status === 'refunded' ? 'REFUNDIRANO' : 
-                             order.status === 'disputed' ? 'U SPORU' : 'ČEKA'}
-                        </span>
-                    </div>
+             {orders.map((order) => {
+                const isInDispute = order.status === "disputed_buyer" || order.status === "disputed_seller" || order.status === "disputed";
+                
+                return (
+                  <div key={order.id} className="p-5 flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                          <div>
+                              <h3 className="font-bold text-gray-900 line-clamp-1">{order.service.title}</h3>
+                              <p className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
+                              order.status === "completed" ? "bg-green-100 text-green-700 border-green-200" : 
+                              order.status === "refunded" ? "bg-gray-100 text-gray-600 border-gray-200" :
+                              isInDispute ? "bg-red-100 text-red-700 border-red-200 animate-pulse" : 
+                              "bg-yellow-100 text-yellow-700 border-yellow-200"
+                          }`}>
+                              {order.status === 'completed' ? 'ISPLAĆENO' : 
+                               order.status === 'refunded' ? 'REFUNDIRANO' : 
+                               isInDispute ? 'U SPORU' : 'ČEKA'}
+                          </span>
+                      </div>
 
-                    <div className="bg-gray-50 p-3 rounded-xl text-sm border border-gray-100">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-gray-500 text-xs">Kupac:</span>
-                            <span className="font-bold text-blue-600">{order.buyer.username}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-500 text-xs">Prodavac:</span>
-                            <span className="font-bold text-purple-600">{order.seller.username}</span>
-                        </div>
-                    </div>
+                      <div className="bg-gray-50 p-3 rounded-xl text-sm border border-gray-100">
+                          <div className="flex justify-between items-center mb-1">
+                              <span className="text-gray-500 text-xs">Kupac:</span>
+                              <span className="font-bold text-blue-600">{order.buyer.username}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                              <span className="text-gray-500 text-xs">Prodavac:</span>
+                              <span className="font-bold text-purple-600">{order.seller.username}</span>
+                          </div>
+                      </div>
 
-                    <div className="flex justify-between items-center mt-2">
-                         {order.status === 'completed' ? (
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-gray-400">Profit (5%):</span>
-                                <span className="font-bold text-purple-600 text-lg">+{(order.amount * 0.05).toFixed(2)} π</span>
-                            </div>
-                         ) : order.status === 'refunded' ? (
-                            <span className="text-gray-400 font-bold text-sm">Vraćeno kupcu</span>
-                         ) : (
-                             <span className="font-bold text-gray-900 text-lg">{order.amount} π</span>
-                         )}
+                      <div className="flex justify-between items-center mt-2">
+                           {order.status === 'completed' ? (
+                              <div className="flex flex-col">
+                                  <span className="text-[10px] text-gray-400">Profit (5%):</span>
+                                  <span className="font-bold text-purple-600 text-lg">+{(order.amount * 0.05).toFixed(2)} π</span>
+                              </div>
+                           ) : order.status === 'refunded' ? (
+                              <span className="text-gray-400 font-bold text-sm">Vraćeno kupcu</span>
+                           ) : (
+                               <span className="font-bold text-gray-900 text-lg">{order.amount} π</span>
+                           )}
 
-                         {(order.status === "pending" || order.status === "disputed") && (
-                            <div className="flex flex-col items-end gap-2 w-full max-w-[150px]">
-                                {order.status === "pending" && (
-                                    <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
-                                )}
-                                {order.status === "disputed" && (
-                                    <AdminDisputeButtons orderId={order.id} amount={order.amount} />
-                                )}
-                            </div>
-                         )}
-                    </div>
-                </div>
-             ))}
+                           {(order.status === "pending" || isInDispute) && (
+                              <div className="flex flex-col items-end gap-2 w-full max-w-[150px]">
+                                  {order.status === "pending" && (
+                                      <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
+                                  )}
+                                  {isInDispute && (
+                                      <AdminDisputeButtons orderId={order.id} amount={order.amount} />
+                                  )}
+                              </div>
+                           )}
+                      </div>
+                  </div>
+                )
+             })}
              {orders.length === 0 && <div className="p-8 text-center text-gray-400">Nema transakcija</div>}
           </div>
         </div>
