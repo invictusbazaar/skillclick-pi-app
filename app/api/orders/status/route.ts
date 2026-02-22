@@ -28,7 +28,8 @@ export async function POST(req: Request) {
 
     const isBuyer = order.buyer.username === username;
     const isSeller = order.seller.username === username;
-    const isAdmin = requestUser.role === "admin"; // ✅ Ispravno čitanje tvoje baze
+    // Priznajemo admina čak i ako je na frontendu označen drugačije
+    const isAdmin = requestUser.role === "admin" || (requestUser as any).isAdmin === true; 
 
     if (!isBuyer && !isSeller && !isAdmin) {
         return NextResponse.json({ error: "Nemate dozvolu da menjate status ove narudžbine!" }, { status: 403 });
@@ -48,7 +49,17 @@ export async function POST(req: Request) {
       // 1. KADA KUPAC POKRENE SPOR
       if (newStatus === "disputed") {
         
-        // Poruka za prodavca
+        // A. Poruka za KUPCA (Da znaš da je tvoj zahtev prošao!)
+        await prisma.notification.create({
+          data: {
+            userId: order.buyer.id,
+            type: "dispute_info",
+            message: `✅ Uspešno si otvorio spor za: "${serviceTitle}".`,
+            link: "/profile" 
+          }
+        });
+
+        // B. Poruka za PRODAVCA
         await prisma.notification.create({
           data: {
             userId: order.seller.id,
@@ -58,26 +69,28 @@ export async function POST(req: Request) {
           }
         });
 
-        // Poruka za admina (✅ Ispravna pretraga baze)
+        // C. Poruka za ADMINA
         const admins = await prisma.user.findMany({
           where: { role: "admin" } 
         });
 
         for (const admin of admins) {
-          await prisma.notification.create({
-            data: {
-              userId: admin.id,
-              type: "admin_dispute",
-              message: `🚨 OTVOREN SPOR: ${order.buyer.username} vs ${order.seller.username} za "${serviceTitle}".`,
-              link: "/admin"
-            }
-          });
+          // Nećemo slati duplu poruku ako je admin ujedno i kupac
+          if (admin.id !== order.buyer.id) {
+             await prisma.notification.create({
+               data: {
+                 userId: admin.id,
+                 type: "admin_dispute",
+                 message: `🚨 OTVOREN SPOR: ${order.buyer.username} vs ${order.seller.username} za "${serviceTitle}".`,
+                 link: "/admin"
+               }
+             });
+          }
         }
       }
 
-      // 2. KADA KUPAC PONIŠTI SPOR (Dugme "Poništi spor" iz tvog page.tsx)
+      // 2. KADA KUPAC PONIŠTI SPOR
       if (newStatus === "pending" && isBuyer) {
-        // Obaveštavamo prodavca
         await prisma.notification.create({
           data: {
             userId: order.seller.id,
@@ -86,22 +99,6 @@ export async function POST(req: Request) {
             link: "/profile" 
           }
         });
-
-        // Obaveštavamo admina
-        const admins = await prisma.user.findMany({
-          where: { role: "admin" } 
-        });
-
-        for (const admin of admins) {
-          await prisma.notification.create({
-            data: {
-              userId: admin.id,
-              type: "admin_info",
-              message: `ℹ️ SPOR PONIŠTEN: Kupac ${order.buyer.username} je povukao spor.`,
-              link: "/admin"
-            }
-          });
-        }
       }
 
     } catch (notifError) {
