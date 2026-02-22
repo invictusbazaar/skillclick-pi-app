@@ -156,7 +156,7 @@ export default function UserProfilePage() {
           });
 
           alert("Spor je uspešno pokrenut. Admin je obavešten.");
-          window.location.reload(); // ✅ DODATO OSVEŽAVANJE
+          window.location.reload(); 
       } catch (error: any) {
           console.error(error);
           alert("Došlo je do greške: " + error.message);
@@ -194,7 +194,7 @@ export default function UserProfilePage() {
           });
 
           alert("Spor je uspešno poništen.");
-          window.location.reload(); // ✅ DODATO OSVEŽAVANJE
+          window.location.reload(); 
       } catch (error: any) {
           console.error(error);
           alert("Došlo je do greške: " + error.message);
@@ -279,7 +279,6 @@ export default function UserProfilePage() {
                         </div>
                         
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
-                            {/* ✅ POPRAVLJENO: Sada prepoznaje 'refunded' status */}
                             <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed' ? 'bg-green-100 text-green-700' : order.status==='disputed' ? 'bg-red-100 text-red-700' : order.status==='refunded' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-700'}`}>
                                 {order.status === 'completed' ? t('statusPaid') : order.status === 'disputed' ? "U SPORU" : order.status === 'refunded' ? "REFUNDIRANO" : t('statusPending')}
                             </span>
@@ -343,7 +342,6 @@ export default function UserProfilePage() {
                         </div>
                         <div className="text-right flex flex-col items-end gap-2">
                             <p className="font-bold text-green-600 text-lg">+{sale.amount} π</p>
-                            {/* ✅ POPRAVLJENO: Sada prepoznaje 'refunded' status i kod prodaje */}
                             <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed' ? 'bg-green-100 text-green-600' : sale.status==='disputed' ? 'bg-red-100 text-red-600' : sale.status==='refunded' ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-500'}`}>
                                 {sale.status === 'completed' ? t('statusPaid') : sale.status === 'disputed' ? "U SPORU" : sale.status === 'refunded' ? "REFUNDIRANO" : t('statusWaiting')}
                             </span>
@@ -358,19 +356,6 @@ export default function UserProfilePage() {
                                 >
                                     {disputingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2"/>}
                                     Pokreni spor
-                                </Button>
-                            )}
-
-                            {sale.status === 'disputed' && (
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="text-green-600 border-green-200 hover:bg-green-50 bg-white font-bold h-8 mt-1"
-                                    onClick={() => handleCancelDispute(sale.id)}
-                                    disabled={disputingId === sale.id}
-                                >
-                                    {disputingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2"/>}
-                                    Poništi spor
                                 </Button>
                             )}
 
