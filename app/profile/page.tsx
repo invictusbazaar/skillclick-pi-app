@@ -156,6 +156,7 @@ export default function UserProfilePage() {
           });
 
           alert("Spor je uspešno pokrenut. Admin je obavešten.");
+          window.location.reload(); // ✅ DODATO OSVEŽAVANJE
       } catch (error: any) {
           console.error(error);
           alert("Došlo je do greške: " + error.message);
@@ -193,6 +194,7 @@ export default function UserProfilePage() {
           });
 
           alert("Spor je uspešno poništen.");
+          window.location.reload(); // ✅ DODATO OSVEŽAVANJE
       } catch (error: any) {
           console.error(error);
           alert("Došlo je do greške: " + error.message);
