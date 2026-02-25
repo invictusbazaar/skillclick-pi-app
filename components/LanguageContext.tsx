@@ -144,7 +144,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "You must login via Pi Browser to view your profile.",
       error: "Error loading profile data.",
       rated: "Rated",
-      // --- NOVO DODATO ---
       btnDispute: "Open Dispute",
       btnCancelDispute: "Cancel Dispute",
       statusDisputed: "DISPUTED",
@@ -160,7 +159,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "You cannot buy your own service.",
       confirmBuyMsg: "Are you sure you want to buy this service for",
       buySuccess: "Order created successfully!",
-      incompletePaymentFixed: "✅ Stuck transaction cleared! Please click buy again."
+      incompletePaymentFixed: "✅ Stuck transaction cleared! Please click buy again.",
+      btnConfirmReceipt: "Confirm Receipt",
+      alertNoWallet: "⚠️ The seller has not connected their Pi Wallet yet. Please contact support.",
+      confirmReceiptMsg: "Do you confirm the job is done? This will transfer funds to the seller.",
+      successTransfer: "🎉 Success! Funds transferred to seller.",
+      errorPrefix: "Error: "
     },
 
     // === 🇷🇸 SRPSKI ===
@@ -276,7 +280,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
       error: "Greška pri učitavanju podataka profila.",
       rated: "Ocenjeno",
-      // --- NOVO DODATO ---
       btnDispute: "Pokreni spor",
       btnCancelDispute: "Poništi spor",
       statusDisputed: "U SPORU",
@@ -292,7 +295,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "Ne možete kupiti sopstvenu uslugu.",
       confirmBuyMsg: "Da li sigurno želiš da kupiš ovu uslugu za",
       buySuccess: "Uspešna kupovina!",
-      incompletePaymentFixed: "✅ Sistem je obrisao zaglavljenu transakciju! Klikni ponovo na kupovinu."
+      incompletePaymentFixed: "✅ Sistem je obrisao zaglavljenu transakciju! Klikni ponovo na kupovinu.",
+      btnConfirmReceipt: "Potvrdi Prijem",
+      alertNoWallet: "⚠️ Prodavac još nije povezao svoj Pi Wallet. Kontaktiraj podršku.",
+      confirmReceiptMsg: "Da li potvrđuješ da je posao završen? Ovo prebacuje novac prodavcu.",
+      successTransfer: "🎉 Uspešno! Novac je prebačen prodavcu.",
+      errorPrefix: "Greška: "
     },
 
     // === 🇮🇳 HINDI ===
@@ -407,7 +415,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "अपनी प्रोफ़ाइल देखने के लिए आपको Pi Browser के माध्यम से लॉग इन करना होगा।",
       error: "प्रोफ़ाइल डेटा लोड करने में त्रुटि।",
       rated: "रेट किया गया",
-      // --- NOVO DODATO ---
       btnDispute: "विवाद खोलें",
       btnCancelDispute: "विवाद रद्द करें",
       statusDisputed: "विवादित",
@@ -423,7 +430,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "आप अपनी सेवा नहीं खरीद सकते।",
       confirmBuyMsg: "क्या आप इसे खरीदना चाहते हैं",
       buySuccess: "सफलतापूर्वक खरीदा गया!",
-      incompletePaymentFixed: "✅ रुकी हुई लेन-देन साफ हो गई! कृपया फिर से खरीदें।"
+      incompletePaymentFixed: "✅ रुकी हुई लेन-देन साफ हो गई! कृपया फिर से खरीदें।",
+      btnConfirmReceipt: "रसीद की पुष्टि करें",
+      alertNoWallet: "⚠️ विक्रेता ने अभी तक अपना Pi वॉलेट कनेक्ट नहीं किया है। कृपया सहायता से संपर्क करें।",
+      confirmReceiptMsg: "क्या आप पुष्टि करते हैं कि काम हो गया है? इससे विक्रेता को धन हस्तांतरित हो जाएगा।",
+      successTransfer: "🎉 सफलता! विक्रेता को धन हस्तांतरित कर दिया गया।",
+      errorPrefix: "त्रुटि: "
     },
 
     // === 🇨🇳 KINESKI ===
@@ -538,7 +550,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "您必须通过 Pi 浏览器登录才能查看个人资料。",
       error: "加载个人资料数据时出错。",
       rated: "已评价",
-      // --- NOVO DODATO ---
       btnDispute: "发起争议",
       btnCancelDispute: "取消争议",
       statusDisputed: "争议中",
@@ -554,7 +565,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "您不能购买自己的服务。",
       confirmBuyMsg: "您确定要购买此服务吗，价格为",
       buySuccess: "购买成功！",
-      incompletePaymentFixed: "✅ 卡住的交易已清除！请再次点击购买。"
+      incompletePaymentFixed: "✅ 卡住的交易已清除！请再次点击购买。",
+      btnConfirmReceipt: "确认收货",
+      alertNoWallet: "⚠️ 卖家尚未连接其 Pi 钱包。请联系客服。",
+      confirmReceiptMsg: "您确认工作已完成吗？这将把资金转给卖家。",
+      successTransfer: "🎉 成功！资金已转给卖家。",
+      errorPrefix: "错误: "
     },
 
     // === 🇹🇼 TAJVANSKI ===
@@ -669,7 +685,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "您必須通過 Pi 瀏覽器登錄才能查看個人資料。",
       error: "加載個人資料數據時出錯。",
       rated: "已評價",
-      // --- NOVO DODATO ---
       btnDispute: "發起爭議",
       btnCancelDispute: "取消爭議",
       statusDisputed: "爭議中",
@@ -685,7 +700,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "您不能購買自己的服務。",
       confirmBuyMsg: "您確定要購買此服務嗎，價格為",
       buySuccess: "購買成功！",
-      incompletePaymentFixed: "✅ 卡住的交易已清除！請再次點擊購買。"
+      incompletePaymentFixed: "✅ 卡住的交易已清除！請再次點擊購買。",
+      btnConfirmReceipt: "確認收貨",
+      alertNoWallet: "⚠️ 賣家尚未連接其 Pi 錢包。請聯繫客服。",
+      confirmReceiptMsg: "您確認工作已完成嗎？這將把資金轉給賣家。",
+      successTransfer: "🎉 成功！資金已轉給賣家。",
+      errorPrefix: "錯誤: "
     },
 
     // === 🇮🇩 INDONEŽANSKI ===
@@ -800,7 +820,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "Anda harus masuk melalui Pi Browser untuk melihat profil.",
       error: "Kesalahan memuat data profil.",
       rated: "Dinilai",
-      // --- NOVO DODATO ---
       btnDispute: "Buka Sengketa",
       btnCancelDispute: "Batal Sengketa",
       statusDisputed: "SENGKETA",
@@ -816,7 +835,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "Anda tidak dapat membeli layanan Anda sendiri.",
       confirmBuyMsg: "Yakin ingin membeli layanan ini seharga",
       buySuccess: "Pembelian berhasil!",
-      incompletePaymentFixed: "✅ Transaksi macet dibersihkan! Silakan klik beli lagi."
+      incompletePaymentFixed: "✅ Transaksi macet dibersihkan! Silakan klik beli lagi.",
+      btnConfirmReceipt: "Konfirmasi Penerimaan",
+      alertNoWallet: "⚠️ Penjual belum menghubungkan Dompet Pi mereka. Silakan hubungi dukungan.",
+      confirmReceiptMsg: "Apakah Anda mengonfirmasi bahwa pekerjaan telah selesai? Ini akan mentransfer dana ke penjual.",
+      successTransfer: "🎉 Sukses! Dana ditransfer ke penjual.",
+      errorPrefix: "Kesalahan: "
     },
 
     // === 🇰🇷 KOREJSKI ===
@@ -932,7 +956,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "프로필을 보려면 Pi 브라우저를 통해 로그인해야 합니다.",
       error: "프로필 데이터를 불러오는 중 오류가 발생했습니다.",
       rated: "평가됨",
-      // --- NOVO DODATO ---
       btnDispute: "분쟁 시작",
       btnCancelDispute: "분쟁 취소",
       statusDisputed: "분쟁 중",
@@ -948,7 +971,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "자신의 서비스는 구매할 수 없습니다.",
       confirmBuyMsg: "이 서비스를 구매하시겠습니까? 가격:",
       buySuccess: "성공적으로 구매했습니다!",
-      incompletePaymentFixed: "✅ 막힌 거래가 해결되었습니다! 다시 구매를 클릭하세요."
+      incompletePaymentFixed: "✅ 막힌 거래가 해결되었습니다! 다시 구매를 클릭하세요.",
+      btnConfirmReceipt: "수령 확인",
+      alertNoWallet: "⚠️ 판매자가 아직 Pi 지갑을 연결하지 않았습니다. 고객 지원에 문의하세요.",
+      confirmReceiptMsg: "작업이 완료되었음을 확인하시겠습니까? 판매자에게 자금이 송금됩니다.",
+      successTransfer: "🎉 성공! 판매자에게 자금이 송금되었습니다.",
+      errorPrefix: "오류: "
     },
 
     // === 🇩🇪 NEMAČKI ===
@@ -1064,7 +1092,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "Sie müssen sich über den Pi Browser anmelden, um Ihr Profil anzuzeigen.",
       error: "Fehler beim Laden der Profildaten.",
       rated: "Bewertet",
-      // --- NOVO DODATO ---
       btnDispute: "Streitfall eröffnen",
       btnCancelDispute: "Streitfall abbrechen",
       statusDisputed: "IM STREITFALL",
@@ -1080,7 +1107,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "Sie können Ihren eigenen Service nicht kaufen.",
       confirmBuyMsg: "Möchten Sie diesen Service wirklich kaufen für",
       buySuccess: "Erfolgreich gekauft!",
-      incompletePaymentFixed: "✅ Feststeckende Transaktion gelöscht! Bitte erneut auf Kaufen klicken."
+      incompletePaymentFixed: "✅ Feststeckende Transaktion gelöscht! Bitte erneut auf Kaufen klicken.",
+      btnConfirmReceipt: "Erhalt bestätigen",
+      alertNoWallet: "⚠️ Der Verkäufer hat seine Pi Wallet noch nicht verbunden. Bitte kontaktieren Sie den Support.",
+      confirmReceiptMsg: "Bestätigen Sie, dass die Arbeit erledigt ist? Dadurch werden Gelder an den Verkäufer überwiesen.",
+      successTransfer: "🎉 Erfolg! Gelder an den Verkäufer überwiesen.",
+      errorPrefix: "Fehler: "
     },
 
     // === 🇷🇺 RUSKI ===
@@ -1196,7 +1228,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "Вам необходимо войти через Pi Browser для просмотра профиля.",
       error: "Ошибка загрузки данных профиля.",
       rated: "Оценено",
-      // --- NOVO DODATO ---
       btnDispute: "Открыть спор",
       btnCancelDispute: "Отменить спор",
       statusDisputed: "СПОР",
@@ -1212,7 +1243,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "Вы не можете купить собственную услугу.",
       confirmBuyMsg: "Вы уверены, что хотите купить эту услугу за",
       buySuccess: "Успешная покупка!",
-      incompletePaymentFixed: "✅ Зависшая транзакция очищена! Пожалуйста, нажмите купить еще раз."
+      incompletePaymentFixed: "✅ Зависшая транзакция очищена! Пожалуйста, нажмите купить еще раз.",
+      btnConfirmReceipt: "Подтвердить получение",
+      alertNoWallet: "⚠️ Продавец еще не подключил свой Pi Wallet. Обратитесь в поддержку.",
+      confirmReceiptMsg: "Вы подтверждаете выполнение работы? Это переведет средства продавцу.",
+      successTransfer: "🎉 Успешно! Средства переведены продавцу.",
+      errorPrefix: "Ошибка: "
     },
 
     // === 🇫🇷 FRANCUSKI ===
@@ -1328,7 +1364,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       loginReq: "Vous devez vous connecter via le navigateur Pi pour voir votre profil.",
       error: "Erreur de chargement des données du profil.",
       rated: "Évalué",
-      // --- NOVO DODATO ---
       btnDispute: "Ouvrir un litige",
       btnCancelDispute: "Annuler le litige",
       statusDisputed: "EN LITIGE",
@@ -1344,7 +1379,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       buySelfError: "Vous ne pouvez pas acheter votre propre service.",
       confirmBuyMsg: "Voulez-vous vraiment acheter ce service pour",
       buySuccess: "Achat réussi !",
-      incompletePaymentFixed: "✅ Transaction bloquée effacée ! Veuillez cliquer à nouveau sur acheter."
+      incompletePaymentFixed: "✅ Transaction bloquée effacée ! Veuillez cliquer à nouveau sur acheter.",
+      btnConfirmReceipt: "Confirmer la réception",
+      alertNoWallet: "⚠️ Le vendeur n'a pas encore connecté son portefeuille Pi. Veuillez contacter le support.",
+      confirmReceiptMsg: "Confirmez-vous que le travail est terminé ? Cela transférera les fonds au vendeur.",
+      successTransfer: "🎉 Succès ! Fonds transférés au vendeur.",
+      errorPrefix: "Erreur : "
     }
   };
 
