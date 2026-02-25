@@ -63,7 +63,6 @@ export default function ServiceDetail() {
   };
 
   useEffect(() => {
-    // ✅ DODATO: Date.now() na kraju linka razbija keš i u Next.js i u Pi Browseru!
     fetch(`/api/services?all=true&nocache=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
@@ -96,11 +95,10 @@ export default function ServiceDetail() {
       
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-          {/* ✅ Žuta traka upozorenja ako oglas nije odobren */}
           {isPending && (
               <div className="bg-amber-100 text-amber-800 text-center py-2 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-2 shadow-inner">
                   <ShieldCheck className="w-4 h-4 shrink-0" /> 
-                  PREGLED: Ovaj oglas je na čekanju i nije javno vidljiv na početnoj stranici!
+                  {t('pendingAdWarning') || "PREGLED: Ovaj oglas je na čekanju i nije javno vidljiv na početnoj stranici!"}
               </div>
           )}
 
@@ -203,6 +201,7 @@ export default function ServiceDetail() {
                     </div>
                 </div>
 
+                {/* OVDE SE POZIVA DUGME KUPI */}
                 <BuyButton 
                     amount={parseFloat(service.price)}
                     serviceId={service.id}
