@@ -17,14 +17,8 @@ interface Props {
 export default function BuyButton({ amount, serviceId, title, sellerUsername }: Props) {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { language } = useLanguage(); 
+  const { t } = useLanguage(); // ✅ Koristimo glavni prevodilac
   const router = useRouter();
-
-  const txt: any = {
-    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
-    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
-  };
-  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
 
   const handleBuy = async () => {
     if (!user) {
@@ -33,7 +27,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     }
     
     if (user.username === sellerUsername) {
-        alert(T('selfBuy'));
+        alert(t('buySelfError') || "Ne možete kupiti sopstvenu uslugu.");
         return;
     }
 
@@ -43,11 +37,13 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         return;
     }
 
-    if (!confirm(`${T('msg')} ${amount} Pi?`)) return;
+    // ✅ Koristimo t() za poruke
+    if (!confirm(`${t('confirmBuyMsg') || "Da li ste sigurni da želite da kupite ovo za"} ${amount} Pi?`)) return;
 
     setLoading(true);
 
     try {
+        // 1. POKRETANJE PI PLAĆANJA 
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
@@ -62,8 +58,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 });
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                // ISPRAVKA: Pozivamo TVOJ originalni fajl koji sve rešava!
-                const res = await fetch('/api/payments/complete', { 
+                const res = await fetch('/api/orders', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -78,7 +73,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
 
                 if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
 
-                alert(`🎉 ${T('success')}`);
+                alert(`🎉 ${t('buySuccess') || "Uspešna kupovina!"}`);
                 router.push('/profile');
                 router.refresh();
             },
@@ -88,9 +83,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             },
             onError: (error: any) => {
                 setLoading(false);
-                alert(`${T('payError')}: ` + error.message);
+                alert(`${t('error')}: ` + error.message);
             },
-            // HVATAČ ZAGLAVLJENIH TRANSAKCIJA
+            // ---> DODATO: Ciscenje zaglavljenih transakcija <---
             onIncompletePaymentFound: async (payment: any) => {
                 console.log("Pronađeno zaostalo plaćanje, čistim...");
                 try {
@@ -99,16 +94,17 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ payment })
                     });
-                    alert("✅ Zaglavljena transakcija je očišćena! Klikni na 'Kupi Odmah' ponovo.");
+                    alert(t('incompletePaymentFixed') || "✅ Sistem je pronašao i obrisao tvoju staru zaglavljenu transakciju! Molim te, klikni ponovo na dugme za kupovinu.");
                 } catch (err) {
                     console.error("Greška pri čišćenju", err);
                 }
                 setLoading(false);
             }
+            // ----------------------------------------------------
         });
 
     } catch (error: any) {
-        alert(`${T('error')}: ` + error.message);
+        alert(`${t('error')}: ` + error.message);
         setLoading(false);
     }
   };
@@ -120,9 +116,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         className="w-full h-12 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 active:scale-95 rounded-xl"
     >
         {loading ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {T('processing')}</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {t('processing') || "Obrada..."}</>
         ) : (
-            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? T('btn') : T('login')}</>
+            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? (t('buyBtn') || "Kupi Odmah") : (t('loginToBuy') || "Prijavi se")}</>
         )}
     </Button>
   );
