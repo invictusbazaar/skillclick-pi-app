@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import axios from 'axios';
 
 export async function POST(req: Request) {
   try {
@@ -11,28 +12,14 @@ export async function POST(req: Request) {
     }
 
     // 🚀 1. OBAVEZAN KORAK: Potvrda Pi Serveru (da se ne čeka 60s)
-    if (!process.env.PI_API_KEY) {
-        console.error("❌ KRIITIČNO: Fali PI_API_KEY u Vercel Environment Variables!");
-    }
-
     try {
-        const piResponse = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Key ${process.env.PI_API_KEY}` 
-            },
-            body: JSON.stringify({ txid })
-        });
-        
-        const piData = await piResponse.json();
-        console.log("✅ Pi Server odgovor:", piData);
-        
-        if (!piResponse.ok) {
-            console.error("❌ Pi Server je odbio potvrdu. Proveri API KEY:", piData);
-        }
+        await axios.post(`https://api.minepi.com/v2/payments/${paymentId}/complete`, 
+        { txid }, 
+        { headers: { 'Authorization': `Key ${process.env.PI_API_KEY}` } });
+        console.log("✅ Pi Server potvrdio transakciju.");
     } catch (e: any) {
-        console.error("❌ Greška pri komunikaciji sa Pi serverom:", e.message);
+        console.error("❌ Pi Server Error:", e.response?.data || e.message);
+        // Čak i ako ovde baci grešku, nastavljamo jer je novac možda već prošao
     }
 
     // 2. Pronalaženje korisnika
