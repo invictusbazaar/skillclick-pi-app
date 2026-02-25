@@ -16,7 +16,7 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
   const [loading, setLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
-  const { t } = useLanguage(); // ✅ Povezano na glavni sistem prevoda
+  const { t } = useLanguage(); 
 
   const handleClick = async () => {
     setIsAnimating(true);
@@ -31,11 +31,11 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
 
     // 2. Provera Walleta (Mora biti G...)
     if (!sellerWallet || sellerWallet.length < 20 || !sellerWallet.startsWith('G')) {
-        alert(`${t('alertNoWallet') || "⚠️ Prodavac još nije povezao svoj Pi Wallet. Kontaktiraj podršku."}\n(Wallet: ${sellerWallet})`);
+        alert(`${t('alertNoWallet') || "No wallet connected"}\n(Wallet: ${sellerWallet})`);
         return;
     }
 
-    if (!confirm(t('confirmReceiptMsg') || "Da li potvrđuješ da je posao završen? Ovo prebacuje novac prodavcu.")) return;
+    if (!confirm(t('confirmReceiptMsg') || "Confirm?")) return;
 
     setLoading(true);
 
@@ -50,7 +50,6 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
             })
         });
 
-        // Čitamo odgovor kao tekst prvo, za svaki slučaj
         const text = await res.text();
         console.log("📩 Odgovor sa servera:", text);
 
@@ -65,12 +64,12 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
             throw new Error(data.error || "Nepoznata greška pri isplati.");
         }
 
-        alert(`${t('successTransfer') || "🎉 Uspešno! Novac je prebačen prodavcu."}\nHash: ${data.txHash}`);
+        alert(`${t('successTransfer') || "Success!"}\nHash: ${data.txHash}`);
         router.refresh(); 
 
     } catch (error: any) {
         console.error("❌ Greška u CompleteOrderButton:", error);
-        alert((t('errorPrefix') || "Greška: ") + error.message);
+        alert((t('errorPrefix') || "Error: ") + error.message);
     } finally {
         setLoading(false);
     }
@@ -89,9 +88,9 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
         `}
     >
         {loading ? (
-            <><Loader2 className="mr-2 h-3 w-3 animate-spin"/> {t('processing') || "Obrada..."}</>
+            <><Loader2 className="mr-2 h-3 w-3 animate-spin"/> {t('processing') || "..."}</>
         ) : (
-            <><ThumbsUp className="mr-2 h-3 w-3"/> {t('btnConfirmReceipt') || "Potvrdi Prijem"}</>
+            <><ThumbsUp className="mr-2 h-3 w-3"/> {t('btnConfirmReceipt') || "Confirm"}</>
         )}
     </Button>
   );
