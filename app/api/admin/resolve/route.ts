@@ -11,15 +11,21 @@ export async function POST(req: Request) {
 
     console.log(`⚖️ ADMIN REŠAVANJE SPORA: Akcija ${actionType} za ORDER: ${orderId}`);
 
-    // 1. Dohvatamo order sa podacima o kupcu i prodavcu
+    // 1. Dohvatamo order sa podacima o kupcu, prodavcu i usluzi
     const order = await prisma.order.findUnique({
         where: { id: orderId },
-        include: { buyer: true, seller: true }
+        include: { buyer: true, seller: true, service: true }
     });
 
     if (!order) return NextResponse.json({ error: "Porudžbina ne postoji!" }, { status: 404 });
     if (order.status === "completed" || order.status === "refunded") {
         return NextResponse.json({ error: "Ova porudžbina je već rešena!" }, { status: 400 });
+    }
+
+    // Dodata sigurnosna provera za oba nova statusa spora
+    const validStatuses = ["pending", "disputed", "disputed_buyer", "disputed_seller"];
+    if (!validStatuses.includes(order.status)) {
+         return NextResponse.json({ error: "Porudžbina nije u statusu za rešavanje!" }, { status: 400 });
     }
 
     // 2. Logika za Refund ili Release
@@ -45,7 +51,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Nepoznata akcija!" }, { status: 400 });
     }
 
-    // 3. PRIPREMA TRANSAKCIJE (Tvoja originalna logika)
+    // 3. PRIPREMA TRANSAKCIJE
     const secretKey = process.env.PI_WALLET_SECRET;
     if (!secretKey) return NextResponse.json({ error: "Fali S-Key u .env fajlu!" }, { status: 500 });
 
@@ -76,6 +82,29 @@ export async function POST(req: Request) {
         where: { id: orderId },
         data: { status: newStatus }
     });
+
+    // 5. SLANJE OBAVEŠTENJA KORISNICIMA O PRESUDI
+    try {
+        const serviceTitle = typeof order.service?.title === 'string' ? order.service.title : (order.service?.title as any)?.sr || "uslugu";
+        
+        if (actionType === "refund") {
+            await prisma.notification.create({
+                data: { userId: order.buyer.id, type: "admin_resolved", message: `⚖️ Admin je presudio u tvoju korist za "${serviceTitle}". Novac (${order.amount} Pi) ti je vraćen.`, link: "/profile" }
+            });
+            await prisma.notification.create({
+                data: { userId: order.seller.id, type: "admin_resolved", message: `⚖️ Admin je presudio u korist kupca za "${serviceTitle}". Sredstva su vraćena kupcu.`, link: "/profile" }
+            });
+        } else if (actionType === "release") {
+            await prisma.notification.create({
+                data: { userId: order.seller.id, type: "admin_resolved", message: `⚖️ Admin je presudio u tvoju korist za "${serviceTitle}". Zarada ti je uspešno isplaćena!`, link: "/profile" }
+            });
+            await prisma.notification.create({
+                data: { userId: order.buyer.id, type: "admin_resolved", message: `⚖️ Admin je presudio u korist prodavca za "${serviceTitle}". Sredstva su mu prebačena.`, link: "/profile" }
+            });
+        }
+    } catch (notifErr) {
+        console.error("Greška pri slanju notifikacija:", notifErr);
+    }
 
     revalidatePath("/admin"); 
 
