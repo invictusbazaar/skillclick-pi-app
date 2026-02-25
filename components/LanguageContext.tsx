@@ -143,7 +143,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Not Logged In",
       loginReq: "You must login via Pi Browser to view your profile.",
       error: "Error loading profile data.",
-      rated: "Rated" 
+      rated: "Rated",
+      // --- NOVO DODATO ---
+      btnDispute: "Open Dispute",
+      btnCancelDispute: "Cancel Dispute",
+      statusDisputed: "DISPUTED",
+      statusRefunded: "REFUNDED",
+      confirmDispute: "Are you sure you want to open a dispute? Funds will be frozen.",
+      disputeOpened: "Dispute successfully opened. Admin notified.",
+      confirmCancelDispute: "Are you sure you want to cancel the dispute? Order will return to pending.",
+      disputeCanceled: "Dispute successfully canceled.",
+      pendingAdWarning: "PREVIEW: This gig is pending approval and is not publicly visible!",
+      buyBtn: "Buy Now",
+      loginToBuy: "Login to Buy",
+      processing: "Processing...",
+      buySelfError: "You cannot buy your own service.",
+      confirmBuyMsg: "Are you sure you want to buy this service for",
+      buySuccess: "Order created successfully!",
+      incompletePaymentFixed: "✅ Stuck transaction cleared! Please click buy again."
     },
 
     // === 🇷🇸 SRPSKI ===
@@ -258,7 +275,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Nisi ulogovan",
       loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
       error: "Greška pri učitavanju podataka profila.",
-      rated: "Ocenjeno" 
+      rated: "Ocenjeno",
+      // --- NOVO DODATO ---
+      btnDispute: "Pokreni spor",
+      btnCancelDispute: "Poništi spor",
+      statusDisputed: "U SPORU",
+      statusRefunded: "REFUNDIRANO",
+      confirmDispute: "Da li ste sigurni da želite da pokrenete spor? Sredstva će biti zamrznuta.",
+      disputeOpened: "Spor je uspešno pokrenut. Admin je obavešten.",
+      confirmCancelDispute: "Da li ste sigurni da želite da poništite spor? Narudžbina će se vratiti na čekanje.",
+      disputeCanceled: "Spor je uspešno poništen.",
+      pendingAdWarning: "PREGLED: Ovaj oglas je na čekanju i nije javno vidljiv na početnoj stranici!",
+      buyBtn: "Kupi Odmah",
+      loginToBuy: "Prijavi se za kupovinu",
+      processing: "Obrada...",
+      buySelfError: "Ne možete kupiti sopstvenu uslugu.",
+      confirmBuyMsg: "Da li sigurno želiš da kupiš ovu uslugu za",
+      buySuccess: "Uspešna kupovina!",
+      incompletePaymentFixed: "✅ Sistem je obrisao zaglavljenu transakciju! Klikni ponovo na kupovinu."
     },
 
     // === 🇮🇳 HINDI ===
@@ -372,7 +406,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "लॉग इन नहीं है",
       loginReq: "अपनी प्रोफ़ाइल देखने के लिए आपको Pi Browser के माध्यम से लॉग इन करना होगा।",
       error: "प्रोफ़ाइल डेटा लोड करने में त्रुटि।",
-      rated: "रेट किया गया"
+      rated: "रेट किया गया",
+      // --- NOVO DODATO ---
+      btnDispute: "विवाद खोलें",
+      btnCancelDispute: "विवाद रद्द करें",
+      statusDisputed: "विवादित",
+      statusRefunded: "वापस किया गया",
+      confirmDispute: "क्या आप वाकई विवाद खोलना चाहते हैं? फंड फ्रीज हो जाएंगे।",
+      disputeOpened: "विवाद सफलतापूर्वक खुल गया।",
+      confirmCancelDispute: "क्या आप विवाद रद्द करना चाहते हैं?",
+      disputeCanceled: "विवाद रद्द कर दिया गया।",
+      pendingAdWarning: "प्रीव्यू: यह विज्ञापन लंबित है!",
+      buyBtn: "अभी खरीदें",
+      loginToBuy: "खरीदने के लिए लॉगिन करें",
+      processing: "प्रोसेसिंग...",
+      buySelfError: "आप अपनी सेवा नहीं खरीद सकते।",
+      confirmBuyMsg: "क्या आप इसे खरीदना चाहते हैं",
+      buySuccess: "सफलतापूर्वक खरीदा गया!",
+      incompletePaymentFixed: "✅ रुकी हुई लेन-देन साफ हो गई! कृपया फिर से खरीदें।"
     },
 
     // === 🇨🇳 KINESKI ===
@@ -486,7 +537,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "未登录",
       loginReq: "您必须通过 Pi 浏览器登录才能查看个人资料。",
       error: "加载个人资料数据时出错。",
-      rated: "已评价" 
+      rated: "已评价",
+      // --- NOVO DODATO ---
+      btnDispute: "发起争议",
+      btnCancelDispute: "取消争议",
+      statusDisputed: "争议中",
+      statusRefunded: "已退款",
+      confirmDispute: "您确定要发起争议吗？资金将被冻结。",
+      disputeOpened: "争议已成功发起。",
+      confirmCancelDispute: "您确定要取消争议吗？订单将返回待处理状态。",
+      disputeCanceled: "争议已成功取消。",
+      pendingAdWarning: "预览：此广告正在等待审核，尚未公开可见！",
+      buyBtn: "立即购买",
+      loginToBuy: "登录后购买",
+      processing: "处理中...",
+      buySelfError: "您不能购买自己的服务。",
+      confirmBuyMsg: "您确定要购买此服务吗，价格为",
+      buySuccess: "购买成功！",
+      incompletePaymentFixed: "✅ 卡住的交易已清除！请再次点击购买。"
     },
 
     // === 🇹🇼 TAJVANSKI ===
@@ -600,7 +668,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "未登錄",
       loginReq: "您必須通過 Pi 瀏覽器登錄才能查看個人資料。",
       error: "加載個人資料數據時出錯。",
-      rated: "已評價"
+      rated: "已評價",
+      // --- NOVO DODATO ---
+      btnDispute: "發起爭議",
+      btnCancelDispute: "取消爭議",
+      statusDisputed: "爭議中",
+      statusRefunded: "已退款",
+      confirmDispute: "您確定要發起爭議嗎？資金將被凍結。",
+      disputeOpened: "爭議已成功發起。",
+      confirmCancelDispute: "您確定要取消爭議嗎？訂單將返回待處理狀態。",
+      disputeCanceled: "爭議已成功取消。",
+      pendingAdWarning: "預覽：此廣告正在等待審核，尚未公開可見！",
+      buyBtn: "立即購買",
+      loginToBuy: "登錄後購買",
+      processing: "處理中...",
+      buySelfError: "您不能購買自己的服務。",
+      confirmBuyMsg: "您確定要購買此服務嗎，價格為",
+      buySuccess: "購買成功！",
+      incompletePaymentFixed: "✅ 卡住的交易已清除！請再次點擊購買。"
     },
 
     // === 🇮🇩 INDONEŽANSKI ===
@@ -714,7 +799,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Belum Masuk",
       loginReq: "Anda harus masuk melalui Pi Browser untuk melihat profil.",
       error: "Kesalahan memuat data profil.",
-      rated: "Dinilai"
+      rated: "Dinilai",
+      // --- NOVO DODATO ---
+      btnDispute: "Buka Sengketa",
+      btnCancelDispute: "Batal Sengketa",
+      statusDisputed: "SENGKETA",
+      statusRefunded: "DIKEMBALIKAN",
+      confirmDispute: "Yakin ingin membuka sengketa? Dana akan dibekukan.",
+      disputeOpened: "Sengketa berhasil dibuka.",
+      confirmCancelDispute: "Yakin ingin membatalkan sengketa?",
+      disputeCanceled: "Sengketa dibatalkan.",
+      pendingAdWarning: "PRATINJAU: Iklan ini menunggu persetujuan!",
+      buyBtn: "Beli Sekarang",
+      loginToBuy: "Masuk untuk Membeli",
+      processing: "Memproses...",
+      buySelfError: "Anda tidak dapat membeli layanan Anda sendiri.",
+      confirmBuyMsg: "Yakin ingin membeli layanan ini seharga",
+      buySuccess: "Pembelian berhasil!",
+      incompletePaymentFixed: "✅ Transaksi macet dibersihkan! Silakan klik beli lagi."
     },
 
     // === 🇰🇷 KOREJSKI ===
@@ -829,7 +931,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "로그인되지 않음",
       loginReq: "프로필을 보려면 Pi 브라우저를 통해 로그인해야 합니다.",
       error: "프로필 데이터를 불러오는 중 오류가 발생했습니다.",
-      rated: "평가됨"
+      rated: "평가됨",
+      // --- NOVO DODATO ---
+      btnDispute: "분쟁 시작",
+      btnCancelDispute: "분쟁 취소",
+      statusDisputed: "분쟁 중",
+      statusRefunded: "환불됨",
+      confirmDispute: "분쟁을 시작하시겠습니까? 자금이 동결됩니다.",
+      disputeOpened: "분쟁이 성공적으로 시작되었습니다.",
+      confirmCancelDispute: "분쟁을 취소하시겠습니까? 주문이 대기 상태로 돌아갑니다.",
+      disputeCanceled: "분쟁이 취소되었습니다.",
+      pendingAdWarning: "미리보기: 이 광고는 승인 대기 중입니다!",
+      buyBtn: "지금 구매",
+      loginToBuy: "구매하려면 로그인",
+      processing: "처리 중...",
+      buySelfError: "자신의 서비스는 구매할 수 없습니다.",
+      confirmBuyMsg: "이 서비스를 구매하시겠습니까? 가격:",
+      buySuccess: "성공적으로 구매했습니다!",
+      incompletePaymentFixed: "✅ 막힌 거래가 해결되었습니다! 다시 구매를 클릭하세요."
     },
 
     // === 🇩🇪 NEMAČKI ===
@@ -944,7 +1063,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Nicht angemeldet",
       loginReq: "Sie müssen sich über den Pi Browser anmelden, um Ihr Profil anzuzeigen.",
       error: "Fehler beim Laden der Profildaten.",
-      rated: "Bewertet"
+      rated: "Bewertet",
+      // --- NOVO DODATO ---
+      btnDispute: "Streitfall eröffnen",
+      btnCancelDispute: "Streitfall abbrechen",
+      statusDisputed: "IM STREITFALL",
+      statusRefunded: "ERSTATTET",
+      confirmDispute: "Möchten Sie wirklich einen Streitfall eröffnen? Gelder werden eingefroren.",
+      disputeOpened: "Streitfall erfolgreich eröffnet.",
+      confirmCancelDispute: "Möchten Sie den Streitfall wirklich abbrechen?",
+      disputeCanceled: "Streitfall erfolgreich abgebrochen.",
+      pendingAdWarning: "VORSCHAU: Diese Anzeige wartet auf Genehmigung!",
+      buyBtn: "Jetzt kaufen",
+      loginToBuy: "Zum Kauf anmelden",
+      processing: "Verarbeitung...",
+      buySelfError: "Sie können Ihren eigenen Service nicht kaufen.",
+      confirmBuyMsg: "Möchten Sie diesen Service wirklich kaufen für",
+      buySuccess: "Erfolgreich gekauft!",
+      incompletePaymentFixed: "✅ Feststeckende Transaktion gelöscht! Bitte erneut auf Kaufen klicken."
     },
 
     // === 🇷🇺 RUSKI ===
@@ -1059,7 +1195,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Вы не вошли в систему",
       loginReq: "Вам необходимо войти через Pi Browser для просмотра профиля.",
       error: "Ошибка загрузки данных профиля.",
-      rated: "Оценено"
+      rated: "Оценено",
+      // --- NOVO DODATO ---
+      btnDispute: "Открыть спор",
+      btnCancelDispute: "Отменить спор",
+      statusDisputed: "СПОР",
+      statusRefunded: "ВОЗВРАТ",
+      confirmDispute: "Вы уверены, что хотите открыть спор? Средства будут заморожены.",
+      disputeOpened: "Спор успешно открыт.",
+      confirmCancelDispute: "Вы уверены, что хотите отменить спор?",
+      disputeCanceled: "Спор успешно отменен.",
+      pendingAdWarning: "ПРЕДПРОСМОТР: Это объявление ожидает одобрения!",
+      buyBtn: "Купить сейчас",
+      loginToBuy: "Войдите, чтобы купить",
+      processing: "Обработка...",
+      buySelfError: "Вы не можете купить собственную услугу.",
+      confirmBuyMsg: "Вы уверены, что хотите купить эту услугу за",
+      buySuccess: "Успешная покупка!",
+      incompletePaymentFixed: "✅ Зависшая транзакция очищена! Пожалуйста, нажмите купить еще раз."
     },
 
     // === 🇫🇷 FRANCUSKI ===
@@ -1174,7 +1327,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Non connecté",
       loginReq: "Vous devez vous connecter via le navigateur Pi pour voir votre profil.",
       error: "Erreur de chargement des données du profil.",
-      rated: "Évalué"
+      rated: "Évalué",
+      // --- NOVO DODATO ---
+      btnDispute: "Ouvrir un litige",
+      btnCancelDispute: "Annuler le litige",
+      statusDisputed: "EN LITIGE",
+      statusRefunded: "REMBOURSÉ",
+      confirmDispute: "Voulez-vous vraiment ouvrir un litige ? Les fonds seront gelés.",
+      disputeOpened: "Litige ouvert avec succès.",
+      confirmCancelDispute: "Voulez-vous vraiment annuler le litige ?",
+      disputeCanceled: "Litige annulé avec succès.",
+      pendingAdWarning: "APERÇU : Cette annonce est en attente d'approbation !",
+      buyBtn: "Acheter maintenant",
+      loginToBuy: "Connectez-vous pour acheter",
+      processing: "Traitement...",
+      buySelfError: "Vous ne pouvez pas acheter votre propre service.",
+      confirmBuyMsg: "Voulez-vous vraiment acheter ce service pour",
+      buySuccess: "Achat réussi !",
+      incompletePaymentFixed: "✅ Transaction bloquée effacée ! Veuillez cliquer à nouveau sur acheter."
     }
   };
 
