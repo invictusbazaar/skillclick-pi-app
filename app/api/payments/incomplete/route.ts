@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
 
 export async function POST(req: Request) {
   try {
@@ -7,8 +6,8 @@ export async function POST(req: Request) {
     const { payment } = body;
 
     // Caka: Kod Pi SDK-a, ID zaglavljene transakcije se zove 'identifier'
-    const paymentId = payment.identifier;
-    const txid = payment.transaction?.txid;
+    const paymentId = payment?.identifier;
+    const txid = payment?.transaction?.txid;
 
     if (!paymentId) {
       return NextResponse.json({ error: 'Nema ID-a transakcije.' }, { status: 400 });
@@ -21,24 +20,31 @@ export async function POST(req: Request) {
 
     // Ako postoji txid, novac je bio skinut, pa transakciju KOMPLETIRAMO da bi se zatvorila
     if (txid) {
-        await axios.post(`https://api.minepi.com/v2/payments/${paymentId}/complete`,
-            { txid },
-            { headers: { 'Authorization': `Key ${process.env.PI_API_KEY}` } }
-        );
+        await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Key ${process.env.PI_API_KEY}`,
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ txid })
+        });
         console.log(`✅ Zaglavljena transakcija ${paymentId} je KOMPLETIRANA i očišćena.`);
     } else {
         // Ako nema txid, novac nije ni skinut, pa je samo OTKAZUJEMO
-        await axios.post(`https://api.minepi.com/v2/payments/${paymentId}/cancel`,
-            {},
-            { headers: { 'Authorization': `Key ${process.env.PI_API_KEY}` } }
-        );
+        await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Key ${process.env.PI_API_KEY}`,
+                'Content-Type': 'application/json' 
+            }
+        });
         console.log(`✅ Zaglavljena transakcija ${paymentId} je OTKAZANA i očišćena.`);
     }
 
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error("❌ Greška pri čišćenju zaglavljene transakcije:", error.response?.data || error.message);
+    console.error("❌ Greška pri čišćenju zaglavljene transakcije:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
