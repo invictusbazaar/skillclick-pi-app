@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 
-// Tvoj API Key je već ovde, to je dobro.
-const PI_API_KEY = "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp"; 
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -14,11 +11,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Nema paymentId" }, { status: 400 });
     }
 
+    const apiKey = process.env.PI_API_KEY;
+    if (!apiKey) {
+        console.error("❌ KRIITIČNO: Fali PI_API_KEY u Vercelu!");
+        return NextResponse.json({ error: "Server greška: Fali API ključ" }, { status: 500 });
+    }
+
     // Poziv ka Pi Network serverima da ODOBRIMO transakciju
     const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
       method: 'POST',
       headers: {
-        'Authorization': `Key ${PI_API_KEY}`,
+        'Authorization': `Key ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}) // Prazno telo je obavezno
