@@ -83,28 +83,32 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 setLoading(false);
                 console.error("Pi SDK Greška pri plaćanju:", error, payment);
             },
-            // 🔥 NUKLEARNA OPCIJA ZA ZAGLAVLJENE TRANSAKCIJE 🔥
+            // 🔥 ISPRAVLJEN NUKLEARNI DEO 🔥
             onIncompletePaymentFound: async (payment: any) => {
-                console.log("⚠️ Pi SDK je našao zaglavljenu transakciju! Šaljem komandu za gašenje...", payment);
+                console.log("⚠️ Pi SDK je našao zaglavljenu transakciju! Šaljem čist ID na server...", payment.identifier);
                 try {
+                    // Šaljemo samo čiste stringove da sprečimo pucanje JSON-a zbog kružnih referenci!
                     const res = await fetch('/api/payments/incomplete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ payment })
+                        body: JSON.stringify({ 
+                            paymentId: payment.identifier,
+                            txid: payment.transaction?.txid || null
+                        })
                     });
                     
                     const data = await res.json();
                     console.log("🧹 Rezultat čišćenja sa servera:", data);
 
-                    alert("Sistem je prepoznao staru zaglavljenu transakciju i konačno je očistio! Stranica će se sada osvežiti, nakon čega možeš normalno da kupuješ.");
+                    alert("Stara transakcija je konačno očišćena! Sada možete normalno da kupujete.");
                     
-                    // KLJUČNO: Pi SDK pamti blokadu dok se ne reload-uje prozor!
+                    setLoading(false); // Skidamo beskonačno učitavanje!
                     window.location.reload(); 
                     
                 } catch (err) {
                     console.error("❌ Greška pri čišćenju", err);
                     alert("Greška pri čišćenju stare transakcije sa Pi servera.");
-                    setLoading(false);
+                    setLoading(false); // Skidamo beskonačno učitavanje ako pukne
                 }
             }
         });
