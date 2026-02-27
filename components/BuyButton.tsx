@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart } from "lucide-react";
+import { useLanguage } from "@/components/LanguageContext"; 
 import { useAuth } from "@/components/AuthContext"; 
 import { useRouter } from "next/navigation";
 
@@ -16,6 +17,7 @@ interface Props {
 export default function BuyButton({ amount, serviceId, title, sellerUsername }: Props) {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { t } = useLanguage(); 
   const router = useRouter();
 
   const handleBuy = async () => {
@@ -25,17 +27,17 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     }
     
     if (user.username === sellerUsername) {
-        alert("Ne možete kupiti sopstvenu uslugu.");
+        alert(t('buySelfError') || "You cannot buy your own service.");
         return;
     }
 
     // @ts-ignore
     if (typeof window === "undefined" || !window.Pi) {
-        alert("Pi SDK nije pronađen. Molimo otvorite aplikaciju u Pi Browseru.");
+        alert("Pi SDK not found. Please open in Pi Browser.");
         return;
     }
 
-    if (!confirm(`Da li ste sigurni da želite da kupite ovu uslugu za ${amount} Pi?`)) return;
+    if (!confirm(`${t('confirmBuyMsg') || "Are you sure you want to buy this service for"} ${amount} Pi?`)) return;
 
     setLoading(true);
 
@@ -43,7 +45,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
-            memo: `Kupovina: ${title}`, 
+            memo: `${t('memoPurchase') || "Purchase"}: ${title}`, 
             metadata: { serviceId: serviceId, seller: sellerUsername }
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
@@ -58,42 +60,76 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        serviceId, amount, sellerUsername, buyerUsername: user.username, paymentId, txid
+                        serviceId,
+                        amount,
+                        sellerUsername,
+                        buyerUsername: user.username,
+                        paymentId,
+                        txid
                     })
                 });
 
-                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine u bazu.");
+                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
 
-                alert("🎉 Uspešna kupovina!");
+                alert(`🎉 ${t('buySuccess') || "Success!"}`);
                 router.push('/profile');
                 router.refresh();
             },
-            onCancel: () => {
+            onCancel: (paymentId: string) => {
                 setLoading(false);
+                console.log("Plaćanje otkazano.", paymentId);
             },
-            onError: (error: any) => {
+            onError: (error: any, payment: any) => {
                 setLoading(false);
-                console.error("Pi SDK Greška:", error);
+                console.error("Greška pri plaćanju:", error, payment);
+                alert(`${t('errorPrefix') || "Error: "} ` + error.message);
             },
-            // OVO JE KLJUČ KOJI TI FALI DA BI OBISAO ZAGLAVLJENU TRANSAKCIJU:
+            // 🛑 OVO JE POPRAVLJENI DEO KOJI ČISTI ZAGLAVLJENE TRANSAKCIJE!
             onIncompletePaymentFound: async (payment: any) => {
+                console.log("⚠️ Pronađeno zaostalo plaćanje, čistim da bih odblokirao kupca...", payment);
                 try {
+                    // Prvo probamo da ga otkažemo na tvom serveru
                     await fetch('/api/payments/incomplete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ payment })
                     });
-                    alert("✅ Sistem je očistio staru zaglavljenu transakciju! Molimo kliknite 'Kupi' ponovo.");
+                    
+                    // Odmah ga kompletiramo/otkazujemo i direktno na Pi serveru preko SDK-a
+                    // OVO FALI: Moraš reći Pi SDK-u šta da radi sa tom transakcijom!
+                    const txid = payment.transaction?.txid;
+                    const paymentId = payment.identifier;
+                    
+                    if (paymentId && txid) {
+                         // Ako ima TXID, prosledi ga tvom glavnom API-ju da ga završi
+                         console.log("Završavam zaglavljenu transakciju koja ima TXID...");
+                         await fetch('/api/orders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                serviceId: payment.metadata?.serviceId || serviceId, // Pokušaj da izvučeš iz metadata
+                                amount: payment.amount || amount,
+                                sellerUsername: payment.metadata?.seller || sellerUsername,
+                                buyerUsername: user.username,
+                                paymentId: paymentId,
+                                txid: txid
+                            })
+                         });
+                    }
+
+                    alert(t('incompletePaymentFixed') || "Zaglavljena transakcija je očišćena. Možete ponovo kliknuti na Kupi.");
+                    
                 } catch (err) {
-                    console.error("Greška pri čišćenju", err);
-                    alert("Nije uspelo čišćenje transakcije.");
+                    console.error("Greška pri čišćenju zaglavljene transakcije", err);
+                    alert("Greška pri uklanjanju stare transakcije. Pokušajte osvežiti stranicu.");
+                } finally {
+                    setLoading(false);
                 }
-                setLoading(false);
             }
         });
 
     } catch (error: any) {
-        console.error("Greška u BuyButton:", error);
+        alert(`${t('errorPrefix') || "Error: "} ` + error.message);
         setLoading(false);
     }
   };
@@ -105,9 +141,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         className="w-full h-12 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 active:scale-95 rounded-xl"
     >
         {loading ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> Obrada...</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {t('processing') || "..."}</>
         ) : (
-            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? "Kupi Odmah" : "Prijavi se"}</>
+            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? (t('buyBtn') || "Buy") : (t('loginToBuy') || "Login")}</>
         )}
     </Button>
   );
