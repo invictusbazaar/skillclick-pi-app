@@ -5,7 +5,8 @@ const API_KEY = process.env.PI_API_KEY || "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7u
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const paymentId = body.payment?.identifier;
+    // Sada primamo čist string direktno sa frontenda
+    const paymentId = body.paymentId;
 
     if (!paymentId) {
       return NextResponse.json({ error: 'Nema ID-a transakcije.' }, { status: 400 });
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
 
     console.log(`[PAMETNO ČIŠĆENJE] Proveravam Pi server za ID: ${paymentId}`);
 
-    // 1. KORAK: PITAJ PI SERVER ZA TAČNO STANJE
+    // 1. PITAJ PI SERVER ZA TAČNO STANJE
     const checkRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}`, {
         method: 'GET',
         headers: { 'Authorization': `Key ${API_KEY}` }
@@ -24,23 +25,18 @@ export async function POST(req: Request) {
     }
 
     const piData = await checkRes.json();
-    const state = piData.status?.state;
     const txid = piData.transaction?.txid;
-
-    console.log(`Stanje na Pi serveru: ${state}, TXID: ${txid || 'NEMA'}`);
 
     let resolveRes;
 
-    // 2. KORAK: REŠI ZAGLAVLJENU TRANSAKCIJU NA OSNOVU PRAVOG STANJA
+    // 2. REŠI NA OSNOVU PRAVOG STANJA
     if (txid) {
-        // Ako Pi server prijavi da postoji TXID, on zahteva nasilno KOMPLETIRANJE, inače ne pušta
         resolveRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
             method: 'POST',
             headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ txid: txid })
         });
     } else {
-        // U suprotnom (ako je transakcija samo započeta pa prekinuta), zahteva OTKAZIVANJE
         resolveRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
             method: 'POST',
             headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
@@ -49,8 +45,6 @@ export async function POST(req: Request) {
     }
 
     const result = await resolveRes.json();
-    console.log(`Rezultat akcije:`, result);
-
     return NextResponse.json({ success: true, result });
 
   } catch (error: any) {
