@@ -27,17 +27,17 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     }
     
     if (user.username === sellerUsername) {
-        alert(t('buySelfError') || "You cannot buy your own service.");
+        alert(t('buySelfError') || "Ne možete kupiti sopstvenu uslugu.");
         return;
     }
 
     // @ts-ignore
     if (typeof window === "undefined" || !window.Pi) {
-        alert("Pi SDK not found. Please open in Pi Browser.");
+        alert("Pi SDK nije pronađen. Molimo otvorite u Pi Browser-u.");
         return;
     }
 
-    if (!confirm(`${t('confirmBuyMsg') || "Are you sure you want to buy this service for"} ${amount} Pi?`)) return;
+    if (!confirm(`${t('confirmBuyMsg') || "Da li ste sigurni da želite da kupite ovo za"} ${amount} Pi?`)) return;
 
     setLoading(true);
 
@@ -45,7 +45,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
-            memo: `${t('memoPurchase') || "Purchase"}: ${title}`, 
+            memo: `${t('memoPurchase') || "Kupovina"}: ${title}`, 
             metadata: { serviceId: serviceId, seller: sellerUsername }
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
@@ -69,9 +69,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                     })
                 });
 
-                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
+                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine na našem serveru.");
 
-                alert(`🎉 ${t('buySuccess') || "Success!"}`);
+                alert(`🎉 ${t('buySuccess') || "Uspešno!"}`);
                 router.push('/profile');
                 router.refresh();
             },
@@ -81,55 +81,36 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             },
             onError: (error: any, payment: any) => {
                 setLoading(false);
-                console.error("Greška pri plaćanju:", error, payment);
-                alert(`${t('errorPrefix') || "Error: "} ` + error.message);
+                console.error("Pi SDK Greška pri plaćanju:", error, payment);
             },
-            // 🛑 OVO JE POPRAVLJENI DEO KOJI ČISTI ZAGLAVLJENE TRANSAKCIJE!
+            // 🔥 NUKLEARNA OPCIJA ZA ZAGLAVLJENE TRANSAKCIJE 🔥
             onIncompletePaymentFound: async (payment: any) => {
-                console.log("⚠️ Pronađeno zaostalo plaćanje, čistim da bih odblokirao kupca...", payment);
+                console.log("⚠️ Pi SDK je našao zaglavljenu transakciju! Šaljem komandu za gašenje...", payment);
                 try {
-                    // Prvo probamo da ga otkažemo na tvom serveru
-                    await fetch('/api/payments/incomplete', {
+                    const res = await fetch('/api/payments/incomplete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ payment })
                     });
                     
-                    // Odmah ga kompletiramo/otkazujemo i direktno na Pi serveru preko SDK-a
-                    // OVO FALI: Moraš reći Pi SDK-u šta da radi sa tom transakcijom!
-                    const txid = payment.transaction?.txid;
-                    const paymentId = payment.identifier;
-                    
-                    if (paymentId && txid) {
-                         // Ako ima TXID, prosledi ga tvom glavnom API-ju da ga završi
-                         console.log("Završavam zaglavljenu transakciju koja ima TXID...");
-                         await fetch('/api/orders', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                serviceId: payment.metadata?.serviceId || serviceId, // Pokušaj da izvučeš iz metadata
-                                amount: payment.amount || amount,
-                                sellerUsername: payment.metadata?.seller || sellerUsername,
-                                buyerUsername: user.username,
-                                paymentId: paymentId,
-                                txid: txid
-                            })
-                         });
-                    }
+                    const data = await res.json();
+                    console.log("🧹 Rezultat čišćenja sa servera:", data);
 
-                    alert(t('incompletePaymentFixed') || "Zaglavljena transakcija je očišćena. Možete ponovo kliknuti na Kupi.");
+                    alert("Sistem je prepoznao staru zaglavljenu transakciju i konačno je očistio! Stranica će se sada osvežiti, nakon čega možeš normalno da kupuješ.");
+                    
+                    // KLJUČNO: Pi SDK pamti blokadu dok se ne reload-uje prozor!
+                    window.location.reload(); 
                     
                 } catch (err) {
-                    console.error("Greška pri čišćenju zaglavljene transakcije", err);
-                    alert("Greška pri uklanjanju stare transakcije. Pokušajte osvežiti stranicu.");
-                } finally {
+                    console.error("❌ Greška pri čišćenju", err);
+                    alert("Greška pri čišćenju stare transakcije sa Pi servera.");
                     setLoading(false);
                 }
             }
         });
 
     } catch (error: any) {
-        alert(`${t('errorPrefix') || "Error: "} ` + error.message);
+        console.error("Pi.createPayment uhvaćena greška:", error);
         setLoading(false);
     }
   };
@@ -141,9 +122,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         className="w-full h-12 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 active:scale-95 rounded-xl"
     >
         {loading ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {t('processing') || "..."}</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {t('processing') || "Obrada..."}</>
         ) : (
-            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? (t('buyBtn') || "Buy") : (t('loginToBuy') || "Login")}</>
+            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? (t('buyBtn') || "Kupi") : (t('loginToBuy') || "Prijavi se za kupovinu")}</>
         )}
     </Button>
   );
