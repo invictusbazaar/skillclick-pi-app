@@ -1,64 +1,60 @@
 import { NextResponse } from 'next/server';
-import { prisma } from "@/lib/prisma"; // DODATO: Uvozimo bazu da iskopamo txid!
 
 const API_KEY = process.env.PI_API_KEY || "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp";
 
 export async function POST(req: Request) {
   try {
-    const { payment } = await req.json();
-    const paymentId = payment?.identifier;
-    let txid = payment?.transaction?.txid;
+    const body = await req.json();
+    const paymentId = body.payment?.identifier;
 
     if (!paymentId) {
       return NextResponse.json({ error: 'Nema ID-a transakcije.' }, { status: 400 });
     }
 
-    // 🔥 KLJUČNI DEO: Ako Pi SDK nije poslao txid, tražimo ga u NAŠOJ bazi!
-    if (!txid) {
-        console.log(`🔍 Pi nije poslao TXID. Pretražujem bazu za PaymentID: ${paymentId}`);
-        const existingOrder = await prisma.order.findFirst({
-            where: { paymentId: paymentId }
-        });
-        
-        if (existingOrder && existingOrder.txid) {
-            txid = existingOrder.txid;
-            console.log(`✅ Pronađen TXID u bazi: ${txid}. Idemo na nasilno kompletiranje!`);
-        }
+    console.log(`[PAMETNO ČIŠĆENJE] Proveravam Pi server za ID: ${paymentId}`);
+
+    // 1. KORAK: PITAJ PI SERVER ZA TAČNO STANJE
+    const checkRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}`, {
+        method: 'GET',
+        headers: { 'Authorization': `Key ${API_KEY}` }
+    });
+
+    if (!checkRes.ok) {
+        return NextResponse.json({ error: 'Ne mogu da dohvatim status sa Pi servera' }, { status: 400 });
     }
 
-    let piResponse;
+    const piData = await checkRes.json();
+    const state = piData.status?.state;
+    const txid = piData.transaction?.txid;
 
+    console.log(`Stanje na Pi serveru: ${state}, TXID: ${txid || 'NEMA'}`);
+
+    let resolveRes;
+
+    // 2. KORAK: REŠI ZAGLAVLJENU TRANSAKCIJU NA OSNOVU PRAVOG STANJA
     if (txid) {
-        // Sada imamo TXID i forsiramo /complete komandu!
-        piResponse = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
+        // Ako Pi server prijavi da postoji TXID, on zahteva nasilno KOMPLETIRANJE, inače ne pušta
+        resolveRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
             method: 'POST',
-            headers: { 
-                'Authorization': `Key ${API_KEY}`,
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({ txid })
+            headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ txid: txid })
         });
     } else {
-        // Ako TXID apsolutno ne postoji nigde (duh transakcija bez plaćanja)
-        piResponse = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
+        // U suprotnom (ako je transakcija samo započeta pa prekinuta), zahteva OTKAZIVANJE
+        resolveRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
             method: 'POST',
-            headers: { 
-                'Authorization': `Key ${API_KEY}`,
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({}) 
+            headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
         });
     }
 
-    const data = await piResponse.json();
-    console.log("📡 Odgovor sa Pi Servera nakon nasilnog čišćenja:", data);
+    const result = await resolveRes.json();
+    console.log(`Rezultat akcije:`, result);
 
-    // Čak i ako Pi vrati neku svoju grešku, mi frontendu vraćamo success 
-    // kako bismo zaustavili onaj iritantni alert loop kod kupca.
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, result });
 
   } catch (error: any) {
-    console.error("❌ Fatalna greška u incomplete ruti:", error.message);
+    console.error("Greška u incomplete ruti:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
