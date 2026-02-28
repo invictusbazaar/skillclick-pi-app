@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, ShoppingCart, Wrench } from "lucide-react"; // Dodat Wrench za fix ikonicu
+import { Loader2, ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext"; 
 import { useAuth } from "@/components/AuthContext"; 
 import { useRouter } from "next/navigation";
@@ -16,44 +16,15 @@ interface Props {
 
 export default function BuyButton({ amount, serviceId, title, sellerUsername }: Props) {
   const [loading, setLoading] = useState(false);
-  const [fixMode, setFixMode] = useState(false); // Novi mod za popravku
   const { user } = useAuth();
-  const { t } = useLanguage(); 
+  const { language } = useLanguage(); 
   const router = useRouter();
 
-  // Funkcija za čišćenje zaglavljenih transakcija
-  const cleanStuckPayments = () => {
-      console.log("🧹 Pokrećem čišćenje transakcija...");
-      // @ts-ignore
-      if (typeof window !== "undefined" && window.Pi) {
-          // @ts-ignore
-          window.Pi.authenticate(['payments'], onIncompletePaymentFound);
-      }
+  const txt: any = {
+    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
+    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
   };
-
-  // Ovo je ključna funkcija koju Pi SDK poziva kad nađe đubre
-  const onIncompletePaymentFound = async (payment: any) => {
-      console.log("⚠️ PRONAĐENA ZAGLAVLJENA TRANSAKCIJA:", payment.identifier);
-      
-      try {
-          // Šaljemo backendu da je otkaže (cancel)
-          await fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId: payment.identifier })
-          });
-          
-          alert(`🔧 Transakcija ${payment.identifier.slice(0, 5)}... je očišćena! Probaj ponovo.`);
-          window.location.reload(); 
-      } catch (err) {
-          console.error("Greška pri čišćenju:", err);
-      }
-  };
-
-  // Probaj da očistiš odmah pri učitavanju komponente
-  useEffect(() => {
-      // cleanStuckPayments(); // Opcionalno: može se aktivirati odmah
-  }, []);
+  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
 
   const handleBuy = async () => {
     if (!user) {
@@ -62,17 +33,17 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     }
     
     if (user.username === sellerUsername) {
-        alert(t('buySelfError') || "Ne možete kupiti sopstvenu uslugu.");
+        alert(T('selfBuy'));
         return;
     }
 
     // @ts-ignore
     if (typeof window === "undefined" || !window.Pi) {
-        alert("Pi SDK nije pronađen.");
+        alert("Pi SDK not found. Please open in Pi Browser.");
         return;
     }
 
-    if (!confirm(`${t('confirmBuyMsg') || "Da li ste sigurni da želite da kupite ovo za"} ${amount} Pi?`)) return;
+    if (!confirm(`${T('msg')} ${amount} Pi?`)) return;
 
     setLoading(true);
 
@@ -80,7 +51,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
-            memo: `${t('memoPurchase') || "Kupovina"}: ${title}`, 
+            memo: `Kupovina: ${title}`,
             metadata: { serviceId: serviceId, seller: sellerUsername }
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
@@ -91,7 +62,8 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 });
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                const res = await fetch('/api/orders', { 
+                // ISPRAVKA: Pozivamo TVOJ originalni fajl koji sve rešava!
+                const res = await fetch('/api/payments/complete', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -106,49 +78,40 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
 
                 if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
 
-                alert(`🎉 ${t('buySuccess') || "Uspešno!"}`);
+                alert(`🎉 ${T('success')}`);
                 router.push('/profile');
                 router.refresh();
             },
-            onCancel: (paymentId: string) => {
+            onCancel: () => {
                 setLoading(false);
-                console.log("Plaćanje otkazano.", paymentId);
+                console.log("Plaćanje otkazano.");
             },
-            onError: (error: any, payment: any) => {
+            onError: (error: any) => {
                 setLoading(false);
-                console.error("Greška:", error);
-                
-                const errString = error.toString().toLowerCase();
-                // Ako je greška "Pending payment", nudimo fix
-                if (errString.includes("pending payment") || errString.includes("already have a pending")) {
-                    alert("⚠️ Detektovana zaglavljena transakcija! Klikni na dugme 'POPRAVI' koje se pojavilo, pa probaj ponovo.");
-                    setFixMode(true);
-                } else {
-                    alert("Došlo je do greške: " + error.message);
+                alert(`${T('payError')}: ` + error.message);
+            },
+            // HVATAČ ZAGLAVLJENIH TRANSAKCIJA
+            onIncompletePaymentFound: async (payment: any) => {
+                console.log("Pronađeno zaostalo plaćanje, čistim...");
+                try {
+                    await fetch('/api/payments/incomplete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ payment })
+                    });
+                    alert("✅ Zaglavljena transakcija je očišćena! Klikni na 'Kupi Odmah' ponovo.");
+                } catch (err) {
+                    console.error("Greška pri čišćenju", err);
                 }
+                setLoading(false);
             }
         });
 
     } catch (error: any) {
-        console.error("Pi.createPayment catch:", error);
+        alert(`${T('error')}: ` + error.message);
         setLoading(false);
-        if (error.toString().toLowerCase().includes("pending")) {
-             alert("⚠️ Detektovana zaglavljena transakcija! Klikni na dugme 'POPRAVI'.");
-             setFixMode(true);
-        }
     }
   };
-
-  if (fixMode) {
-      return (
-        <Button 
-            onClick={cleanStuckPayments}
-            className="w-full h-12 text-lg font-bold bg-red-600 hover:bg-red-700 text-white animate-pulse rounded-xl"
-        >
-            <Wrench className="mr-2 h-5 w-5"/> POPRAVI ZAGLAVLJENU TRANSAKCIJU
-        </Button>
-      )
-  }
 
   return (
     <Button 
@@ -157,9 +120,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         className="w-full h-12 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 active:scale-95 rounded-xl"
     >
         {loading ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {t('processing') || "Obrada..."}</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {T('processing')}</>
         ) : (
-            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? (t('buyBtn') || "Kupi") : (t('loginToBuy') || "Prijavi se za kupovinu")}</>
+            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? T('btn') : T('login')}</>
         )}
     </Button>
   );
