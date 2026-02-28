@@ -13,37 +13,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nedostaju podaci za obradu.' }, { status: 400 });
     }
 
-    // 1. Provera da li ista transakcija (paymentId) već postoji (sprečava duplo procesiranje iste uplate)
-    const existingPayment = await prisma.order.findUnique({ where: { paymentId } });
-    if (existingPayment) {
-        console.log("⚠️ UPLATA već postoji u bazi. Vraćam success.");
-        return NextResponse.json({ success: true, order: existingPayment });
+    // 🛑 1. PAMETNA PROVERA (Sprečava pucanje servera na 60 sekundi!)
+    // Ako narudžbina već postoji, reci Pi serveru da je sve u redu i završi odmah.
+    const existingOrder = await prisma.order.findUnique({ where: { paymentId } });
+    if (existingOrder) {
+        console.log("⚠️ Narudžbina već postoji u bazi. Vraćam success da bih odblokirao Pi aplikaciju.");
+        return NextResponse.json({ success: true, order: existingOrder });
     }
 
-    // 2. Pronalaženje korisnika (moramo prvo naći ID-jeve za dalju proveru)
-    const buyer = await prisma.user.findUnique({ where: { username: buyerUsername } });
-    const seller = await prisma.user.findUnique({ where: { username: sellerUsername } });
-
-    if (!buyer || !seller) return NextResponse.json({ error: 'Korisnik nije pronađen.' }, { status: 404 });
-
-    // 3. PAMETNA PROVERA ZA PONOVNU KUPOVINU:
-    // Proveravamo da li kupac već ima AKTIVNU narudžbinu za ovu istu uslugu.
-    // Ako je status 'refunded' ili 'completed', DOZVOLJAVAMO novu kupovinu!
-    const activeOrder = await prisma.order.findFirst({
-        where: {
-            buyerId: buyer.id,
-            serviceId: serviceId,
-            status: {
-                in: ['pending', 'in_progress', 'disputed_buyer', 'disputed_seller']
-            }
-        }
-    });
-
-    if (activeOrder) {
-        return NextResponse.json({ error: 'Već imate aktivnu narudžbinu za ovu uslugu. Ne možete kupiti ponovo dok se prethodna ne završi ili refundira.' }, { status: 400 });
-    }
-
-    // 4. Potvrda Pi Serveru
+    // 🚀 2. Potvrda Pi Serveru
     try {
         const piResponse = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
             method: 'POST',
@@ -64,7 +42,13 @@ export async function POST(req: Request) {
         console.error("❌ Greška pri komunikaciji sa Pi serverom:", e.message);
     }
 
-    // 5. Kreiranje narudžbine u bazi
+    // 3. Pronalaženje korisnika
+    const buyer = await prisma.user.findUnique({ where: { username: buyerUsername } });
+    const seller = await prisma.user.findUnique({ where: { username: sellerUsername } });
+
+    if (!buyer || !seller) return NextResponse.json({ error: 'Korisnik nije pronađen.' }, { status: 404 });
+
+    // 4. Kreiranje narudžbine u bazi
     const newOrder = await prisma.order.create({
       data: {
         amount: parseFloat(amount),
@@ -77,7 +61,7 @@ export async function POST(req: Request) {
       }
     });
 
-    // 6. Notifikacija prodavcu
+    // 5. Notifikacija prodavcu
     await prisma.notification.create({
         data: {
             userId: seller.id, 
