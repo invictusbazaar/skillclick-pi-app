@@ -1,46 +1,70 @@
 import { NextResponse } from 'next/server';
-import { prisma } from "@/lib/prisma";
 
-// Koristimo tvoj API ključ direktno
-const API_KEY = process.env.PI_API_KEY || "ggtwprdwtcysquwu3etvsnzyyhqiof8nczp7uo8dkjce4kdg4orgirfjnbgfjkzp";
+const API_KEY = process.env.PI_API_KEY;
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const paymentId = body.paymentId;
 
-    if (!paymentId) return NextResponse.json({ success: true }); // Ako nema ID, pravi se lud
+    if (!paymentId) {
+      return NextResponse.json({ error: 'Nema ID-a transakcije.' }, { status: 400 });
+    }
 
-    console.log(`🔨 SILEDŽIJA: Pokušavam nasilno brisanje za: ${paymentId}`);
+    console.log(`🕵️ DETEKTIV: Proveravam status za PaymentID: ${paymentId}`);
 
-    // 1. Prvo probaj da nađeš TXID u bazi, za svaki slučaj
-    const localOrder = await prisma.order.findFirst({ where: { paymentId } });
-    const txid = localOrder?.txid;
+    // 1. PITAJ PI SERVER ZA TAČNO STANJE
+    const checkRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}`, {
+        method: 'GET',
+        headers: { 'Authorization': `Key ${API_KEY}` }
+    });
 
-    // 2. Šaljemo zahteve redom, ne čekamo provere
+    if (!checkRes.ok) {
+        console.log("⚠️ Pi server ne vidi ovu transakciju (404). Smatramo je rešenom.");
+        return NextResponse.json({ success: true, status: "NOT_FOUND" });
+    }
+
+    const piData = await checkRes.json();
+    // Pi v2 API vraća status kao objekat (cancelled: boolean, developer_completed: boolean, itd.)
+    const statusObj = piData.status || {}; 
+    const txid = piData.transaction?.txid;
+
+    console.log(`📊 STATUS: Cancelled=${statusObj.cancelled}, Completed=${statusObj.developer_completed}, TXID=${txid || 'NEMA'}`);
+
+    // 2. LOGIKA REŠAVANJA
+
+    // A: Ako je već otkazana ili završena, ne radi ništa
+    if (statusObj.cancelled || statusObj.developer_completed) {
+        console.log("✅ Transakcija je već finalizovana.");
+        return NextResponse.json({ success: true, status: "ALREADY_DONE" });
+    }
+
+    // B: Ako postoji TXID, korisnik je platio -> MORAMO KOMPLETIRATI
     if (txid) {
-        // Ako imamo txid, probaj COMPLETE
+        console.log("💰 Postoji TXID, radim COMPLETE...");
         await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
             method: 'POST',
             headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ txid })
-        }).catch(e => console.log("Complete fail (nebitno):", e.message));
+            body: JSON.stringify({ txid: txid })
+        });
+    } 
+    // C: Nema TXID -> MORAMO OTKAZATI
+    else {
+        console.log("🗑️ Nema TXID, radim CANCEL...");
+        // Čak i ako vrati grešku, to je često zato što je već u procesu otkazivanja
+        await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
+            method: 'POST',
+            headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({}) 
+        });
     }
 
-    // 3. UVEK šalji CANCEL (za svaki slučaj, ovo najčešće odglavi)
-    await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
-        method: 'POST',
-        headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-    }).catch(e => console.log("Cancel fail (nebitno):", e.message));
-
-    // 4. UVEK VRATI SUCCESS. Ovo je ključno! 
-    // Moramo lagati frontend da je uspelo da bi on uradio reload i zaboravio grešku.
-    return NextResponse.json({ success: true, message: "Forced cleanup executed" });
+    // Uvek vraćamo success da bi Pi SDK (onIncompletePaymentFound) sklonio transakciju iz reda
+    return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error("Greška u siledžiji:", error.message);
-    // Čak i ako server pukne, vrati success frontendu!
-    return NextResponse.json({ success: true });
+    console.error("🔥 Greška u incomplete ruti:", error.message);
+    // Ključno: Vraćamo success true da odblokiramo klijenta čak i ako server pukne
+    return NextResponse.json({ success: true, note: "Forced success via catch" });
   }
 }
