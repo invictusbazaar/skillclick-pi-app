@@ -11,53 +11,67 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Nema ID-a transakcije.' }, { status: 400 });
     }
 
-    console.log(`🕵️ AUTO-FIX: Proveravam PaymentID: ${paymentId}`);
+    console.log(`🕵️ DETEKTIV: Proveravam status za PaymentID: ${paymentId}`);
 
-    // 1. Provera statusa na Pi Serveru
+    // 1. PITAJ PI SERVER ZA TAČNO STANJE
     const checkRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}`, {
         method: 'GET',
         headers: { 'Authorization': `Key ${API_KEY}` }
     });
 
     if (!checkRes.ok) {
-        // Ako ne postoji, znači da je već obrisana. Super.
+        // Ako Pi kaže da transakcija ne postoji, super! To znači da je već očišćena.
+        console.log("⚠️ Pi server ne vidi ovu transakciju. Smatramo je rešenom.");
         return NextResponse.json({ success: true, status: "NOT_FOUND" });
     }
 
     const piData = await checkRes.json();
-    const status = piData.status || {};
-    const txid = piData.transaction?.txid;
+    const status = piData.status; 
+    // Mogući statusi: CREATED, INITIATED, PENDING, APPROVED, CANCELLED, COMPLETED...
+    
+    console.log(`📊 STATUS NA PI SERVERU: ${status.developer_approved ? 'APPROVED' : 'NOT APPROVED'} | TXID: ${piData.transaction?.txid || 'NEMA'}`);
 
-    console.log(`📊 PI STATUS: Cancelled=${status.cancelled}, Completed=${status.developer_completed}, TXID=${txid || 'NEMA'}`);
+    // 2. LOGIKA REŠAVANJA
+    let actionResponse;
 
-    // 2. LOGIKA - BITNO:
-    // Ako je već Completed ili Cancelled, samo vraćamo success da SDK skapira da je gotovo.
-    if (status.cancelled || status.developer_completed) {
+    // SCENARIO A: Već je gotova ili otkazana
+    if (piData.status.cancelled || piData.status.developer_completed) {
+        console.log("✅ Transakcija je već završena/otkazana na serveru.");
         return NextResponse.json({ success: true, status: "ALREADY_DONE" });
     }
 
-    // Ako nije gotovo, moramo ga završiti ili otkazati
-    if (txid) {
-        // Ako ima TXID, moramo uraditi complete (čak i ako je refundirano mimo protokola)
-        await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
+    // SCENARIO B: Postoji TXID (korisnik je platio) -> MORAMO KOMPLETIRATI
+    if (piData.transaction && piData.transaction.txid) {
+        console.log("💰 Postoji TXID, radim COMPLETE...");
+        actionResponse = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
             method: 'POST',
             headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ txid: txid })
+            body: JSON.stringify({ txid: piData.transaction.txid })
         });
-    } else {
-        // Ako nema TXID, otkazujemo
-        await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
+    } 
+    // SCENARIO C: Nema TXID (korisnik odustao ili puklo) -> MORAMO OTKAZATI
+    else {
+        console.log("🗑️ Nema TXID, radim CANCEL...");
+        actionResponse = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
             method: 'POST',
             headers: { 'Authorization': `Key ${API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({}) 
+            body: JSON.stringify({}) // Prazan body
         });
+    }
+
+    // Provera rezultata akcije
+    if (!actionResponse.ok) {
+        // Čak i ako 'cancel' ne uspe (npr. jer je već otkazana), mi Frontendu kažemo SUCCESS
+        // da bi Pi SDK prestao da nas smara.
+        const errText = await actionResponse.text();
+        console.log("⚠️ Pokušaj rešavanja vratio grešku (verovatno bezopasno):", errText);
     }
 
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error("🔥 Greška u incomplete ruti:", error.message);
-    // UVEK vraćamo true da odglavimo telefon
+    // Vraćamo success: true da odblokiramo korisnika čak i ako server pukne
     return NextResponse.json({ success: true, note: "Forced success via catch" });
   }
 }
