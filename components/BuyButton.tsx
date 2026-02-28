@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext"; 
@@ -17,41 +17,14 @@ interface Props {
 export default function BuyButton({ amount, serviceId, title, sellerUsername }: Props) {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { t } = useLanguage(); 
+  const { language } = useLanguage(); 
   const router = useRouter();
 
-  // 🔥 FIX: Automatska provera zaglavljenih transakcija pri učitavanju
-  useEffect(() => {
-    // @ts-ignore
-    if (typeof window !== "undefined" && window.Pi) {
-        // @ts-ignore
-        window.Pi.authenticate(['payments'], onIncompletePaymentFound);
-    }
-  }, []);
-
-  const onIncompletePaymentFound = async (payment: any) => {
-      console.log("⚠️ DETEKTOVANA ZAGLAVLJENA TRANSAKCIJA:", payment.identifier);
-      
-      try {
-          await fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId: payment.identifier })
-          });
-          
-          // @ts-ignore
-          if (payment.transaction) {
-              // Ako transakcija postoji lokalno, pokušajmo da je završimo i na klijentu
-              // ali backend je glavni autoritet.
-          }
-          
-          console.log("✅ Komanda za čišćenje poslata.");
-          // Opcionalno: osveži stranicu da SDK 'shvati' promenu
-          // window.location.reload(); 
-      } catch (err) {
-          console.error("Greška pri čišćenju transakcije:", err);
-      }
+  const txt: any = {
+    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
+    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
   };
+  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
 
   const handleBuy = async () => {
     if (!user) {
@@ -60,17 +33,17 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     }
     
     if (user.username === sellerUsername) {
-        alert(t('buySelfError') || "Ne možete kupiti sopstvenu uslugu.");
+        alert(T('selfBuy'));
         return;
     }
 
     // @ts-ignore
     if (typeof window === "undefined" || !window.Pi) {
-        alert("Pi SDK nije pronađen. Molimo otvorite u Pi Browser-u.");
+        alert("Pi SDK not found. Please open in Pi Browser.");
         return;
     }
 
-    if (!confirm(`${t('confirmBuyMsg') || "Da li ste sigurni da želite da kupite ovo za"} ${amount} Pi?`)) return;
+    if (!confirm(`${T('msg')} ${amount} Pi?`)) return;
 
     setLoading(true);
 
@@ -78,7 +51,7 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         // @ts-ignore
         const payment = await window.Pi.createPayment({
             amount: amount,
-            memo: `${t('memoPurchase') || "Kupovina"}: ${title}`, 
+            memo: `Kupovina: ${title}`,
             metadata: { serviceId: serviceId, seller: sellerUsername }
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
@@ -89,7 +62,8 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 });
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                const res = await fetch('/api/orders', { 
+                // ISPRAVKA: Pozivamo TVOJ originalni fajl koji sve rešava!
+                const res = await fetch('/api/payments/complete', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -102,38 +76,40 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                     })
                 });
 
-                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine na našem serveru.");
+                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
 
-                alert(`🎉 ${t('buySuccess') || "Uspešno!"}`);
+                alert(`🎉 ${T('success')}`);
                 router.push('/profile');
                 router.refresh();
             },
-            onCancel: (paymentId: string) => {
+            onCancel: () => {
                 setLoading(false);
-                console.log("Plaćanje otkazano.", paymentId);
+                console.log("Plaćanje otkazano.");
             },
-            onError: (error: any, payment: any) => {
+            onError: (error: any) => {
                 setLoading(false);
-                console.error("Pi SDK Greška pri plaćanju:", error, payment);
-                
-                // Ako je greška "Pending payment", pokušaj ponovo triggerovati čišćenje
-                if (error.toString().includes("pending payment")) {
-                    alert("Postoji transakcija na čekanju. Sistem pokušava da je reši...");
-                    // @ts-ignore
-                    window.Pi.authenticate(['payments'], onIncompletePaymentFound);
+                alert(`${T('payError')}: ` + error.message);
+            },
+            // HVATAČ ZAGLAVLJENIH TRANSAKCIJA
+            onIncompletePaymentFound: async (payment: any) => {
+                console.log("Pronađeno zaostalo plaćanje, čistim...");
+                try {
+                    await fetch('/api/payments/incomplete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ payment })
+                    });
+                    alert("✅ Zaglavljena transakcija je očišćena! Klikni na 'Kupi Odmah' ponovo.");
+                } catch (err) {
+                    console.error("Greška pri čišćenju", err);
                 }
+                setLoading(false);
             }
-            // NAPOMENA: onIncompletePaymentFound je uklonjen odavde jer tu ne radi
         });
 
     } catch (error: any) {
-        console.error("Pi.createPayment uhvaćena greška:", error);
+        alert(`${T('error')}: ` + error.message);
         setLoading(false);
-        if (error.toString().includes("pending payment")) {
-             alert("Sistem je detektovao zaglavljenu transakciju. Osvežite stranicu za minut.");
-             // @ts-ignore
-             window.Pi.authenticate(['payments'], onIncompletePaymentFound);
-        }
     }
   };
 
@@ -144,9 +120,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         className="w-full h-12 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 active:scale-95 rounded-xl"
     >
         {loading ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {t('processing') || "Obrada..."}</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {T('processing')}</>
         ) : (
-            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? (t('buyBtn') || "Kupi") : (t('loginToBuy') || "Prijavi se za kupovinu")}</>
+            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? T('btn') : T('login')}</>
         )}
     </Button>
   );
