@@ -15,13 +15,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🚀 DODATO: Funkcija za tihu registraciju u bazu sada prima i opciono 'uid'
+  // Funkcija za tihu registraciju u bazu
   const syncUserToDatabase = async (username: string, uid?: string) => {
     try {
         await fetch('/api/auth/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, uid }) // ✅ Sada šaljemo i uid na backend
+            body: JSON.stringify({ username, uid }) 
         });
     } catch (error) {
         console.error("Greška pri sinhronizaciji sa bazom:", error);
@@ -29,34 +29,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // 1. PROVERA: Da li smo na kompjuteru (localhost)?
+    // 0. 💾 PRVO PROVERAVAMO KEŠ (DA NE TRAŽI DOZVOLU SVAKI PUT)
+    const savedUser = localStorage.getItem("pi_user");
+    if (savedUser) {
+        try {
+            const parsed = JSON.parse(savedUser);
+            setUser(parsed);
+            setIsLoading(false); // ✅ Odmah prikazujemo aplikaciju
+        } catch (e) {
+            console.error("Greška pri čitanju keša", e);
+        }
+    }
+
+    // 1. PC DETEKCIJA
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         console.log("🖥️ PC DETEKTOVAN: Forsiram login kao Admin...");
         setTimeout(() => {
             const adminUser = "Ilija1969";
-            setUser({ username: adminUser, isAdmin: true });
-            syncUserToDatabase(adminUser, "mock-admin-uid-123"); // 🚀 TIHA REGISTRACIJA sa test uid-om
+            const adminData = { username: adminUser, isAdmin: true };
+            
+            setUser(adminData);
+            localStorage.setItem("pi_user", JSON.stringify(adminData)); // 💾 Čuvamo i admina
+            syncUserToDatabase(adminUser, "mock-admin-uid-123"); 
             setIsLoading(false);
             console.log("✅ Ulogovan si kao: " + adminUser);
         }, 500);
         return; 
     }
 
-    // 2. Ako nismo na PC-u, probaj Pi Network (za telefon)
+    // 2. Pi Network Logika (Telefon)
     // @ts-ignore
     if (typeof window !== "undefined" && window.Pi) {
         // @ts-ignore
         const Pi = window.Pi;
         Pi.init({ version: "2.0", sandbox: false }).then(() => {
+            // Ostavljamo prazan callback za payments ovde, jer ga rešavamo u BuyButton-u
             Pi.authenticate(['username', 'payments'], () => {}).then((res: any) => {
                 const u = res.user;
-                setUser({ username: u.username, isAdmin: u.username === ADMIN_USERNAME });
-                syncUserToDatabase(u.username, u.uid); // 🚀 TIHA REGISTRACIJA sada hvata pravi Pi uid!
+                const userData = { username: u.username, isAdmin: u.username === ADMIN_USERNAME };
+                
+                // 💾 KLJUČNO: ČUVAMO KORISNIKA ZA ZAUVEK
+                localStorage.setItem("pi_user", JSON.stringify(userData));
+
+                setUser(userData);
+                syncUserToDatabase(u.username, u.uid); 
                 setIsLoading(false);
-            }).catch(() => setIsLoading(false));
-        }).catch(() => setIsLoading(false));
+            }).catch((err: any) => {
+                console.error("Auth greška:", err);
+                // Ako auth pukne, a nemamo sačuvanog korisnika, tek onda skidamo loading
+                if (!savedUser) setIsLoading(false);
+            });
+        }).catch(() => {
+             if (!savedUser) setIsLoading(false);
+        });
     } else {
-        setIsLoading(false);
+        if (!savedUser) setIsLoading(false);
     }
   }, []);
 
