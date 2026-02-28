@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext"; 
@@ -19,6 +19,39 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const { user } = useAuth();
   const { t } = useLanguage(); 
   const router = useRouter();
+
+  // 🔥 FIX: Automatska provera zaglavljenih transakcija pri učitavanju
+  useEffect(() => {
+    // @ts-ignore
+    if (typeof window !== "undefined" && window.Pi) {
+        // @ts-ignore
+        window.Pi.authenticate(['payments'], onIncompletePaymentFound);
+    }
+  }, []);
+
+  const onIncompletePaymentFound = async (payment: any) => {
+      console.log("⚠️ DETEKTOVANA ZAGLAVLJENA TRANSAKCIJA:", payment.identifier);
+      
+      try {
+          await fetch('/api/payments/incomplete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: payment.identifier })
+          });
+          
+          // @ts-ignore
+          if (payment.transaction) {
+              // Ako transakcija postoji lokalno, pokušajmo da je završimo i na klijentu
+              // ali backend je glavni autoritet.
+          }
+          
+          console.log("✅ Komanda za čišćenje poslata.");
+          // Opcionalno: osveži stranicu da SDK 'shvati' promenu
+          // window.location.reload(); 
+      } catch (err) {
+          console.error("Greška pri čišćenju transakcije:", err);
+      }
+  };
 
   const handleBuy = async () => {
     if (!user) {
@@ -82,37 +115,25 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             onError: (error: any, payment: any) => {
                 setLoading(false);
                 console.error("Pi SDK Greška pri plaćanju:", error, payment);
-            },
-            // 🔥 OVO JE JEDINI DEO KOJI JE PROMENJEN DA BUDE AGRESIVNIJI 🔥
-            onIncompletePaymentFound: async (payment: any) => {
-                const pId = payment.identifier;
-                // Odmah prikazi alert da znamo da je funkcija uhvatila grešku
-                alert(`DETEKTOVANA ZAGLAVLJENA TRANSAKCIJA!\nID: ${pId}\nPokrećem automatsko brisanje...`);
                 
-                try {
-                    // Šaljemo samo ID
-                    await fetch('/api/payments/incomplete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ paymentId: pId })
-                    });
-                    
-                    alert("Uspešno poslata komanda za brisanje! Stranica se osvežava.");
-                    window.location.reload(); 
-                    
-                } catch (err) {
-                    console.error("Greška pri brisanju", err);
-                    alert("Greška pri komunikaciji sa serverom. Ipak osvežavam stranicu.");
-                    window.location.reload();
-                } finally {
-                    setLoading(false);
+                // Ako je greška "Pending payment", pokušaj ponovo triggerovati čišćenje
+                if (error.toString().includes("pending payment")) {
+                    alert("Postoji transakcija na čekanju. Sistem pokušava da je reši...");
+                    // @ts-ignore
+                    window.Pi.authenticate(['payments'], onIncompletePaymentFound);
                 }
             }
+            // NAPOMENA: onIncompletePaymentFound je uklonjen odavde jer tu ne radi
         });
 
     } catch (error: any) {
         console.error("Pi.createPayment uhvaćena greška:", error);
         setLoading(false);
+        if (error.toString().includes("pending payment")) {
+             alert("Sistem je detektovao zaglavljenu transakciju. Osvežite stranicu za minut.");
+             // @ts-ignore
+             window.Pi.authenticate(['payments'], onIncompletePaymentFound);
+        }
     }
   };
 
