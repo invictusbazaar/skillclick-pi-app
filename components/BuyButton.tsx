@@ -83,32 +83,29 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                 setLoading(false);
                 console.error("Pi SDK Greška pri plaćanju:", error, payment);
             },
-            // 🔥 ISPRAVLJEN NUKLEARNI DEO 🔥
+            // 🔥 OVO JE JEDINI DEO KOJI JE PROMENJEN DA BUDE AGRESIVNIJI 🔥
             onIncompletePaymentFound: async (payment: any) => {
-                console.log("⚠️ Pi SDK je našao zaglavljenu transakciju! Šaljem čist ID na server...", payment.identifier);
+                const pId = payment.identifier;
+                // Odmah prikazi alert da znamo da je funkcija uhvatila grešku
+                alert(`DETEKTOVANA ZAGLAVLJENA TRANSAKCIJA!\nID: ${pId}\nPokrećem automatsko brisanje...`);
+                
                 try {
-                    // Šaljemo samo čiste stringove da sprečimo pucanje JSON-a zbog kružnih referenci!
-                    const res = await fetch('/api/payments/incomplete', {
+                    // Šaljemo samo ID
+                    await fetch('/api/payments/incomplete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            paymentId: payment.identifier,
-                            txid: payment.transaction?.txid || null
-                        })
+                        body: JSON.stringify({ paymentId: pId })
                     });
                     
-                    const data = await res.json();
-                    console.log("🧹 Rezultat čišćenja sa servera:", data);
-
-                    alert("Stara transakcija je konačno očišćena! Sada možete normalno da kupujete.");
-                    
-                    setLoading(false); // Skidamo beskonačno učitavanje!
+                    alert("Uspešno poslata komanda za brisanje! Stranica se osvežava.");
                     window.location.reload(); 
                     
                 } catch (err) {
-                    console.error("❌ Greška pri čišćenju", err);
-                    alert("Greška pri čišćenju stare transakcije sa Pi servera.");
-                    setLoading(false); // Skidamo beskonačno učitavanje ako pukne
+                    console.error("Greška pri brisanju", err);
+                    alert("Greška pri komunikaciji sa serverom. Ipak osvežavam stranicu.");
+                    window.location.reload();
+                } finally {
+                    setLoading(false);
                 }
             }
         });
