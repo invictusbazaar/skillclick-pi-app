@@ -143,7 +143,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Not Logged In",
       loginReq: "You must login via Pi Browser to view your profile.",
       error: "Error loading profile data.",
-      rated: "Rated" 
+      rated: "Rated",
+      // --- NOVI PREVODI (ENGLISH) ---
+      buyNow: "Buy Now",
+      processing: "Processing...",
+      confirmPurchase: "Confirm Purchase",
+      buyMsg: "Are you sure you want to buy this service for",
+      selfBuy: "You cannot buy your own service.",
+      payError: "Payment failed or cancelled.",
+      noResults: "No services found",
+      tryAdjusting: "Try adjusting your filters or search term.",
+      clearFilters: "Clear all filters",
+      resultsFound: "Results found",
+      page: "Page",
+      of: "of",
+      startingAt: "Starting at",
+      previous: "Previous",
+      next: "Next",
+      findServices: "Find services"
     },
 
     // === 🇷🇸 SRPSKI ===
@@ -258,7 +275,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Nisi ulogovan",
       loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
       error: "Greška pri učitavanju podataka profila.",
-      rated: "Ocenjeno" 
+      rated: "Ocenjeno",
+      // --- NOVI PREVODI (SRPSKI) ---
+      buyNow: "Kupi Odmah",
+      processing: "Obrada...",
+      confirmPurchase: "Potvrdi Kupovinu",
+      buyMsg: "Da li sigurno želiš da kupiš ovu uslugu za",
+      selfBuy: "Ne možeš kupiti svoju uslugu.",
+      payError: "Plaćanje nije uspelo ili je otkazano.",
+      noResults: "Nema rezultata za ovu pretragu",
+      tryAdjusting: "Probaj da promeniš filtere ili pojam pretrage.",
+      clearFilters: "Očisti filtere",
+      resultsFound: "Rezultata nađeno",
+      page: "Strana",
+      of: "od",
+      startingAt: "Počevši od",
+      previous: "Prethodna",
+      next: "Sledeća",
+      findServices: "Pronađi usluge"
     },
 
     // === 🇮🇳 HINDI ===
@@ -1179,6 +1213,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (key: string) => {
+    // Provera da li postoji prevod za traženi jezik, ako ne, vraća engleski
+    // Ako ni na engleskom nema, vraća sam ključ da vidimo grešku
     return translations[language]?.[key] || translations['en']?.[key] || key;
   };
 
