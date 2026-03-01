@@ -20,11 +20,15 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const { language } = useLanguage(); 
   const router = useRouter();
 
-  const txt: any = {
+  const txt: Record<string, any> = {
     en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
     sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
   };
-  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
+
+  const T = (key: string) => {
+    const langCode = language === 'sr' ? 'sr' : 'en';
+    return txt[langCode][key] || txt['en'][key];
+  };
 
   const handleBuy = async () => {
     if (!user) {
@@ -49,67 +53,75 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
 
     try {
         // @ts-ignore
-        const payment = await window.Pi.createPayment({
+        await window.Pi.createPayment({
             amount: amount,
             memo: `Kupovina: ${title}`,
             metadata: { serviceId: serviceId, seller: sellerUsername }
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
-                await fetch('/api/payments/approve', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentId })
-                });
+                try {
+                    const response = await fetch('/api/payments/approve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paymentId })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error("Server approval failed");
+                    }
+                } catch (err) {
+                    throw err; 
+                }
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                // ISPRAVKA: Pozivamo TVOJ originalni fajl koji sve rešava!
-                const res = await fetch('/api/payments/complete', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        serviceId,
-                        amount,
-                        sellerUsername,
-                        buyerUsername: user.username,
-                        paymentId,
-                        txid
-                    })
-                });
+                try {
+                    const res = await fetch('/api/payments/complete', { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            serviceId,
+                            amount,
+                            sellerUsername,
+                            buyerUsername: user.username,
+                            paymentId,
+                            txid
+                        })
+                    });
 
-                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
+                    if (!res.ok) throw new Error("Server completion failed");
 
-                alert(`🎉 ${T('success')}`);
-                router.push('/profile');
-                router.refresh();
+                    alert(`🎉 ${T('success')}`);
+                    router.push('/profile');
+                    router.refresh();
+                } catch (err) {
+                    throw err;
+                }
             },
             onCancel: () => {
                 setLoading(false);
-                console.log("Plaćanje otkazano.");
             },
             onError: (error: any) => {
                 setLoading(false);
-                alert(`${T('payError')}: ` + error.message);
+                alert(`${T('payError')}`);
             },
-            // HVATAČ ZAGLAVLJENIH TRANSAKCIJA
             onIncompletePaymentFound: async (payment: any) => {
-                console.log("Pronađeno zaostalo plaćanje, čistim...");
                 try {
                     await fetch('/api/payments/incomplete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ payment })
                     });
-                    alert("✅ Zaglavljena transakcija je očišćena! Klikni na 'Kupi Odmah' ponovo.");
+                    // Opciono: automatski otkazati nekompletirano plaćanje da se odglavi SDK
                 } catch (err) {
-                    console.error("Greška pri čišćenju", err);
+                    // Silent fail
                 }
                 setLoading(false);
             }
         });
 
     } catch (error: any) {
-        alert(`${T('error')}: ` + error.message);
         setLoading(false);
+        alert(`${T('error')}: ${error.message}`);
     }
   };
 
