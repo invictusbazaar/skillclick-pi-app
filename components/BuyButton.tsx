@@ -20,15 +20,12 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const { language } = useLanguage(); 
   const router = useRouter();
 
-  const txt: Record<string, any> = {
+  const txt: any = {
     en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
     sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
+    // ... ostali jezici ostaju isti
   };
-
-  const T = (key: string) => {
-    const langCode = language === 'sr' ? 'sr' : 'en';
-    return txt[langCode][key] || txt['en'][key];
-  };
+  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
 
   const handleBuy = async () => {
     if (!user) {
@@ -52,76 +49,55 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     setLoading(true);
 
     try {
+        // 1. POKRETANJE PI PLAĆANJA (Vraćamo nazad tvoj perfektni sistem)
         // @ts-ignore
-        await window.Pi.createPayment({
+        const payment = await window.Pi.createPayment({
             amount: amount,
             memo: `Kupovina: ${title}`,
             metadata: { serviceId: serviceId, seller: sellerUsername }
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
-                try {
-                    const response = await fetch('/api/payments/approve', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ paymentId })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error("Server approval failed");
-                    }
-                } catch (err) {
-                    throw err; 
-                }
+                // Obaveštavamo tvoj server da odobri plaćanje
+                await fetch('/api/payments/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentId })
+                });
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                try {
-                    const res = await fetch('/api/payments/complete', { 
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            serviceId,
-                            amount,
-                            sellerUsername,
-                            buyerUsername: user.username,
-                            paymentId,
-                            txid
-                        })
-                    });
+                // 2. KREIRANJE PORUDŽBINE U BAZI (Tek nakon što je Pi prebačen!)
+                const res = await fetch('/api/orders', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serviceId,
+                        amount,
+                        sellerUsername,
+                        buyerUsername: user.username,
+                        paymentId,
+                        txid
+                    })
+                });
 
-                    if (!res.ok) throw new Error("Server completion failed");
+                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
 
-                    alert(`🎉 ${T('success')}`);
-                    router.push('/profile');
-                    router.refresh();
-                } catch (err) {
-                    throw err;
-                }
+                alert(`🎉 ${T('success')}`);
+                router.push('/profile');
+                router.refresh();
             },
             onCancel: () => {
                 setLoading(false);
+                console.log("Plaćanje otkazano.");
             },
             onError: (error: any) => {
                 setLoading(false);
-                alert(`${T('payError')}`);
-            },
-            onIncompletePaymentFound: async (payment: any) => {
-                try {
-                    await fetch('/api/payments/incomplete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ payment })
-                    });
-                    // Opciono: automatski otkazati nekompletirano plaćanje da se odglavi SDK
-                } catch (err) {
-                    // Silent fail
-                }
-                setLoading(false);
+                alert(`${T('payError')}: ` + error.message);
             }
         });
 
     } catch (error: any) {
+        alert(`${T('error')}: ` + error.message);
         setLoading(false);
-        alert(`${T('error')}: ${error.message}`);
     }
   };
 
