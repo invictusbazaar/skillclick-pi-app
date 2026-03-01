@@ -5,41 +5,46 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { paymentId } = body;
 
-    console.log("⏳ APPROVE: Zahtev stigao za Payment ID:", paymentId);
-
+    // 1. Validacija ulaznih podataka
     if (!paymentId) {
-        return NextResponse.json({ error: "Nema paymentId" }, { status: 400 });
+      console.error("❌ APPROVE: Nema paymentId u zahtevu.");
+      return NextResponse.json({ error: "Missing paymentId" }, { status: 400 });
     }
 
+    // 2. Provera Environment varijable
     const apiKey = process.env.PI_API_KEY;
     if (!apiKey) {
-        console.error("❌ KRIITIČNO: Fali PI_API_KEY u Vercelu!");
-        return NextResponse.json({ error: "Server greška: Fali API ključ" }, { status: 500 });
+      console.error("🔥 CRITICAL: Fali PI_API_KEY u .env fajlu!");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    // Poziv ka Pi Network serverima da ODOBRIMO transakciju
-    const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
+    console.log(`⏳ APPROVE: Šaljem zahtev ka Pi za ID: ${paymentId}`);
+
+    // 3. Poziv ka Pi Network API
+    const piResponse = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
       method: 'POST',
       headers: {
         'Authorization': `Key ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}) // Prazno telo je obavezno
+      body: JSON.stringify({}) // Prazno telo je obavezno po dokumentaciji
     });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Pi Network je odbio zahtev:", errorText);
-        return NextResponse.json({ error: `Pi Greška: ${errorText}` }, { status: response.status });
+    // 4. Provera odgovora od Pi servera
+    if (!piResponse.ok) {
+      const errorText = await piResponse.text();
+      console.error(`❌ Pi API Odbio (${piResponse.status}):`, errorText);
+      return NextResponse.json({ error: "Pi API rejected approval", details: errorText }, { status: piResponse.status });
     }
 
-    const data = await response.json();
-    console.log("✅ Uplata uspešno ODOBRENA! Čekam korisnika da plati...");
+    // 5. Uspeh
+    const data = await piResponse.json();
+    console.log("✅ APPROVE: Uspešno odobreno na Pi serveru.");
     
     return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error("🔥 Fatalna greška na serveru:", error);
-    return NextResponse.json({ error: error.message || "Greška na serveru" }, { status: 500 });
+    console.error("🔥 Fatalna serverska greška (Approve):", error);
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
