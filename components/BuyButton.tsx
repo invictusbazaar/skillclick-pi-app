@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext"; 
@@ -20,14 +20,14 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const { language } = useLanguage(); 
   const router = useRouter();
 
-  // DEFINICIJA TEKSTOVA
-  const txt = {
+  // Rečnik termina
+  const txt: Record<string, any> = {
     en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed." },
     sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo." },
   };
 
-  // FIX: Direktno određivanje jezika pri svakom renderu
-  const currentLang = language && language.startsWith('sr') ? 'sr' : 'en';
+  // Dinamički odabir jezika (rešava problem osvežavanja teksta)
+  const currentLang = (language && language.startsWith('sr')) ? 'sr' : 'en';
   const t = txt[currentLang];
 
   const handleBuy = async () => {
@@ -47,9 +47,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         return;
     }
 
-    // FIX: Osiguravamo da je amount broj (Pi SDK je strog)
+    // Osiguravamo da je amount broj
     const finalAmount = Number(amount);
-    
+
     if (!confirm(`${t.msg} ${finalAmount} Pi?`)) return;
 
     setLoading(true);
@@ -58,11 +58,11 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         // @ts-ignore
         await window.Pi.createPayment({
             amount: finalAmount,
-            memo: `Kupovina: ${title.substring(0, 20)}...`, // Skraćen memo da ne puca
+            memo: `Kupovina: ${title.substring(0, 20)}...`,
             metadata: { serviceId, type: "service_purchase" } 
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
-                console.log("Approving payment:", paymentId);
+                // Ovde SDK čeka. Ako fetch pukne, MORAMO baciti grešku da SDK prekine.
                 try {
                     const response = await fetch('/api/payments/approve', {
                         method: 'POST',
@@ -71,16 +71,15 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
                     });
                     
                     if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error || "Server approval failed");
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || "Server approval failed");
                     }
                 } catch (err: any) {
                     console.error("Approval Error:", err);
-                    throw err; // Ovo prekida Pi spinner
+                    throw err; // OVO JE KLJUČNO: Baca grešku nazad u SDK da prekine spinner
                 }
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                console.log("Completing payment:", paymentId, txid);
                 try {
                     const res = await fetch('/api/payments/complete', { 
                         method: 'POST',
@@ -107,18 +106,15 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
             },
             onCancel: () => {
                 setLoading(false);
-                console.log("User cancelled.");
             },
             onError: (error: any) => {
                 setLoading(false);
-                console.error("SDK Error:", error);
                 alert(`${t.payError} (${error.message || error})`);
             }
         });
 
     } catch (error: any) {
         setLoading(false);
-        // Ignorisemo user cancelled error
         if (!error.message?.includes("cancelled")) {
             alert(`${t.error}: ${error.message}`);
         }
