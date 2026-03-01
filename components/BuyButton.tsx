@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { useLanguage } from "@/components/LanguageContext"; 
@@ -20,12 +20,15 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
   const { language } = useLanguage(); 
   const router = useRouter();
 
-  const txt: any = {
-    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed or cancelled." },
-    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo ili je otkazano." },
-    // ... ostali jezici ostaju isti
+  // DEFINICIJA TEKSTOVA
+  const txt = {
+    en: { btn: "Buy Now", processing: "Processing...", confirm: "Confirm Purchase", msg: "Are you sure you want to buy this service for", error: "Error", success: "Order created successfully!", login: "Login to Buy", selfBuy: "You cannot buy your own service.", payError: "Payment failed." },
+    sr: { btn: "Kupi Odmah", processing: "Obrada...", confirm: "Potvrdi Kupovinu", msg: "Da li sigurno želiš da kupiš ovu uslugu za", error: "Greška", success: "Uspešna kupovina! Idi na profil.", login: "Prijavi se za kupovinu", selfBuy: "Ne možeš kupiti svoju uslugu.", payError: "Plaćanje nije uspelo." },
   };
-  const T = (key: string) => txt[language]?.[key] || txt['en'][key];
+
+  // FIX: Direktno određivanje jezika pri svakom renderu
+  const currentLang = language && language.startsWith('sr') ? 'sr' : 'en';
+  const t = txt[currentLang];
 
   const handleBuy = async () => {
     if (!user) {
@@ -34,70 +37,91 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
     }
     
     if (user.username === sellerUsername) {
-        alert(T('selfBuy'));
+        alert(t.selfBuy);
         return;
     }
 
     // @ts-ignore
     if (typeof window === "undefined" || !window.Pi) {
-        alert("Pi SDK not found. Please open in Pi Browser.");
+        alert("Pi SDK not found.");
         return;
     }
 
-    if (!confirm(`${T('msg')} ${amount} Pi?`)) return;
+    // FIX: Osiguravamo da je amount broj (Pi SDK je strog)
+    const finalAmount = Number(amount);
+    
+    if (!confirm(`${t.msg} ${finalAmount} Pi?`)) return;
 
     setLoading(true);
 
     try {
-        // 1. POKRETANJE PI PLAĆANJA (Vraćamo nazad tvoj perfektni sistem)
         // @ts-ignore
-        const payment = await window.Pi.createPayment({
-            amount: amount,
-            memo: `Kupovina: ${title}`,
-            metadata: { serviceId: serviceId, seller: sellerUsername }
+        await window.Pi.createPayment({
+            amount: finalAmount,
+            memo: `Kupovina: ${title.substring(0, 20)}...`, // Skraćen memo da ne puca
+            metadata: { serviceId, type: "service_purchase" } 
         }, {
             onReadyForServerApproval: async (paymentId: string) => {
-                // Obaveštavamo tvoj server da odobri plaćanje
-                await fetch('/api/payments/approve', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentId })
-                });
+                console.log("Approving payment:", paymentId);
+                try {
+                    const response = await fetch('/api/payments/approve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paymentId })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || "Server approval failed");
+                    }
+                } catch (err: any) {
+                    console.error("Approval Error:", err);
+                    throw err; // Ovo prekida Pi spinner
+                }
             },
             onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-                // 2. KREIRANJE PORUDŽBINE U BAZI (Tek nakon što je Pi prebačen!)
-                const res = await fetch('/api/orders', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        serviceId,
-                        amount,
-                        sellerUsername,
-                        buyerUsername: user.username,
-                        paymentId,
-                        txid
-                    })
-                });
+                console.log("Completing payment:", paymentId, txid);
+                try {
+                    const res = await fetch('/api/payments/complete', { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            serviceId,
+                            amount: finalAmount,
+                            sellerUsername,
+                            buyerUsername: user.username,
+                            paymentId,
+                            txid
+                        })
+                    });
 
-                if (!res.ok) throw new Error("Greška pri čuvanju porudžbine.");
+                    if (!res.ok) throw new Error("Server completion failed");
 
-                alert(`🎉 ${T('success')}`);
-                router.push('/profile');
-                router.refresh();
+                    alert(`🎉 ${t.success}`);
+                    router.push('/profile');
+                    router.refresh();
+                } catch (err: any) {
+                    console.error("Completion Error:", err);
+                    throw err;
+                }
             },
             onCancel: () => {
                 setLoading(false);
-                console.log("Plaćanje otkazano.");
+                console.log("User cancelled.");
             },
             onError: (error: any) => {
                 setLoading(false);
-                alert(`${T('payError')}: ` + error.message);
+                console.error("SDK Error:", error);
+                alert(`${t.payError} (${error.message || error})`);
             }
         });
 
     } catch (error: any) {
-        alert(`${T('error')}: ` + error.message);
         setLoading(false);
+        // Ignorisemo user cancelled error
+        if (!error.message?.includes("cancelled")) {
+            alert(`${t.error}: ${error.message}`);
+        }
     }
   };
 
@@ -108,9 +132,9 @@ export default function BuyButton({ amount, serviceId, title, sellerUsername }: 
         className="w-full h-12 text-lg font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 transition-all hover:scale-105 active:scale-95 rounded-xl"
     >
         {loading ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {T('processing')}</>
+            <><Loader2 className="mr-2 h-5 w-5 animate-spin"/> {t.processing}</>
         ) : (
-            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? T('btn') : T('login')}</>
+            <><ShoppingCart className="mr-2 h-5 w-5"/> {user ? t.btn : t.login}</>
         )}
     </Button>
   );
