@@ -14,6 +14,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState('en');
 
   useEffect(() => {
+    // Provera da li smo u browser-u pre pristupa localStorage
     if (typeof window !== 'undefined') {
         const storedLang = localStorage.getItem('skillclick_lang');
         if (storedLang) {
@@ -32,24 +33,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const translations: Record<string, Record<string, string>> = {
     // === 🇺🇸 ENGLESKI ===
     en: {
-      // NOVO (PREVEDENO)
-      buyNow: "Buy Now",
-      processing: "Processing...",
-      confirmPurchase: "Confirm Purchase",
-      buyMsg: "Are you sure you want to buy this service for",
-      selfBuy: "You cannot buy your own service.",
-      payError: "Payment failed or cancelled.",
-      noResults: "No services found",
-      tryAdjusting: "Try adjusting your filters or search term.",
-      clearFilters: "Clear all filters",
-      resultsFound: "Results found",
-      page: "Page",
-      of: "of",
-      startingAt: "Starting at",
-      previous: "Previous",
-      next: "Next",
-      findServices: "Find services",
-      // STARO
       back: "Back",
       backHome: "Back to Home",
       piLoginBtn: "Login with Pi",
@@ -85,6 +68,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Explore the best offers",
       viewAll: "View All",
       noReviews: "No reviews yet.",
+      no_results: "No results found for this search.",
       createTitle: "Post a New Service",
       createSubtitle: "Showcase your talent to the world",
       labelTitle: "Service Title",
@@ -165,24 +149,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇷🇸 SRPSKI ===
     sr: {
-      // NOVO (PREVEDENO)
-      buyNow: "Kupi Odmah",
-      processing: "Obrada...",
-      confirmPurchase: "Potvrdi Kupovinu",
-      buyMsg: "Da li sigurno želiš da kupiš ovu uslugu za",
-      selfBuy: "Ne možeš kupiti svoju uslugu.",
-      payError: "Plaćanje nije uspelo ili je otkazano.",
-      noResults: "Nema rezultata za ovu pretragu",
-      tryAdjusting: "Probaj da promeniš filtere ili pojam pretrage.",
-      clearFilters: "Očisti filtere",
-      resultsFound: "Rezultata nađeno",
-      page: "Strana",
-      of: "od",
-      startingAt: "Počevši od",
-      previous: "Prethodna",
-      next: "Sledeća",
-      findServices: "Pronađi usluge",
-      // STARO
       back: "Nazad",
       backHome: "Nazad na početnu",
       piLoginBtn: "Prijavi se sa Pi",
@@ -218,6 +184,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Istražite najbolje ponude",
       viewAll: "Pogledaj sve",
       noReviews: "Još uvek nema recenzija.",
+      no_results: "Nema rezultata za ovu pretragu.",
       createTitle: "Objavi Novu Uslugu",
       createSubtitle: "Pokaži svoj talenat svetu",
       labelTitle: "Naslov Usluge",
@@ -298,24 +265,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇮🇳 HINDI ===
     hi: {
-      // NOVO (PREVEDENO)
-      buyNow: "Abhi Kharidein",
-      processing: "Process ho raha hai...",
-      confirmPurchase: "Kharidari ki pushti karein",
-      buyMsg: "Kya aap is seva ko kharidna chahte hain?",
-      selfBuy: "Aap apni khud ki seva nahi kharid sakte.",
-      payError: "Bhugtan vifal ya radd kar diya gaya.",
-      noResults: "Koi parinam nahi mila",
-      tryAdjusting: "Filter ya khoj shabd badalne ki koshish karein.",
-      clearFilters: "Sabhi filter hatayein",
-      resultsFound: "parinam mile",
-      page: "Page",
-      of: "/",
-      startingAt: "Shuruwat",
-      previous: "Pichla",
-      next: "Agla",
-      findServices: "Sevaein khojein",
-      // STARO
       back: "Wapas",
       backHome: "Home par wapas",
       piLoginBtn: "Pi se Login Karen",
@@ -350,6 +299,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Behtarin prastav dekhein",
       viewAll: "Sabhi Dekhein",
       noReviews: "Abhi tak koi samiksha nahi.",
+      no_results: "Is khoj ke liye koi parinam nahi mila.",
       createTitle: "Nayi Seva Post Karen",
       createSubtitle: "Apna hunar duniya ko dikhayein",
       labelTitle: "Seva ka Shirshak",
@@ -430,24 +380,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇨🇳 KINESKI ===
     zh: {
-      // NOVO (PREVEDENO)
-      buyNow: "立即购买",
-      processing: "处理中...",
-      confirmPurchase: "确认购买",
-      buyMsg: "您确定要购买此服务吗？价格：",
-      selfBuy: "您不能购买自己的服务。",
-      payError: "支付失败或已取消。",
-      noResults: "未找到相关服务",
-      tryAdjusting: "尝试调整筛选条件或搜索词。",
-      clearFilters: "清除所有筛选",
-      resultsFound: "个结果",
-      page: "页",
-      of: "/",
-      startingAt: "起价",
-      previous: "上一页",
-      next: "下一页",
-      findServices: "寻找服务",
-      // STARO
       back: "返回",
       backHome: "返回首页",
       piLoginBtn: "使用 Pi 登录",
@@ -482,6 +414,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "探索最佳优惠",
       viewAll: "查看全部",
       noReviews: "暂无评论。",
+      no_results: "未找到搜索结果。",
       createTitle: "发布新服务",
       createSubtitle: "向世界展示您的才华",
       labelTitle: "服务标题",
@@ -550,7 +483,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       statusPending: "待处理",
       statusWaiting: "等待买家",
       walletTitle: "您的 Pi 收款钱包",
-      walletDesc: "输入您的公钥（以 'G' 开头）。收入将自动发送到此处。",
+      walletDesc: "输入您的公钥（以 'G' 開头）。收入将自动发送到此处。",
       labelWallet: "Pi 钱包地址 (G...)",
       btnSave: "保存地址",
       savedMsg: "✅ 地址已保存！收入将自动到账。",
@@ -562,24 +495,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇹🇼 TAJVANSKI ===
     tw: {
-      // NOVO (PREVEDENO)
-      buyNow: "立即購買",
-      processing: "處理中...",
-      confirmPurchase: "確認購買",
-      buyMsg: "您確定要購買此服務嗎？價格：",
-      selfBuy: "您不能購買自己的服務。",
-      payError: "付款失敗或已取消。",
-      noResults: "未找到相關服務",
-      tryAdjusting: "嘗試調整篩選條件或搜尋詞。",
-      clearFilters: "清除所有篩選",
-      resultsFound: "個結果",
-      page: "頁",
-      of: "/",
-      startingAt: "起價",
-      previous: "上一頁",
-      next: "下一頁",
-      findServices: "尋找服務",
-      // STARO
       back: "返回",
       backHome: "返回首頁",
       piLoginBtn: "使用 Pi 登錄",
@@ -614,6 +529,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "探索最佳優惠",
       viewAll: "查看全部",
       noReviews: "暫無評論。",
+      no_results: "未找到搜尋結果。",
       createTitle: "發布新服務",
       createSubtitle: "向世界展示您的才華",
       labelTitle: "服務標題",
@@ -694,24 +610,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇮🇩 INDONEŽANSKI ===
     id: {
-      // NOVO (PREVEDENO)
-      buyNow: "Beli Sekarang",
-      processing: "Memproses...",
-      confirmPurchase: "Konfirmasi Pembelian",
-      buyMsg: "Apakah Anda yakin ingin membeli layanan ini seharga",
-      selfBuy: "Anda tidak dapat membeli layanan Anda sendiri.",
-      payError: "Pembayaran gagal atau dibatalkan.",
-      noResults: "Tidak ada hasil ditemukan",
-      tryAdjusting: "Coba sesuaikan filter atau kata kunci pencarian Anda.",
-      clearFilters: "Hapus semua filter",
-      resultsFound: "Hasil ditemukan",
-      page: "Halaman",
-      of: "dari",
-      startingAt: "Mulai dari",
-      previous: "Sebelumnya",
-      next: "Berikutnya",
-      findServices: "Cari layanan",
-      // STARO
       back: "Kembali",
       backHome: "Kembali ke Beranda",
       piLoginBtn: "Masuk dengan Pi",
@@ -746,6 +644,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Jelajahi penawaran terbaik",
       viewAll: "Lihat Semua",
       noReviews: "Belum ada ulasan.",
+      no_results: "Tidak ada hasil untuk pencarian ini.",
       createTitle: "Pasang Layanan Baru",
       createSubtitle: "Tunjukkan bakat Anda kepada dunia",
       labelTitle: "Judul Layanan",
@@ -826,24 +725,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇰🇷 KOREJSKI ===
     ko: {
-      // NOVO (PREVEDENO)
-      buyNow: "지금 구매",
-      processing: "처리 중...",
-      confirmPurchase: "구매 확인",
-      buyMsg: "이 서비스를 구매하시겠습니까? 가격:",
-      selfBuy: "자신의 서비스는 구매할 수 없습니다.",
-      payError: "결제 실패 또는 취소됨.",
-      noResults: "검색 결과가 없습니다.",
-      tryAdjusting: "필터나 검색어를 변경해보세요.",
-      clearFilters: "필터 지우기",
-      resultsFound: "개의 결과 발견",
-      page: "페이지",
-      of: "/",
-      startingAt: "시작 가격",
-      previous: "이전",
-      next: "다음",
-      findServices: "서비스 찾기",
-      // STARO
       back: "뒤로",
       backHome: "홈으로 돌아가기",
       piLoginBtn: "Pi로 로그인",
@@ -879,6 +760,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "최고의 혜택 탐색하기",
       viewAll: "모두 보기",
       noReviews: "아직 리뷰가 없습니다.",
+      no_results: "검색 결과가 없습니다.",
       createTitle: "새로운 서비스 등록",
       createSubtitle: "당신의 재능을 세상에 보여주세요",
       labelTitle: "서비스 제목",
@@ -959,24 +841,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇩🇪 NEMAČKI ===
     de: {
-      // NOVO (PREVEDENO)
-      buyNow: "Jetzt kaufen",
-      processing: "Verarbeitung...",
-      confirmPurchase: "Kauf bestätigen",
-      buyMsg: "Möchten Sie diesen Service wirklich kaufen für",
-      selfBuy: "Sie können Ihren eigenen Service nicht kaufen.",
-      payError: "Zahlung fehlgeschlagen oder abgebrochen.",
-      noResults: "Keine Ergebnisse gefunden",
-      tryAdjusting: "Versuchen Sie, Ihre Filter oder Suchbegriffe anzupassen.",
-      clearFilters: "Alle Filter löschen",
-      resultsFound: "Ergebnisse gefunden",
-      page: "Seite",
-      of: "von",
-      startingAt: "Ab",
-      previous: "Vorherige",
-      next: "Nächste",
-      findServices: "Dienstleistungen finden",
-      // STARO
       back: "Zurück",
       backHome: "Zurück zur Startseite",
       piLoginBtn: "Mit Pi anmelden",
@@ -1012,6 +876,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Entdecken Sie die besten Angebote",
       viewAll: "Alle ansehen",
       noReviews: "Noch keine Bewertungen.",
+      no_results: "Keine Ergebnisse für diese Suche gefunden.",
       createTitle: "Neuen Service anbieten",
       createSubtitle: "Zeigen Sie der Welt Ihr Talent",
       labelTitle: "Servicetitel",
@@ -1092,24 +957,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇷🇺 RUSKI ===
     ru: {
-      // NOVO (PREVEDENO)
-      buyNow: "Купить сейчас",
-      processing: "Обработка...",
-      confirmPurchase: "Подтвердить покупку",
-      buyMsg: "Вы уверены, что хотите купить эту услугу за",
-      selfBuy: "Вы не можете купить свою собственную услугу.",
-      payError: "Оплата не прошла или отменена.",
-      noResults: "Результатов не найдено",
-      tryAdjusting: "Попробуйте изменить фильтры или поисковый запрос.",
-      clearFilters: "Очистить фильтры",
-      resultsFound: "Найденные результаты",
-      page: "Страница",
-      of: "из",
-      startingAt: "От",
-      previous: "Назад",
-      next: "Вперед",
-      findServices: "Найти услуги",
-      // STARO
       back: "Назад",
       backHome: "На главную",
       piLoginBtn: "Войти через Pi",
@@ -1145,6 +992,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Изучите лучшие предложения",
       viewAll: "Смотреть все",
       noReviews: "Пока нет отзывов.",
+      no_results: "Результатов по этому запросу не найдено.",
       createTitle: "Опубликовать новую услугу",
       createSubtitle: "Покажите свой талант миру",
       labelTitle: "Название услуги",
@@ -1225,24 +1073,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇫🇷 FRANCUSKI ===
     fr: {
-      // NOVO (PREVEDENO)
-      buyNow: "Acheter maintenant",
-      processing: "Traitement...",
-      confirmPurchase: "Confirmer l'achat",
-      buyMsg: "Voulez-vous vraiment acheter ce service pour",
-      selfBuy: "Vous ne pouvez pas acheter votre propre service.",
-      payError: "Paiement échoué ou annulé.",
-      noResults: "Aucun résultat trouvé",
-      tryAdjusting: "Essayez de modifier vos filtres ou termes de recherche.",
-      clearFilters: "Effacer les filtres",
-      resultsFound: "Résultats trouvés",
-      page: "Page",
-      of: "sur",
-      startingAt: "À partir de",
-      previous: "Précédent",
-      next: "Suivant",
-      findServices: "Trouver des services",
-      // STARO
       back: "Retour",
       backHome: "Retour à l'accueil",
       piLoginBtn: "Se connecter avec Pi",
@@ -1278,6 +1108,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       exploreBest: "Explorez les meilleures offres",
       viewAll: "Voir tout",
       noReviews: "Aucun avis pour le moment.",
+      no_results: "Aucun résultat trouvé pour cette recherche.",
       createTitle: "Publier un nouveau service",
       createSubtitle: "Montrez votre talent au monde entier",
       labelTitle: "Titre du service",
