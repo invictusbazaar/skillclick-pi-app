@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useLanguage } from "@/components/LanguageContext"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,50 +22,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCleaning, setIsCleaning] = useState(true); // Počinjemo sa čišćenjem
 
-  // === AUTOMATSKI ČISTAČ (Pokreće se odmah) ===
-  useEffect(() => {
-    const cleanStuckPayments = async () => {
-      if (!window.Pi) {
-          setIsCleaning(false);
-          return;
-      }
-
-      try {
-        // Koristimo authenticate jer on JEDINI prihvata onIncompletePaymentFound
-        const scopes = ['payments'];
-        await window.Pi.authenticate(scopes, onIncompletePaymentFound);
-      } catch (err) {
-        // Ignorišemo greške pri authetifikaciji, bitno je samo da smo probali cleanup
-        console.log("Cleanup check finished or skipped.");
-      } finally {
-        setIsCleaning(false); // Spremni smo za kupovinu
-      }
-    };
-
-    // Callback za zaglavljene transakcije
-    const onIncompletePaymentFound = async (payment: any) => {
-      console.log("AUTO-CLEAN: Pronađena zaglavljena transakcija:", payment);
-      try {
-          await fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId: payment.identifier }),
-          });
-          console.log("AUTO-CLEAN: Transakcija očišćena.");
-          // Ako je našao i očistio, osvežavamo stranu da SDK bude 100% čist
-          window.location.reload(); 
-      } catch (e) {
-          console.error("AUTO-CLEAN Error:", e);
-      }
-    };
-
-    // Pokrećemo čišćenje
-    cleanStuckPayments();
-  }, []);
-
-  // === LOGIKA KUPOVINE ===
   const handleBuy = async () => {
     setLoading(true);
     setError(null);
@@ -73,17 +30,52 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     try {
       if (!window.Pi) throw new Error("Pi SDK not loaded");
 
+      // === 1. PRVO PROVERAVAMO ZAGLAVLJENE TRANSAKCIJE (SAMO NA KLIK) ===
+      // Ovo sprečava "infinite loop". Tražimo dozvolu samo kad korisnik želi da kupi.
+      let stuckPaymentFound = false;
+
+      const onIncompletePaymentFound = async (payment: any) => {
+          console.log("FIX: Pronađena zaglavljena transakcija:", payment);
+          stuckPaymentFound = true;
+          try {
+              // Šaljemo backendu da poništi
+              const res = await fetch('/api/payments/incomplete', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ paymentId: payment.identifier }),
+              });
+              
+              const data = await res.json();
+              
+              if (data.status === 'fixed' || data.success) {
+                  // Ako smo popravili, osvežavamo stranu
+                  window.location.reload(); 
+              }
+          } catch (e) {
+              console.error("FIX Error:", e);
+          }
+      };
+
+      // Pozivamo authenticate da bismo ubacili onIncompletePaymentFound
+      // Ovo će možda tražiti "Allow" ali SAMO JEDNOM, jer si kliknuo dugme.
+      await window.Pi.authenticate(['payments'], onIncompletePaymentFound);
+
+      // Ako je nađena zaglavljena transakcija, onIncompletePaymentFound će uraditi reload.
+      // Mi ovde stajemo da ne bi pokrenuli novu kupovinu preko stare.
+      if (stuckPaymentFound) {
+          return; 
+      }
+
+      // === 2. AKO NEMA ZAGLAVLJENIH, IDEMO U KUPOVINU ===
       const paymentData = {
         amount: price,
         memo: `Service: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      // Ovde šaljemo SAMO 4 osnovna callback-a.
-      // Ne šaljemo onIncompletePaymentFound jer smo to rešili gore u useEffect-u.
       await window.Pi.createPayment(paymentData, {
         onReadyForServerApproval: async (paymentId: string) => {
-          console.log("Approval ready:", paymentId);
+          console.log("Ready for approval:", paymentId);
           const res = await fetch('/api/payments/approve', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
@@ -107,8 +99,9 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         onError: (err: any, payment: any) => {
           console.error("SDK Error:", err);
           setLoading(false);
-          // Ako se ipak desi pending error, reload će ga rešiti kroz useEffect
+          // Ako je greška "Pending payment", reload će pomoći sledeći put
           if (err?.message && err.message.includes("pending")) {
+              alert("Detektovana stara transakcija. Stranica će se osvežiti.");
               window.location.reload();
           } else {
               setError(err?.message || "Error");
@@ -119,7 +112,10 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     } catch (err: any) {
       setLoading(false);
       console.error("Buy Error:", err);
-      setError(err.message || "Greška");
+      // Ignorišemo grešku ako je korisnik odustao od autentifikacije
+      if (!err.message?.includes("user cancelled")) {
+         setError(err.message || "Greška");
+      }
     }
   };
 
@@ -133,13 +129,13 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
       
       <Button
         onClick={handleBuy}
-        disabled={loading || isCleaning} // Onemogućeno dok čistač radi (par milisekundi)
+        disabled={loading}
         className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg transition-all active:scale-95"
       >
-        {loading || isCleaning ? (
+        {loading ? (
            <>
              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-             {isCleaning ? "Checking..." : t('processing')}
+             {t('processing')}
            </>
         ) : (
            <>
