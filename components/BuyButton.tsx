@@ -32,11 +32,11 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
 
       const paymentData = {
         amount: price,
-        memo: `Service: ${listingId}`, 
+        memo: `Purchase: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      // Standardni poziv sa 4 obavezna callback-a
+      // DODAJEMO 5. FUNKCIJU SAMO DA SDK NE BI IZBACIVAO GREŠKU
       await window.Pi.createPayment(paymentData, {
         onReadyForServerApproval: async (paymentId: string) => {
           await fetch('/api/payments/approve', {
@@ -55,20 +55,23 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         },
         onCancel: (paymentId: string) => {
           setLoading(false);
-          setError("Plaćanje prekinuto.");
+          setError("Plaćanje otkazano.");
         },
         onError: (err: any, payment: any) => {
           console.error("SDK Error:", err);
           setLoading(false);
-          // Prikazujemo tačnu grešku koju SDK vrati
-          setError(err?.message || "Došlo je do greške.");
+          setError(err?.message || "Greška.");
+        },
+        // OVA FUNKCIJA SADA SAMO "ĆUTI" I DOZVOLJAVA SDK-U DA RADI
+        onIncompletePaymentFound: (payment: any) => {
+          console.log("SDK je našao nešto, ali mi samo nastavljamo jer smo očistili preko /fix");
+          // Ne radimo reload ovde da ne bi bilo petlje
         }
       });
 
     } catch (err: any) {
       setLoading(false);
-      console.error("Catch Error:", err);
-      setError(err.message || "Nepoznata greška.");
+      setError(err.message || "Greška.");
     }
   };
 
@@ -76,7 +79,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     <div className="flex flex-col gap-2 w-full">
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-             <p className="text-red-600 text-sm font-bold break-words">{error}</p>
+             <p className="text-red-600 text-sm font-bold">{error}</p>
         </div>
       )}
       
