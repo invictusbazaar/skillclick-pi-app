@@ -23,6 +23,33 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // === 1. DEFINIŠEMO FUNKCIJE UNAPRED ===
+  
+  // Funkcija za čišćenje zaglavljenih plaćanja
+  const handleIncompletePayment = async (payment: any) => {
+    console.log("FIX: Detektovano nezavršeno plaćanje:", payment);
+    
+    try {
+      // Šaljemo backendu da poništi
+      const res = await fetch('/api/payments/incomplete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: payment.identifier, payment }),
+      });
+      
+      const data = await res.json();
+      
+      if (data.status === 'cancelled_or_refunded' || data.status === 'fixed') {
+          console.log("FIX: Uspešno poništeno. Osvežavam stranicu...");
+          // Forsiramo reload da Pi SDK "zaboravi" grešku
+          window.location.reload(); 
+          return;
+      }
+    } catch (e) {
+      console.error("FIX Error:", e);
+    }
+  };
+
   const handleBuy = async () => {
     setLoading(true);
     setError(null);
@@ -38,8 +65,9 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      const callbacks = {
-        // 1. ODOBRAVANJE
+      // === 2. EKSPLICITNO KREIRAMO CALLBACK OBJEKAT ===
+      // Ovo osigurava da SDK tačno vidi svaku funkciju
+      const paymentCallbacks = {
         onReadyForServerApproval: async (paymentId: string) => {
           console.log("onReadyForServerApproval", paymentId);
           try {
@@ -48,100 +76,61 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paymentId }),
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Approval failed');
+            if (!res.ok) throw new Error('Approval failed');
           } catch (err) {
             console.error('Approval error:', err);
             throw err; 
           }
         },
-
-        // 2. POTVRDA ZAVRŠETKA
         onServerApproval: async (paymentId: string, txid: string) => {
           console.log("onServerApproval", paymentId, txid);
           try {
-            // Opciono: Možemo pozvati complete rutu ovde za svaki slučaj
             await fetch('/api/payments/complete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ paymentId, txid }),
             });
+            if (onSuccess) onSuccess();
           } catch (err) {
-            console.error("Server approval confirmation error", err);
+            console.error("Complete error", err);
           }
         },
-
-        // 3. OTKAZIVANJE
         onCancel: (paymentId: string) => {
           console.log("onCancel", paymentId);
           setLoading(false);
           setError(t('payment_cancelled') || "Payment cancelled");
         },
-
-        // 4. GREŠKA
         onError: (error: any, payment: any) => {
           console.error('Payment error:', error);
           setLoading(false);
-          // Ignorišemo grešku ako je korisnik samo zatvorio prozor
-          if (error?.message && !error.message.includes("closed")) {
-             setError(error.message || t('error'));
-          }
+          if (error?.message) setError(error.message);
         },
-
-        // 5. KLJUČNO ZA TVOJ PROBLEM (Incomplete Payment)
-        // Ovo mora biti OVDE da bi rešilo grešku "callback missing" i "pending payment"
-        onIncompletePaymentFound: async (payment: any) => {
-            console.log("Found incomplete payment (INSIDE CREATE):", payment);
-            
-            try {
-                // Šaljemo na backend da proverimo status
-                const res = await fetch('/api/payments/incomplete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentId: payment.identifier, payment }),
-                });
-                
-                const data = await res.json();
-
-                // Ako backend kaže da je refundirano/otkazano, mi "poništavamo" lokalno
-                // vraćanjem errora ili samo logovanjem, čime SDK zna da smo obradili.
-                if (data.status === 'cancelled_or_refunded' || data.status === 'fixed') {
-                    console.log("Stara transakcija očišćena. Molimo pokušajte ponovo.");
-                    setLoading(false);
-                    // Ovde možemo ili reloadovati stranu ili samo reći korisniku da proba opet
-                    // jer je zaglavljena transakcija sada "rešena" na backendu.
-                    return; 
-                }
-                
-                // Ako treba da se nastavi
-                if (data.status === 'resume') {
-                     console.log("Resuming flow...");
-                }
-            } catch (e) {
-                console.error("Error handling incomplete payment", e);
-            }
+        onIncompletePaymentFound: (payment: any) => {
+           // Pozivamo našu funkciju definisanu gore
+           return handleIncompletePayment(payment);
         }
       };
 
-      // Pokrećemo plaćanje sa SVIM callback-ovima
-      await window.Pi.createPayment(paymentData, callbacks);
+      // Pokrećemo plaćanje
+      await window.Pi.createPayment(paymentData, paymentCallbacks);
 
     } catch (err: any) {
       setLoading(false);
       console.error("Global Buy Error:", err);
-      // Ako je greška "Already have pending payment", onIncompletePaymentFound gore će se okinuti
-      if (!err.message?.includes("user cancelled")) {
-          setError(err.message || "Error occurred");
-      }
+      // Prikazujemo grešku korisniku
+      setError(err.message || "Error occurred");
     }
   };
 
   return (
     <div className="flex flex-col gap-2 w-full">
       {error && (
-        <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-200">
-          {error}
-        </p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+             <p className="text-red-600 text-sm font-medium mb-1">{t('error')}: {error}</p>
+             {error.includes("missing") && (
+                 <p className="text-xs text-red-500">Pokušavam automatski popravak...</p>
+             )}
+        </div>
       )}
       
       <Button
