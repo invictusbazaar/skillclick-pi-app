@@ -202,7 +202,7 @@ function HomeContent() {
         {dataLoading ? ( <div className="text-center py-20 text-gray-400 font-medium animate-pulse">{t('loading')}</div> ) : 
         filteredServices.length === 0 ? ( 
             <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm">
-                <p className="text-gray-500 font-medium">Nema rezultata za ovu pretragu.</p>
+                <p className="text-gray-500 font-medium">{t('no_results')}</p>
             </div> 
         ) : (
             <>
