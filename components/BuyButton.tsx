@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useLanguage } from "@/components/LanguageContext"
-import { Loader2, ShoppingCart, RefreshCw } from "lucide-react"
+import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 declare global {
@@ -32,82 +32,62 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         throw new Error("Pi SDK not loaded");
       }
 
-      // Podaci za plaćanje
       const paymentData = {
         amount: price,
         memo: `Service: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      // Pozivamo createPayment sa INLINE funkcijama da izbegnemo bilo kakvu grešku sa objektima
-      await window.Pi.createPayment(paymentData, {
-        // 1. OBAVEZNO: Spreman za odobrenje
+      // === KOREKCIJA: SAMO STANDARDNI CALLBACK-OVI ===
+      // Izbacili smo onIncompletePaymentFound jer on NE SME biti ovde.
+      // To je pravilo grešku "callback functions are missing".
+      const callbacks = {
         onReadyForServerApproval: async (paymentId: string) => {
           console.log("Ready for approval:", paymentId);
-          const res = await fetch('/api/payments/approve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId }),
-          });
-          if (!res.ok) throw new Error('Approval failed');
-        },
-
-        // 2. OBAVEZNO: Odobreno od servera
-        onServerApproval: async (paymentId: string, txid: string) => {
-          console.log("Server approved:", paymentId);
-          await fetch('/api/payments/complete', {
+          try {
+            const res = await fetch('/api/payments/approve', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId, txid }),
-          });
-          if (onSuccess) onSuccess();
+              body: JSON.stringify({ paymentId }),
+            });
+            if (!res.ok) throw new Error('Approval failed');
+          } catch (err) {
+            console.error('Approval error:', err);
+            throw err; 
+          }
         },
-
-        // 3. OBAVEZNO: Otkazano
+        onServerApproval: async (paymentId: string, txid: string) => {
+          console.log("Server approved:", paymentId);
+          try {
+            await fetch('/api/payments/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId, txid }),
+            });
+            if (onSuccess) onSuccess();
+          } catch (err) {
+            console.error("Complete error", err);
+          }
+        },
         onCancel: (paymentId: string) => {
           console.log("Cancelled:", paymentId);
           setLoading(false);
           setError(t('payment_cancelled') || "Payment cancelled");
         },
-
-        // 4. OBAVEZNO: Greška
         onError: (error: any, payment: any) => {
           console.error("Payment Error:", error);
           setLoading(false);
-          // Prikazujemo pravu poruku
-          setError(error?.message || "Unknown error");
+          // Ovde hvatamo pravi tekst greške
+          setError(error?.message || "Error occurred");
         },
+      };
 
-        // 5. KLJUČNO: Rešavanje zaglavljene transakcije
-        onIncompletePaymentFound: async (payment: any) => {
-            console.log("STUCK PAYMENT FOUND:", payment);
-            try {
-                // Šaljemo backendu da je poništi
-                const res = await fetch('/api/payments/incomplete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentId: payment.identifier, payment }),
-                });
-                
-                const data = await res.json();
-                
-                if (data.status === 'cancelled_or_refunded' || data.status === 'fixed') {
-                    // Osvežavamo stranicu da bi korisnik mogao ponovo da kupi
-                    window.location.reload();
-                } else {
-                    // Ako ne uspemo da popravimo, javljamo grešku
-                    setError("Found incomplete payment but failed to fix automatically.");
-                }
-            } catch (e) {
-                console.error("Fix failed", e);
-            }
-        }
-      });
+      // Pokrećemo plaćanje
+      await window.Pi.createPayment(paymentData, callbacks);
 
     } catch (err: any) {
       setLoading(false);
       console.error("Global Buy Error:", err);
-      // Ako SDK i dalje zeza, ispisujemo tačnu grešku
       setError(err.message || "Error occurred");
     }
   };
@@ -117,13 +97,18 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
              <p className="text-red-600 text-sm font-bold mb-1">
-               {/* Koristimo hardkodovanu reč "Greška" ako prevod zeza */}
+               {/* Ignorišemo t('error') da ne bi pisalo 'Error loading profile data' */}
                Greška: {error}
              </p>
-             {error.includes("missing") && (
-                 <p className="text-xs text-gray-600 mt-1">
-                   Pi SDK ne prepoznaje callback. Pokušajte da osvežite celu aplikaciju.
-                 </p>
+             {error.includes("pending") && (
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   onClick={() => window.location.reload()}
+                   className="mt-2 border-red-300 text-red-600 hover:bg-red-100"
+                 >
+                   Osveži aplikaciju (Refresh)
+                 </Button>
              )}
         </div>
       )}
