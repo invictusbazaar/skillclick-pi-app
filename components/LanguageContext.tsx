@@ -33,6 +33,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const translations: Record<string, Record<string, string>> = {
     // === 🇺🇸 ENGLESKI ===
     en: {
+      buyNow: "Buy Now",
+      processing: "Processing...",
       back: "Back",
       backHome: "Back to Home",
       piLoginBtn: "Login with Pi",
@@ -149,6 +151,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇷🇸 SRPSKI ===
     sr: {
+      buyNow: "Kupi Odmah",
+      processing: "Obrađujem...",
       back: "Nazad",
       backHome: "Nazad na početnu",
       piLoginBtn: "Prijavi se sa Pi",
@@ -265,6 +269,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇮🇳 HINDI ===
     hi: {
+      buyNow: "Abhi Khariden",
+      processing: "Process ho raha hai...",
       back: "Wapas",
       backHome: "Home par wapas",
       piLoginBtn: "Pi se Login Karen",
@@ -380,6 +386,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇨🇳 KINESKI ===
     zh: {
+      buyNow: "立即购买",
+      processing: "处理中...",
       back: "返回",
       backHome: "返回首页",
       piLoginBtn: "使用 Pi 登录",
@@ -495,6 +503,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇹🇼 TAJVANSKI ===
     tw: {
+      buyNow: "立即購買",
+      processing: "處理中...",
       back: "返回",
       backHome: "返回首頁",
       piLoginBtn: "使用 Pi 登錄",
@@ -610,6 +620,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇮🇩 INDONEŽANSKI ===
     id: {
+      buyNow: "Beli Sekarang",
+      processing: "Memproses...",
       back: "Kembali",
       backHome: "Kembali ke Beranda",
       piLoginBtn: "Masuk dengan Pi",
@@ -725,6 +737,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇰🇷 KOREJSKI ===
     ko: {
+      buyNow: "지금 구매하기",
+      processing: "처리 중...",
       back: "뒤로",
       backHome: "홈으로 돌아가기",
       piLoginBtn: "Pi로 로그인",
@@ -841,6 +855,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇩🇪 NEMAČKI ===
     de: {
+      buyNow: "Jetzt kaufen",
+      processing: "Verarbeitung...",
       back: "Zurück",
       backHome: "Zurück zur Startseite",
       piLoginBtn: "Mit Pi anmelden",
@@ -957,6 +973,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇷🇺 RUSKI ===
     ru: {
+      buyNow: "Купить сейчас",
+      processing: "Обработка...",
       back: "Назад",
       backHome: "На главную",
       piLoginBtn: "Войти через Pi",
@@ -1073,6 +1091,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // === 🇫🇷 FRANCUSKI ===
     fr: {
+      buyNow: "Acheter maintenant",
+      processing: "Traitement...",
       back: "Retour",
       backHome: "Retour à l'accueil",
       piLoginBtn: "Se connecter avec Pi",
