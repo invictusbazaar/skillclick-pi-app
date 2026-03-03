@@ -27,25 +27,34 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     setLoading(true);
     setError(null);
 
-    try {
-      if (!window.Pi) throw new Error("Pi SDK not loaded");
+    if (!window.Pi) {
+       setError("Pi SDK nije učitan.");
+       return;
+    }
 
+    try {
       const paymentData = {
         amount: price,
         memo: `Service: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      // == UBACUJEMO SVIH 5 FUNKCIJA JER BAZA SADA RADI ==
+      // DIREKTNO POZIVANJE - NAJSIGURNIJI NAČIN
       await window.Pi.createPayment(paymentData, {
+        
+        // --- 1. OBAVEZNA: ODOBRAVANJE ---
         onReadyForServerApproval: async (paymentId: string) => {
+          console.log("1. Ready for approval:", paymentId);
           await fetch('/api/payments/approve', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({ paymentId }),
           });
         },
+
+        // --- 2. OBAVEZNA: ZAVRŠETAK ---
         onServerApproval: async (paymentId: string, txid: string) => {
+          console.log("2. Server approved:", paymentId, txid);
           await fetch('/api/payments/complete', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
@@ -53,37 +62,51 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
           });
           if (onSuccess) onSuccess();
         },
+
+        // --- 3. OBAVEZNA: OTKAZIVANJE ---
         onCancel: (paymentId: string) => {
+          console.log("3. Cancelled:", paymentId);
           setLoading(false);
           setError("Plaćanje prekinuto.");
         },
-        onError: (err: any, payment: any) => {
-          console.error("SDK Error:", err);
-          setLoading(false);
-          // Ako je greška "missing callback", ovaj kod je neće ni izazvati
-          // Ako je "pending", onIncompletePaymentFound će je uhvatiti
-          setError(err?.message || "Greška pri plaćanju.");
-        },
-        // == OVO JE FUNKCIJA KOJA NEDOSTAJE ==
-        onIncompletePaymentFound: async (payment: any) => {
-          console.log("Pronađena zaglavljena transakcija, čistim...", payment);
-          
-          // Šaljemo backendu da je poništi (sada backend radi!)
-          await fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId: payment.identifier }),
-          });
 
-          // Osvežavamo stranicu da bi korisnik mogao ponovo da kupi
-          window.location.reload();
+        // --- 4. OBAVEZNA: GREŠKA ---
+        onError: (err: any, payment: any) => {
+          console.error("4. Error:", err);
+          setLoading(false);
+          // Ako je greška "missing callback", ignorišemo je ovde jer je to sistemska greška
+          if (err?.message) setError(err.message);
+        },
+
+        // --- 5. KLJUČNA ZA TVOJ PROBLEM: ČIŠĆENJE SMEĆA ---
+        onIncompletePaymentFound: async (payment: any) => {
+          console.log("!!! ZAGLAVLJENA TRANSAKCIJA PRONAĐENA !!!", payment);
+          
+          // Šaljemo backendu da je očisti
+          try {
+              await fetch('/api/payments/incomplete', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ paymentId: payment.identifier }),
+              });
+              
+              // OBAVEZNO: Osvežavamo stranicu da SDK zaboravi grešku
+              // Ovo je jedini način da se skloni crveni prozor
+              window.location.reload();
+              
+          } catch (e) {
+              console.error("Greška pri čišćenju:", e);
+          }
         }
       });
 
     } catch (err: any) {
       setLoading(false);
-      console.error("Catch Error:", err);
-      setError(err.message || "Nepoznata greška.");
+      console.error("Global Catch:", err);
+      // Ako SDK baci grešku pre nego što otvori prozor
+      if (err.message && !err.message.includes("user cancelled")) {
+         setError(`Greška: ${err.message}`);
+      }
     }
   };
 
@@ -91,7 +114,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     <div className="flex flex-col gap-2 w-full">
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-             <p className="text-red-600 text-sm font-bold break-words">{error}</p>
+             <p className="text-red-600 text-sm font-bold">{error}</p>
         </div>
       )}
       
