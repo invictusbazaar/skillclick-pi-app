@@ -22,9 +22,9 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needsFix, setNeedsFix] = useState(false); // Novi status za popravku
+  const [needsFix, setNeedsFix] = useState(false);
 
-  // 1. FUNKCIJA ZA KUPOVINU
+  // --- LOGIKA ZA KUPOVINU ---
   const handleBuy = async () => {
     setLoading(true);
     setError(null);
@@ -43,7 +43,6 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      // Pokušavamo kupovinu
       await window.Pi.createPayment(paymentData, {
         onReadyForServerApproval: async (paymentId: string) => {
           await fetch('/api/payments/approve', {
@@ -67,17 +66,16 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         onError: (err: any) => {
           setLoading(false);
           const msg = err?.message || "";
-          
-          // Ako je greška ona poznata, nudimo popravku
+          // Hvatamo grešku
           if (msg.includes("callback functions are missing") || msg.includes("pending")) {
-              setError("Detektovana zaglavljena transakcija.");
-              setNeedsFix(true); // OVO PALI DUGME ZA POPRAVKU
+              setError("Zaglavljena transakcija.");
+              setNeedsFix(true);
           } else {
               setError(`Greška: ${msg}`);
           }
         },
         onIncompletePaymentFound: async (payment: any) => {
-           // Ovo možda ne okine ako SDK blokira ranije, zato imamo handleFix
+           // Pokušaj automatskog čišćenja
            await runCleanup(payment);
         }
       });
@@ -85,10 +83,8 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     } catch (err: any) {
       setLoading(false);
       const msg = err.message || "";
-      console.error("Buy Error:", err);
-      
-      if (msg.includes("callback functions are missing") || msg.includes("pending")) {
-          setError("Sistem je detektovao staru grešku.");
+      if (msg.includes("callback") || msg.includes("pending")) {
+          setError("Potrebno čišćenje.");
           setNeedsFix(true);
       } else {
           setError(`Sistemska greška: ${msg}`);
@@ -96,43 +92,44 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     }
   };
 
-  // 2. POSEBNA FUNKCIJA ZA POPRAVKU (Koristi authenticate umesto createPayment)
+  // --- LOGIKA ZA POPRAVKU (KLJUČNO) ---
   const handleFix = async () => {
       setLoading(true);
-      setError("Pokrećem čišćenje... Molim sačekajte.");
-      
       try {
-          // authenticate je jedini način da se očisti ako createPayment ne radi
           await window.Pi.authenticate(['payments'], async (payment: any) => {
               await runCleanup(payment);
           });
-          
-          // Ako authenticate prođe a ne nađe ništa (retko), osvežavamo
-          setTimeout(() => {
-              window.location.reload();
-          }, 3000);
-
       } catch (e: any) {
+          console.log("Auth cancelled or finished", e);
           setLoading(false);
-          // Često authenticate baci grešku ako korisnik odustane, ali ako nađe payment, onIncompletePaymentFound će se pozvati
-          console.log("Fix attempt finished:", e);
       }
   };
 
-  // 3. ZAJEDNIČKA LOGIKA ZA BRISANJE
   const runCleanup = async (payment: any) => {
-      console.log("Brisanje transakcije:", payment.identifier);
       try {
-          await fetch('/api/payments/incomplete', {
+          const res = await fetch('/api/payments/incomplete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paymentId: payment.identifier }),
           });
-          alert("Uspešno očišćeno! Stranica će se osvežiti.");
-          window.location.reload();
-      } catch (e) {
-          alert("Greška pri komunikaciji sa serverom, ali pokušavam reload.");
-          window.location.reload();
+
+          // DETALJNA DIJAGNOSTIKA GREŠKE
+          if (!res.ok) {
+              const text = await res.text();
+              alert(`SERVER ERROR: ${res.status} (${res.statusText})\nOpis: ${text.substring(0, 100)}`);
+              return;
+          }
+
+          const data = await res.json();
+          if (data.error) {
+              alert(`BACKEND GREŠKA: ${data.error}`);
+          } else {
+              alert("✅ USPEH! Transakcija je obrisana. Stranica se osvežava.");
+              window.location.reload();
+          }
+
+      } catch (e: any) {
+          alert(`NETWORK GREŠKA: ${e.message}`);
       }
   };
 
@@ -144,33 +141,14 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         </div>
       )}
 
-      {/* DUGME ZA POPRAVKU - Prikazuje se samo kad treba */}
       {needsFix ? (
-          <Button
-            onClick={handleFix}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg animate-pulse"
-          >
+          <Button onClick={handleFix} className="w-full bg-red-600 hover:bg-red-700 text-white py-6 text-lg rounded-xl animate-pulse">
             <Wrench className="mr-2 h-5 w-5" />
-            POPRAVI ZAGLAVLJENU TRANSAKCIJU
+            POPRAVI ODMAH
           </Button>
       ) : (
-          /* STANDARDNO DUGME */
-          <Button
-            onClick={handleBuy}
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg transition-all active:scale-95"
-          >
-            {loading ? (
-            <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {t('processing')}
-            </>
-            ) : (
-            <>
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                {t('buyNow')}
-            </>
-            )}
+          <Button onClick={handleBuy} disabled={loading} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white py-6 text-lg rounded-xl shadow-lg">
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><ShoppingCart className="mr-2 h-5 w-5" /> {t('buyNow')}</>}
           </Button>
       )}
     </div>
