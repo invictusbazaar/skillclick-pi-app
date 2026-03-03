@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import { LanguageProvider } from "@/components/LanguageContext";
-import { AuthProvider } from "@/components/AuthContext"; // ✅ Uvezen AuthProvider
+// import { AuthProvider } from "@/components/AuthContext"; // 🔴 PRIVREMENO ISKLJUČI OVO
 import Script from "next/script";
 
 const inter = Inter({ 
@@ -32,21 +32,21 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        {/* Pi SDK Skripta */}
+        {/* ✅ PROMENA STRATEGIJE: afterInteractive je mnogo sigurniji za Pi SDK */}
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
-          strategy="beforeInteractive" 
+          strategy="afterInteractive" 
         />
 
         <LanguageProvider>
-          {/* ✅ AuthProvider mora biti ovde da bi cela aplikacija imala pristup korisniku */}
-          <AuthProvider>
+          {/* 🔴 PRIVREMENO ISKLJUČI AUTH PROVIDER DA NE BLOKIRA SDK */}
+          {/* <AuthProvider> */}
             <Navbar />
             <main className="flex-grow">
               {children}
             </main>
             <Footer />
-          </AuthProvider>
+          {/* </AuthProvider> */}
         </LanguageProvider>
 
       </body>
