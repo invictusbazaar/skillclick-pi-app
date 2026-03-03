@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, ShieldCheck, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 declare global {
@@ -11,135 +10,112 @@ declare global {
 }
 
 export default function BuyButton({ listingId, price, sellerId, onSuccess }: any) {
-  const [step, setStep] = useState(1);
+  const [log, setLog] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [log, setLog] = useState("");
 
-  const addLog = (msg: string) => setLog(prev => prev + "\n" + msg);
+  const addLog = (msg: string) => setLog(prev => [...prev, msg]);
 
-  // --- KORAK 1: PROBUDI SDK I PROVERI (OVO TI RADI!) ---
-  const handleCheckAndClean = async () => {
+  // OVA FUNKCIJA JE KLJUČ. ONA BRIŠE SMEĆE.
+  const handleCleanup = async (paymentId: string) => {
+      addLog(`🚨 PRONAĐEN ZAGLAVLJEN ID: ${paymentId}`);
+      addLog("⏳ Šaljem zahtev za brisanje...");
+      
+      try {
+          const res = await fetch('/api/payments/incomplete', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ paymentId })
+          });
+          const data = await res.json();
+          addLog(`✅ REZULTAT BRISANJA: ${JSON.stringify(data)}`);
+          alert("TRANSAKCIJA OBRISANA! Sada osveži stranicu i probaj kupovinu.");
+          window.location.reload();
+      } catch (e: any) {
+          addLog(`❌ GREŠKA PRI BRISANJU: ${e.message}`);
+      }
+  };
+
+  const startTrap = async () => {
     setLoading(true);
-    setLog("Startujem...");
+    setLog(["Započinjem lov na zaglavljenu transakciju..."]);
 
     if (!window.Pi) {
-        addLog("CRVENO: Pi Skripta nije učitana!");
-        setLoading(false);
+        addLog("Pi SDK nije detektovan.");
         return;
     }
 
     try {
-        addLog("Inicijalizacija...");
-        try { window.Pi.init({ version: "2.0", sandbox: false }); } catch (e) {}
-
-        addLog("Autentifikacija...");
-        const auth = await window.Pi.authenticate(['payments'], onIncompletePaymentFound);
+        // 1. Inicijalizacija
+        try { window.Pi.init({ version: "2.0", sandbox: false }); } catch(e) {}
         
-        addLog(`✅ Povezano! Korisnik: ${auth.user.username}`);
-        setLoading(false);
-        setStep(2); // Prelazimo na kupovinu
+        // 2. Definišemo callbacks PRE poziva
+        const callbacks = {
+            onReadyForServerApproval: (paymentId: string) => { 
+                addLog(`Ignorišem approval: ${paymentId}`); 
+            },
+            onServerApproval: (paymentId: string, txid: string) => { 
+                addLog(`Ignorišem complete: ${paymentId}`); 
+            },
+            onCancel: (paymentId: string) => { 
+                addLog(`Cancel trigger: ${paymentId}`); 
+                setLoading(false);
+            },
+            onError: (error: any, payment: any) => {
+                addLog(`⚠️ ERROR OKINUO: ${error.message}`);
+                // AKO NAM OVDJE DA PAYMENT OBJEKAT, BRIŠEMO GA
+                if (payment) {
+                    handleCleanup(payment.identifier);
+                } else {
+                    addLog("Nema payment objekta u grešci. Čekam onIncomplete...");
+                }
+                setLoading(false);
+            },
+            // OVO JE ONO ŠTO NAM TREBA
+            onIncompletePaymentFound: (payment: any) => {
+                handleCleanup(payment.identifier);
+            }
+        };
+
+        addLog("💣 Pokrećem lažnu transakciju da isprovociram grešku...");
+        
+        // Pokrećemo sa minimalnim iznosom samo da aktiviramo SDK
+        await window.Pi.createPayment({
+            amount: 0.1, 
+            memo: "DEBUG TRAP",
+            metadata: { type: "debug" }
+        }, callbacks);
 
     } catch (err: any) {
         setLoading(false);
-        addLog("Greška pri povezivanju: " + err.message);
+        addLog(`CATCH GREŠKA: ${err.message}`);
+        
+        // AKO JE GREŠKA "CALLBACK MISSING", PROBAJ OVO:
+        if (err.message.includes("callback")) {
+            addLog("⚠️ SDK se žali na callbackove. Pokušavam alternativni metod preko AUTH...");
+            try {
+                await window.Pi.authenticate(['payments'], (payment: any) => {
+                    handleCleanup(payment.identifier);
+                });
+            } catch (authErr) {
+                addLog("Ni Auth nije uspeo.");
+            }
+        }
     }
   };
 
-  // --- ČISTAČ ---
-  const onIncompletePaymentFound = async (payment: any) => {
-      addLog(`⚠️ PRONAĐENO SMEĆE: ${payment.identifier}`);
-      try {
-          await fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ paymentId: payment.identifier })
-          });
-          addLog("🗑️ Obrisano! Osvežavam...");
-          setTimeout(() => window.location.reload(), 1000);
-      } catch (e: any) {
-          addLog("Greška pri brisanju: " + e.message);
-      }
-  };
-
-  // --- KORAK 2: KUPOVINA (POPRAVLJENO) ---
-  const handleBuy = async () => {
-      setLoading(true);
-      addLog("Pripremam podatke...");
-
-      const paymentData = {
-          amount: price,
-          memo: `Usluga: ${listingId}`,
-          metadata: { listingId, sellerId, type: 'service_purchase' }
-      };
-
-      // === PROMENA: PAKUJEMO FUNKCIJE U VARIJABLU ===
-      // Ovako SDK mora da ih vidi jer su definisane pre poziva
-      const paymentCallbacks = {
-          onReadyForServerApproval: function(paymentId: string) {
-              addLog("Status: Odobravanje...");
-              fetch('/api/payments/approve', {
-                  method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({ paymentId })
-              });
-          },
-          onServerApproval: function(paymentId: string, txid: string) {
-              addLog("Status: ZAVRŠENO!");
-              fetch('/api/payments/complete', {
-                  method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({ paymentId, txid })
-              });
-              if (onSuccess) onSuccess();
-          },
-          onCancel: function(paymentId: string) {
-              setLoading(false);
-              addLog("Status: Otkazano.");
-          },
-          onError: function(error: any, payment: any) {
-              setLoading(false);
-              addLog("GREŠKA: " + (error.message || error));
-              if (payment) onIncompletePaymentFound(payment);
-          },
-          onIncompletePaymentFound: function(payment: any) {
-              onIncompletePaymentFound(payment);
-          }
-      };
-
-      try {
-          addLog("Otvaram novčanik...");
-          // Šaljemo zapakovane funkcije
-          await window.Pi.createPayment(paymentData, paymentCallbacks);
-      } catch (e: any) {
-          setLoading(false);
-          addLog("Catch Greška: " + e.message);
-      }
-  };
-
   return (
-    <div className="w-full flex flex-col gap-3">
-      {/* LOG EKRAN */}
-      <div className="bg-black text-green-400 p-3 rounded text-xs font-mono h-32 overflow-auto border border-green-700 shadow-inner">
-          {log ? log.split('\n').map((l, i) => <div key={i} className="mb-1">{l}</div>) : "> Čekam..."}
+    <div className="w-full flex flex-col gap-4">
+      <div className="bg-black text-green-400 p-4 rounded text-xs font-mono h-48 overflow-auto border-2 border-green-600">
+          {log.length === 0 ? "> SPREMAN ZA ČIŠĆENJE..." : log.map((l, i) => <div key={i}>{l}</div>)}
       </div>
 
-      {step === 1 ? (
-          <Button 
-            onClick={handleCheckAndClean} 
-            disabled={loading}
-            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
-          >
-            {loading ? <Loader2 className="animate-spin mr-2" /> : <><ShieldCheck className="mr-2" /> 1. POVEŽI SE</>}
-          </Button>
-      ) : (
-          <Button 
-            onClick={handleBuy} 
-            disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
-          >
-             {loading ? <Loader2 className="animate-spin mr-2" /> : <><ShoppingCart className="mr-2" /> 2. KUPI ODMAH</>}
-          </Button>
-      )}
+      <Button 
+        onClick={startTrap}
+        disabled={loading}
+        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-xl rounded-xl animate-pulse shadow-[0_0_15px_rgba(255,0,0,0.5)]"
+      >
+        {loading ? "LOVIM GREŠKU..." : "🚨 POKRENI ČIŠĆENJE 🚨"}
+      </Button>
     </div>
   );
 }
