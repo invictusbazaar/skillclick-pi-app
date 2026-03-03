@@ -32,10 +32,11 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
 
       const paymentData = {
         amount: price,
-        memo: `Purchase: ${listingId}`, 
+        memo: `Service: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
+      // == UBACUJEMO SVIH 5 FUNKCIJA JER BAZA SADA RADI ==
       await window.Pi.createPayment(paymentData, {
         onReadyForServerApproval: async (paymentId: string) => {
           await fetch('/api/payments/approve', {
@@ -54,32 +55,35 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         },
         onCancel: (paymentId: string) => {
           setLoading(false);
-          setError("Plaćanje otkazano.");
+          setError("Plaćanje prekinuto.");
         },
-        onError: (err: any) => {
+        onError: (err: any, payment: any) => {
           console.error("SDK Error:", err);
           setLoading(false);
-          // Ako i dalje izbacuje grešku, forsiramo reload samo u tom slučaju
-          if (err?.message?.includes("pending")) {
-              window.location.reload();
-          }
-          setError(err?.message || "Greška.");
+          // Ako je greška "missing callback", ovaj kod je neće ni izazvati
+          // Ako je "pending", onIncompletePaymentFound će je uhvatiti
+          setError(err?.message || "Greška pri plaćanju.");
         },
+        // == OVO JE FUNKCIJA KOJA NEDOSTAJE ==
         onIncompletePaymentFound: async (payment: any) => {
-          // Ovaj deo je ključan da SDK prestane da se buni
-          console.log("Found incomplete:", payment.identifier);
+          console.log("Pronađena zaglavljena transakcija, čistim...", payment);
+          
+          // Šaljemo backendu da je poništi (sada backend radi!)
           await fetch('/api/payments/incomplete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paymentId: payment.identifier }),
           });
+
+          // Osvežavamo stranicu da bi korisnik mogao ponovo da kupi
           window.location.reload();
         }
       });
 
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || "Greška.");
+      console.error("Catch Error:", err);
+      setError(err.message || "Nepoznata greška.");
     }
   };
 
@@ -87,16 +91,26 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     <div className="flex flex-col gap-2 w-full">
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-             <p className="text-red-600 text-sm font-bold">{error}</p>
+             <p className="text-red-600 text-sm font-bold break-words">{error}</p>
         </div>
       )}
+      
       <Button
         onClick={handleBuy}
         disabled={loading}
         className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg transition-all active:scale-95"
       >
-        {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <ShoppingCart className="mr-2 h-5 w-5" />}
-        {loading ? t('processing') : t('buyNow')}
+        {loading ? (
+           <>
+             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+             {t('processing')}
+           </>
+        ) : (
+           <>
+             <ShoppingCart className="mr-2 h-5 w-5" />
+             {t('buyNow')}
+           </>
+        )}
       </Button>
     </div>
   );
