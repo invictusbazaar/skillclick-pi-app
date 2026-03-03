@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useLanguage } from "@/components/LanguageContext"
-import { Loader2, ShoppingCart, Wrench } from "lucide-react"
+import { Loader2, ShoppingCart, Wrench, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 declare global {
@@ -22,13 +22,20 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needsFix, setNeedsFix] = useState(false);
+  
+  // Ovde čuvamo ID zaglavljene transakcije kad je uhvatimo
+  const [stuckPaymentId, setStuckPaymentId] = useState<string | null>(null);
+  const [debugLog, setDebugLog] = useState<string>("");
 
-  // --- LOGIKA ZA KUPOVINU ---
+  const log = (msg: string) => {
+      console.log(msg);
+      setDebugLog(prev => prev + "\n" + msg);
+  }
+
   const handleBuy = async () => {
     setLoading(true);
     setError(null);
-    setNeedsFix(false);
+    setDebugLog(""); // Reset loga
 
     if (!window.Pi) {
        setError("Pi SDK nije učitan.");
@@ -43,8 +50,11 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
+      log("Pokrećem createPayment...");
+
       await window.Pi.createPayment(paymentData, {
         onReadyForServerApproval: async (paymentId: string) => {
+          log(`Approval: ${paymentId}`);
           await fetch('/api/payments/approve', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
@@ -52,6 +62,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
           });
         },
         onServerApproval: async (paymentId: string, txid: string) => {
+          log(`Server Approved: ${paymentId}`);
           await fetch('/api/payments/complete', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
@@ -61,94 +72,113 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
         },
         onCancel: () => {
           setLoading(false);
-          setError("Plaćanje prekinuto.");
+          setError("Prekinuto.");
         },
-        onError: (err: any) => {
+        onError: (err: any, payment: any) => {
           setLoading(false);
-          const msg = err?.message || "";
-          // Hvatamo grešku
-          if (msg.includes("callback functions are missing") || msg.includes("pending")) {
-              setError("Zaglavljena transakcija.");
-              setNeedsFix(true);
+          log(`Error: ${err?.message}`);
+          
+          // POKUŠAJ DA UHVATIMO ID IZ GREŠKE
+          if (payment && payment.identifier) {
+              log(`Uhvaćen ID iz error-a: ${payment.identifier}`);
+              setStuckPaymentId(payment.identifier);
+              setError("Detektovana zaglavljena transakcija.");
+          } 
+          else if (err?.message && (err.message.includes("callback") || err.message.includes("pending"))) {
+              // Ako nemamo ID, a greška je tu, to je problem.
+              // Ali onIncompletePaymentFound bi trebao da okine.
+              setError("Zaglavljena transakcija. Čekam podatke...");
           } else {
-              setError(`Greška: ${msg}`);
+              setError(`Greška: ${err.message}`);
           }
         },
         onIncompletePaymentFound: async (payment: any) => {
-           // Pokušaj automatskog čišćenja
-           await runCleanup(payment);
+           log(`!!! PRONAĐENO SMEĆE !!! ID: ${payment.identifier}`);
+           // Čim nađemo smeće, sačuvamo ID i nudimo dugme za brisanje
+           setStuckPaymentId(payment.identifier);
+           setLoading(false);
+           setError("Pronađena stara transakcija koju treba obrisati.");
         }
       });
 
     } catch (err: any) {
       setLoading(false);
-      const msg = err.message || "";
-      if (msg.includes("callback") || msg.includes("pending")) {
-          setError("Potrebno čišćenje.");
-          setNeedsFix(true);
-      } else {
-          setError(`Sistemska greška: ${msg}`);
+      log(`Catch Error: ${err.message}`);
+      if (err.message.includes("callback") || err.message.includes("pending")) {
+          setError("Greška: Postoji nezavršena transakcija.");
+          // Ovde ne možemo dobiti ID direktno ako onIncompletePaymentFound ne okine
       }
     }
   };
 
-  // --- LOGIKA ZA POPRAVKU (KLJUČNO) ---
+  // --- NOVA FUNKCIJA ZA POPRAVKU (Bez authenticate) ---
   const handleFix = async () => {
-      setLoading(true);
-      try {
-          await window.Pi.authenticate(['payments'], async (payment: any) => {
-              await runCleanup(payment);
-          });
-      } catch (e: any) {
-          console.log("Auth cancelled or finished", e);
-          setLoading(false);
+      if (!stuckPaymentId) {
+          alert("Nisam uspeo da uhvatim ID transakcije. Probaj ponovo 'Kupi' da je detektujem.");
+          return;
       }
-  };
 
-  const runCleanup = async (payment: any) => {
+      setLoading(true);
+      log(`Šaljem zahtev za brisanje ID: ${stuckPaymentId}`);
+
       try {
           const res = await fetch('/api/payments/incomplete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId: payment.identifier }),
+              body: JSON.stringify({ paymentId: stuckPaymentId }),
           });
 
-          // DETALJNA DIJAGNOSTIKA GREŠKE
-          if (!res.ok) {
-              const text = await res.text();
-              alert(`SERVER ERROR: ${res.status} (${res.statusText})\nOpis: ${text.substring(0, 100)}`);
-              return;
-          }
-
           const data = await res.json();
-          if (data.error) {
-              alert(`BACKEND GREŠKA: ${data.error}`);
-          } else {
-              alert("✅ USPEH! Transakcija je obrisana. Stranica se osvežava.");
+          log(`Server odgovor: ${JSON.stringify(data)}`);
+
+          if (data.status === 'fixed') {
+              alert(`✅ USPEH! Obrisano metodom: ${data.method}. \nSada ću osvežiti stranicu.`);
               window.location.reload();
+          } else {
+              alert(`❌ NIJE USPELO: ${data.message}`);
+              setLoading(false);
           }
 
       } catch (e: any) {
-          alert(`NETWORK GREŠKA: ${e.message}`);
+          log(`Network fail: ${e.message}`);
+          alert("Greška u mreži. Proveri internet.");
+          setLoading(false);
       }
   };
 
   return (
     <div className="flex flex-col gap-3 w-full">
+      {/* ERROR BOX SA LOGOVIMA */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-             <p className="text-red-600 text-sm font-bold">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+             <p className="text-red-600 text-sm font-bold text-center mb-2">{error}</p>
+             {/* Prikazujemo log da vidiš šta se dešava */}
+             <pre className="text-xs text-gray-500 overflow-auto max-h-20 bg-gray-100 p-1 rounded">
+                 {debugLog}
+             </pre>
         </div>
       )}
 
-      {needsFix ? (
-          <Button onClick={handleFix} className="w-full bg-red-600 hover:bg-red-700 text-white py-6 text-lg rounded-xl animate-pulse">
-            <Wrench className="mr-2 h-5 w-5" />
-            POPRAVI ODMAH
+      {/* DUGME SE MENJA AKO IMAMO UHVAĆEN ID */}
+      {stuckPaymentId ? (
+          <Button
+            onClick={handleFix}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg animate-pulse"
+          >
+            <Trash2 className="mr-2 h-5 w-5" />
+            OBRIŠI ZAGLAVLJENU (ID: ...{stuckPaymentId.slice(-4)})
           </Button>
       ) : (
-          <Button onClick={handleBuy} disabled={loading} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white py-6 text-lg rounded-xl shadow-lg">
-            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><ShoppingCart className="mr-2 h-5 w-5" /> {t('buyNow')}</>}
+          <Button
+            onClick={handleBuy}
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
+          >
+            {loading ? (
+                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+                 <><ShoppingCart className="mr-2 h-5 w-5" /> {t('buyNow')}</>
+            )}
           </Button>
       )}
     </div>
