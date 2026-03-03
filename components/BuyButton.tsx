@@ -27,24 +27,25 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     setLoading(true);
     setError(null);
 
+    // Provera da li je Pi tu
     if (!window.Pi) {
-       setError("Pi SDK nije učitan.");
+       setError("Pi SDK greška: Nije učitan.");
        return;
     }
 
     try {
       const paymentData = {
         amount: price,
-        memo: `Service: ${listingId}`, 
+        memo: `Usluga: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      // DIREKTNO POZIVANJE - NAJSIGURNIJI NAČIN
+      // === KLJUČNA PROMENA: Funkcije pišemo DIREKTNO ovde, ne u varijablu ===
       await window.Pi.createPayment(paymentData, {
         
-        // --- 1. OBAVEZNA: ODOBRAVANJE ---
+        // 1. ODOBRAVANJE (ReadyForServerApproval)
         onReadyForServerApproval: async (paymentId: string) => {
-          console.log("1. Ready for approval:", paymentId);
+          console.log("Status: Spreman za odobrenje", paymentId);
           await fetch('/api/payments/approve', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
@@ -52,9 +53,9 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
           });
         },
 
-        // --- 2. OBAVEZNA: ZAVRŠETAK ---
+        // 2. ZAVRŠETAK (ServerApproval)
         onServerApproval: async (paymentId: string, txid: string) => {
-          console.log("2. Server approved:", paymentId, txid);
+          console.log("Status: Odobreno", paymentId, txid);
           await fetch('/api/payments/complete', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
@@ -63,39 +64,40 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
           if (onSuccess) onSuccess();
         },
 
-        // --- 3. OBAVEZNA: OTKAZIVANJE ---
+        // 3. OTKAZIVANJE (Cancel)
         onCancel: (paymentId: string) => {
-          console.log("3. Cancelled:", paymentId);
+          console.log("Status: Otkazano", paymentId);
           setLoading(false);
-          setError("Plaćanje prekinuto.");
+          setError("Plaćanje prekinuto od strane korisnika.");
         },
 
-        // --- 4. OBAVEZNA: GREŠKA ---
+        // 4. GREŠKA (Error)
         onError: (err: any, payment: any) => {
-          console.error("4. Error:", err);
+          console.error("Status: Greška", err);
           setLoading(false);
-          // Ako je greška "missing callback", ignorišemo je ovde jer je to sistemska greška
-          if (err?.message) setError(err.message);
+          // Ako je greška "missing callback", ignorišemo je ovde jer je to sistemska
+          if (err?.message) setError(`Greška: ${err.message}`);
         },
 
-        // --- 5. KLJUČNA ZA TVOJ PROBLEM: ČIŠĆENJE SMEĆA ---
+        // 5. ČISTAČ SMEĆA (IncompletePaymentFound) - OVO JE ONO ŠTO FALI
         onIncompletePaymentFound: async (payment: any) => {
-          console.log("!!! ZAGLAVLJENA TRANSAKCIJA PRONAĐENA !!!", payment);
+          console.log("!!! ZAGLAVLJENA TRANSAKCIJA !!! ID:", payment.identifier);
           
-          // Šaljemo backendu da je očisti
           try {
+              // Šaljemo backendu da poništi (cancel) ili završi (complete)
               await fetch('/api/payments/incomplete', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ paymentId: payment.identifier }),
               });
               
-              // OBAVEZNO: Osvežavamo stranicu da SDK zaboravi grešku
-              // Ovo je jedini način da se skloni crveni prozor
+              // OBAVEZNO: Reload da se SDK resetuje
+              alert("Pronađena je nezavršena transakcija i automatski očišćena. Molimo pokušajte ponovo.");
               window.location.reload();
               
           } catch (e) {
-              console.error("Greška pri čišćenju:", e);
+              console.error("Neuspešno čišćenje:", e);
+              setError("Greška pri čišćenju stare transakcije.");
           }
         }
       });
@@ -103,9 +105,8 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     } catch (err: any) {
       setLoading(false);
       console.error("Global Catch:", err);
-      // Ako SDK baci grešku pre nego što otvori prozor
       if (err.message && !err.message.includes("user cancelled")) {
-         setError(`Greška: ${err.message}`);
+         setError(`Sistemska greška: ${err.message}`);
       }
     }
   };
@@ -113,7 +114,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
   return (
     <div className="flex flex-col gap-2 w-full">
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center animate-pulse">
              <p className="text-red-600 text-sm font-bold">{error}</p>
         </div>
       )}
