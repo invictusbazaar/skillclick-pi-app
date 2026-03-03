@@ -1,61 +1,49 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
+  console.log("🛠️ INCOMPLETE ROUTE STARTED");
+  
   try {
-    const { paymentId } = await req.json();
+    // 1. Provera API ključa
+    const API_KEY = process.env.PI_API_KEY;
+    if (!API_KEY) {
+        console.error("❌ GREŠKA: PI_API_KEY nedostaje u Vercelu!");
+        return NextResponse.json({ error: "Server config error: Missing API Key" }, { status: 500 });
+    }
+
+    // 2. Parsiranje tela zahteva
+    const body = await req.json();
+    const paymentId = body.paymentId;
 
     if (!paymentId) {
-      return NextResponse.json({ error: 'Missing paymentId' }, { status: 400 });
+      console.error("❌ GREŠKA: Nema paymentId u zahtevu");
+      return NextResponse.json({ error: 'Nema ID-a transakcije.' }, { status: 400 });
     }
 
-    console.log(`[Incomplete] Rešavam zaglavljenu transakciju: ${paymentId}`);
+    console.log(`🧹 Pokušavam brisanje za ID: ${paymentId}`);
 
-    // 1. Proveravamo status na Pi serveru
-    const piRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}`, {
+    // 3. Pokušaj CANCEL direktno (najbrži način)
+    const cancelRes = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
+      method: 'POST',
       headers: {
-        'Authorization': `Key ${process.env.PI_API_KEY}`,
+        'Authorization': `Key ${API_KEY}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({}) // Prazan objekat je obavezan
     });
 
-    if (!piRes.ok) {
-        // Ako Pi server kaže da ne postoji, znači da je već obrisana.
-        // Vraćamo 'fixed' da frontend zna da je put čist.
-        return NextResponse.json({ status: 'fixed' });
-    }
+    console.log(`Pi Server Status: ${cancelRes.status}`);
 
-    const payment = await piRes.json();
+    // Čak i ako Pi vrati 400 ili 404 (jer je već otkazano), mi vraćamo uspeh frontendu
+    // da bi prestao da vrti u krug.
+    return NextResponse.json({ status: 'fixed', message: 'Cleanup attempted' });
 
-    // 2. Odlučujemo šta da radimo (Complete ili Cancel)
-    // Ako postoji TXID, znači da su coini poslati -> MORAMO uraditi complete
-    if (payment.transaction && payment.transaction.txid) {
-        console.log(`[Incomplete] Pronađen TXID, kompletiram transakciju...`);
-        await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Key ${process.env.PI_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ txid: payment.transaction.txid }),
-        });
-    } else {
-        // Ako nema TXID, samo je otkazujemo da odblokiramo korisnika
-        console.log(`[Incomplete] Nema TXID, otkazujem transakciju...`);
-        await fetch(`https://api.minepi.com/v2/payments/${paymentId}/cancel`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Key ${process.env.PI_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}), // Prazan objekat je obavezan
-        });
-    }
-
-    // 3. KLJUČNO: Vraćamo status koji BuyButton prepoznaje
-    return NextResponse.json({ status: 'fixed' });
-
-  } catch (error) {
-    console.error('[Incomplete] Error:', error);
-    // Čak i ako pukne greška, vraćamo 'fixed' da pokušamo da odblokiramo frontend
-    return NextResponse.json({ status: 'fixed' });
+  } catch (error: any) {
+    console.error("🔥 CRITICAL SERVER ERROR:", error);
+    // Vraćamo JSON čak i kad pukne, da alert ne bi bio "communication error"
+    return NextResponse.json({ 
+        status: 'error', 
+        message: error.message 
+    }, { status: 200 }); // Vraćamo 200 da frontend ne poludi
   }
 }
