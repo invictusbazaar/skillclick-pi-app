@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useLanguage } from "@/components/LanguageContext"
-import { Loader2, ShoppingCart, Wrench, Trash2 } from "lucide-react"
+import { Loader2, ShoppingCart, Trash2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 declare global {
@@ -23,22 +23,16 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Ovde čuvamo ID zaglavljene transakcije kad je uhvatimo
-  const [stuckPaymentId, setStuckPaymentId] = useState<string | null>(null);
-  const [debugLog, setDebugLog] = useState<string>("");
-
-  const log = (msg: string) => {
-      console.log(msg);
-      setDebugLog(prev => prev + "\n" + msg);
-  }
+  // Da li da prikažemo dugme za hitno čišćenje?
+  const [showEmergencyFix, setShowEmergencyFix] = useState(false);
 
   const handleBuy = async () => {
     setLoading(true);
     setError(null);
-    setDebugLog(""); // Reset loga
+    setShowEmergencyFix(false);
 
     if (!window.Pi) {
-       setError("Pi SDK nije učitan.");
+       setError("Pi SDK nije spreman.");
        setLoading(false);
        return;
     }
@@ -46,127 +40,103 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
     try {
       const paymentData = {
         amount: price,
-        memo: `Usluga: ${listingId}`, 
+        memo: `Service: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' },
       };
 
-      log("Pokrećem createPayment...");
-
       await window.Pi.createPayment(paymentData, {
         onReadyForServerApproval: async (paymentId: string) => {
-          log(`Approval: ${paymentId}`);
-          await fetch('/api/payments/approve', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId }),
-          });
+           // Ovo sad nije bitno, samo da prođe
+           await fetch('/api/payments/approve', { method: 'POST', body: JSON.stringify({ paymentId }) });
         },
         onServerApproval: async (paymentId: string, txid: string) => {
-          log(`Server Approved: ${paymentId}`);
-          await fetch('/api/payments/complete', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ paymentId, txid }),
-          });
-          if (onSuccess) onSuccess();
+           await fetch('/api/payments/complete', { method: 'POST', body: JSON.stringify({ paymentId, txid }) });
+           if (onSuccess) onSuccess();
         },
         onCancel: () => {
-          setLoading(false);
-          setError("Prekinuto.");
+          setLoading(false); 
+          setError("Otkazano.");
         },
         onError: (err: any, payment: any) => {
           setLoading(false);
-          log(`Error: ${err?.message}`);
-          
-          // POKUŠAJ DA UHVATIMO ID IZ GREŠKE
-          if (payment && payment.identifier) {
-              log(`Uhvaćen ID iz error-a: ${payment.identifier}`);
-              setStuckPaymentId(payment.identifier);
-              setError("Detektovana zaglavljena transakcija.");
-          } 
-          else if (err?.message && (err.message.includes("callback") || err.message.includes("pending"))) {
-              // Ako nemamo ID, a greška je tu, to je problem.
-              // Ali onIncompletePaymentFound bi trebao da okine.
-              setError("Zaglavljena transakcija. Čekam podatke...");
-          } else {
-              setError(`Greška: ${err.message}`);
-          }
+          // Bilo koja greška sada pali "Emergency Mode"
+          console.error("SDK Error:", err);
+          setError("Sistem je blokiran starom transakcijom.");
+          setShowEmergencyFix(true);
         },
         onIncompletePaymentFound: async (payment: any) => {
-           log(`!!! PRONAĐENO SMEĆE !!! ID: ${payment.identifier}`);
-           // Čim nađemo smeće, sačuvamo ID i nudimo dugme za brisanje
-           setStuckPaymentId(payment.identifier);
-           setLoading(false);
-           setError("Pronađena stara transakcija koju treba obrisati.");
+           // Ako ovo okine, super, brišemo odmah
+           await forceCleanup(payment.identifier);
         }
       });
 
     } catch (err: any) {
       setLoading(false);
-      log(`Catch Error: ${err.message}`);
-      if (err.message.includes("callback") || err.message.includes("pending")) {
-          setError("Greška: Postoji nezavršena transakcija.");
-          // Ovde ne možemo dobiti ID direktno ako onIncompletePaymentFound ne okine
-      }
+      console.error("Catch Error:", err);
+      // Ako pukne ovde, znači da je SDK baš zaglavljen
+      setError("Detektovana blokada novčanika.");
+      setShowEmergencyFix(true);
     }
   };
 
-  // --- NOVA FUNKCIJA ZA POPRAVKU (Bez authenticate) ---
-  const handleFix = async () => {
-      if (!stuckPaymentId) {
-          alert("Nisam uspeo da uhvatim ID transakcije. Probaj ponovo 'Kupi' da je detektujem.");
-          return;
-      }
+  // --- NUKLEARNA OPCIJA: Čišćenje bez ID-a ---
+  const handleEmergencyFix = async () => {
+      if (!confirm("Ovo će pokušati da nasilno očisti zaglavljenu transakciju. Nastavi?")) return;
 
       setLoading(true);
-      log(`Šaljem zahtev za brisanje ID: ${stuckPaymentId}`);
+      setError("Pokušavam nasilno čišćenje...");
 
       try {
-          const res = await fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId: stuckPaymentId }),
-          });
-
-          const data = await res.json();
-          log(`Server odgovor: ${JSON.stringify(data)}`);
-
-          if (data.status === 'fixed') {
-              alert(`✅ USPEH! Obrisano metodom: ${data.method}. \nSada ću osvežiti stranicu.`);
-              window.location.reload();
-          } else {
-              alert(`❌ NIJE USPELO: ${data.message}`);
-              setLoading(false);
-          }
+        // Trik: Pozivamo authenticate da bi dobili pristup, a onda namerno ne radimo ništa
+        // Često samo ovaj poziv "odglavi" Pi Browser
+        const auth = await window.Pi.authenticate(['payments'], async (payment: any) => {
+            if (payment && payment.identifier) {
+                await forceCleanup(payment.identifier);
+            } else {
+                alert("Nisam našao transakciju u Auth modu. Pokušavam reload...");
+                window.location.reload();
+            }
+        });
+        
+        // Ako auth ne vrati ništa, a i dalje ne radi, šaljemo korisnika na /fix stranu (ako je imaš)
+        // ili samo reloadujemo
+        setTimeout(() => window.location.reload(), 2000);
 
       } catch (e: any) {
-          log(`Network fail: ${e.message}`);
-          alert("Greška u mreži. Proveri internet.");
+          alert("Nije uspelo. Poslednja šansa: Pi Browser -> Settings -> Clear Cache.");
           setLoading(false);
       }
   };
 
+  const forceCleanup = async (paymentId: string) => {
+      try {
+          await fetch('/api/payments/incomplete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId }),
+          });
+          alert("USPEH! Blokada uklonjena.");
+          window.location.reload();
+      } catch (e) {
+          alert("Greška pri brisanju, ali pokušavam dalje.");
+      }
+  }
+
   return (
     <div className="flex flex-col gap-3 w-full">
-      {/* ERROR BOX SA LOGOVIMA */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-             <p className="text-red-600 text-sm font-bold text-center mb-2">{error}</p>
-             {/* Prikazujemo log da vidiš šta se dešava */}
-             <pre className="text-xs text-gray-500 overflow-auto max-h-20 bg-gray-100 p-1 rounded">
-                 {debugLog}
-             </pre>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+             <p className="text-red-600 text-sm font-bold">{error}</p>
         </div>
       )}
 
-      {/* DUGME SE MENJA AKO IMAMO UHVAĆEN ID */}
-      {stuckPaymentId ? (
+      {showEmergencyFix ? (
           <Button
-            onClick={handleFix}
+            onClick={handleEmergencyFix}
             className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg animate-pulse"
           >
-            <Trash2 className="mr-2 h-5 w-5" />
-            OBRIŠI ZAGLAVLJENU (ID: ...{stuckPaymentId.slice(-4)})
+            <AlertTriangle className="mr-2 h-6 w-6" />
+            NASILNO ODGLAVI NOVČANIK
           </Button>
       ) : (
           <Button
@@ -174,11 +144,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: Buy
             disabled={loading}
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
           >
-            {loading ? (
-                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-                 <><ShoppingCart className="mr-2 h-5 w-5" /> {t('buyNow')}</>
-            )}
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><ShoppingCart className="mr-2 h-5 w-5" /> {t('buyNow')}</>}
           </Button>
       )}
     </div>
