@@ -26,64 +26,67 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
       // 1. Inicijalizacija
       try { window.Pi.init({ version: "2.0", sandbox: false }); } catch (_) {}
 
+      // 2. PRIPREMA PODATAKA
       const paymentData = {
         amount: price,
         memo: `Usluga: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' }
       };
 
-      // 2. Definišemo callback-ove UNAPRED (Ovo sprečava "Callback missing" grešku)
-      const callbacks = {
-        onReadyForServerApproval: (paymentId: string) => {
+      // 3. DEFINISANJE POSEBNIH FUNKCIJA (Obaveznih 4)
+      // Pi SDK zahteva TAČNO ova 4 imena. Ako jedno fali, izbaciće tvoju grešku.
+      
+      const onReadyForServerApproval = function(paymentId: string) {
+          // alert("Faza 1: Odobravanje..."); // Otkometariši za debug
           fetch('/api/payments/approve', {
              method: 'POST',
              headers: {'Content-Type': 'application/json'},
              body: JSON.stringify({ paymentId })
           });
-        },
-        onServerApproval: (paymentId: string, txid: string) => {
+      };
+
+      const onServerApproval = function(paymentId: string, txid: string) {
+          // alert("Faza 2: Gotovo!");
           fetch('/api/payments/complete', {
              method: 'POST',
              headers: {'Content-Type': 'application/json'},
              body: JSON.stringify({ paymentId, txid })
           });
           if (onSuccess) onSuccess();
-        },
-        onCancel: (paymentId: string) => {
-          setLoading(false);
-        },
-        onError: (error: any, payment: any) => {
-          setLoading(false);
-          console.error("Greška:", error);
-          
-          // Ako je greška "missing callback", ignorišemo je, jer onIncompletePaymentFound rešava stvar
-          if (error.message && !error.message.includes("callback")) {
-              alert("Greška: " + error.message);
-          }
-        },
-        // OVO JE OBAVEZNO: Ako SDK ipak nađe neku staru mrvicu
-        onIncompletePaymentFound: (payment: any) => {
-            console.log("Pronađena stara transakcija, čistim...", payment);
-            fetch('/api/payments/incomplete', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ paymentId: payment.identifier })
-            }).then(() => {
-                // Tiho osvežimo stranicu ili samo pustimo korisnika da proba opet
-                console.log("Očišćeno.");
-            });
-        }
       };
 
-      // 3. Pokrećemo plaćanje
+      const onCancel = function(paymentId: string) {
+          setLoading(false);
+          // alert("Otkazano");
+      };
+
+      const onError = function(error: any, payment: any) {
+          setLoading(false);
+          console.error("Pi Error:", error);
+          alert("GREŠKA: " + (error.message || error));
+      };
+
+      // 4. PAKOVANJE U OBJEKAT (Ovo je ključno!)
+      const callbacks = {
+          onReadyForServerApproval: onReadyForServerApproval,
+          onServerApproval: onServerApproval,
+          onCancel: onCancel,
+          onError: onError
+      };
+
+      // PROVERA PRE SLANJA (Da budemo 100% sigurni)
+      if (!callbacks.onReadyForServerApproval || !callbacks.onServerApproval || !callbacks.onCancel || !callbacks.onError) {
+          alert("CRITICAL: Neka funkcija fali pre slanja!");
+          setLoading(false);
+          return;
+      }
+
+      // 5. POZIV
       await window.Pi.createPayment(paymentData, callbacks);
 
     } catch (err: any) {
       setLoading(false);
-      // Ako korisnik otkaže, nije greška
-      if (!err.message?.includes("user cancelled")) {
-          alert("Sistemska greška: " + err.message);
-      }
+      alert("Sistemska greška: " + err.message);
     }
   };
 
@@ -91,10 +94,10 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
     <Button
       onClick={handleBuy}
       disabled={loading}
-      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
+      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
     >
       {loading ? (
-         <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Procesuiranje...</>
+         <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Molim sačekajte...</>
       ) : (
          <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah</>
       )}
