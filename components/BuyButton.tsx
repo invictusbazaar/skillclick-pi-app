@@ -9,87 +9,87 @@ declare global { interface Window { Pi: any; } }
 export default function BuyButton(props: any) {
   const [loading, setLoading] = useState(false);
 
-  // 1. HVATAMO PODATKE (Rade super, videli smo na slici!)
-  const rawPrice = props.price || props.amount;
-  const rawId = props.listingId || props.serviceId;
-  const rawSeller = props.sellerId || props.sellerUsername;
-
-  // 2. PRIPREMA BROJA (Sigurica)
-  const safePrice = parseFloat(rawPrice) > 0 ? parseFloat(rawPrice) : 0;
+  // Podaci
+  const finalPrice = props.price || props.amount;
+  const finalId = props.listingId || props.serviceId;
+  const finalSeller = props.sellerId || props.sellerUsername;
+  const safePrice = parseFloat(finalPrice) > 0 ? parseFloat(finalPrice) : 0;
 
   const handleBuy = async () => {
-    // Ako nema cene, stopiramo (ali na slici je bilo 10, tako da ovo prolazi)
-    if (!safePrice || !rawId || !rawSeller) {
-        alert(`VERZIJA 7 - STOP! Fale podaci.`);
+    // 1. Provera podataka
+    if (!safePrice || !finalId || !finalSeller) {
+        alert("VERZIJA 8 STOP: Fale podaci.");
         return;
     }
 
     setLoading(true);
 
     if (typeof window === "undefined" || !window.Pi) {
-       alert("Pi Browser nije nađen.");
+       alert("Nema Pi Browser-a.");
        setLoading(false);
        return;
     }
 
     try {
+      // 2. Inicijalizacija
       window.Pi.init({ version: "2.0", sandbox: false });
 
-      // DEFINIŠEMO FUNKCIJU ZA NEZAVRŠENA PLAĆANJA
-      const handleIncomplete = (payment: any) => {
-          fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ paymentId: payment.identifier })
-          });
+      // 3. DEFINIŠEMO Callbackove ZASEBNO (Stari način)
+      // Ovo radimo da bismo bili 100% sigurni da objekat postoji pre slanja
+      const myCallbacks = {
+          onReadyForServerApproval: function(paymentId: string) {
+              fetch('/api/payments/approve', {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ paymentId: paymentId })
+              });
+          },
+          onServerApproval: function(paymentId: string, txid: string) {
+              fetch('/api/payments/complete', {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ paymentId: paymentId, txid: txid })
+              });
+              if (props.onSuccess) props.onSuccess();
+          },
+          onCancel: function(paymentId: string) {
+              setLoading(false);
+          },
+          onError: function(error: any, payment: any) {
+              setLoading(false);
+              // Ignorisi cancel gresku
+              if (!JSON.stringify(error).includes("cancelled")) {
+                  alert("V8 GREŠKA: " + (error.message || error));
+              }
+          }
       };
 
-      // 3. AUTHENTICATE
-      await window.Pi.authenticate(['payments'], {
-          onIncompletePaymentFound: handleIncomplete
+      // 4. AUTHENTICATE (Starija sintaksa - funkcija direktno, ne objekat)
+      // Možda tvoj telefon ne voli objekat ovde
+      await window.Pi.authenticate(['payments'], function(payment: any) {
+          fetch('/api/payments/incomplete', {
+              method: 'POST',
+              body: JSON.stringify({ paymentId: payment.identifier })
+          });
       });
 
-      // 4. CREATE PAYMENT - UBACUJEMO SVIH 5 FUNKCIJA!
-      // Tvoj telefon traži ovu petu, i sad ćemo mu je dati.
+      // DEBUG: Proveravamo da li React vidi funkcije
+      // alert("V8 INFO: Šaljem funkcije: " + Object.keys(myCallbacks).join(", "));
+
+      // 5. CREATE PAYMENT
       await window.Pi.createPayment({
-        amount: safePrice, 
-        memo: `Kupovina: ${rawId}`, 
+        amount: safePrice,
+        memo: "Kupovina " + finalId,
         metadata: { 
-            listingId: String(rawId), 
-            sellerId: String(rawSeller),
-            type: 'service_purchase' 
+            listingId: String(finalId), 
+            sellerId: String(finalSeller) 
         }
-      }, {
-        onReadyForServerApproval: (paymentId: string) => {
-          fetch('/api/payments/approve', {
-             method: 'POST',
-             headers: {'Content-Type': 'application/json'},
-             body: JSON.stringify({ paymentId })
-          });
-        },
-        onServerApproval: (paymentId: string, txid: string) => {
-          fetch('/api/payments/complete', {
-             method: 'POST',
-             headers: {'Content-Type': 'application/json'},
-             body: JSON.stringify({ paymentId, txid })
-          });
-          if (props.onSuccess) props.onSuccess();
-        },
-        onCancel: (paymentId: string) => setLoading(false),
-        onError: (error: any, payment: any) => {
-          setLoading(false);
-          if (!JSON.stringify(error).includes("cancelled")) {
-              alert("VERZIJA 7 GREŠKA: " + (error.message || error));
-          }
-        },
-        // 🚨 OVO JE FALILO TVOM TELEFONU U VERZIJI 6 🚨
-        onIncompletePaymentFound: handleIncomplete
-      });
+      }, myCallbacks); // Šaljemo onaj objekat od malopre
 
     } catch (err: any) {
       setLoading(false);
       if (!err.message?.includes("user cancelled")) {
-          alert("VERZIJA 7 SISTEMSKA: " + err.message);
+          alert("VERZIJA 8 SISTEMSKA: " + err.message);
       }
     }
   };
@@ -101,9 +101,9 @@ export default function BuyButton(props: any) {
       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
     >
       {loading ? (
-        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 7...</> 
+        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 8...</> 
       ) : (
-        <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice || "?"} π)</>
+        <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice} π)</>
       )}
     </Button>
   );
