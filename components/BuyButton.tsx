@@ -16,9 +16,9 @@ export default function BuyButton(props: any) {
   const safePrice = parseFloat(finalPrice) > 0 ? parseFloat(finalPrice) : 0;
 
   const handleBuy = async () => {
-    // 1. Provera podataka
-    if (!safePrice || !finalId || !finalSeller) {
-        alert("VERZIJA 9 STOP: Fale podaci.");
+    // 1. Provera
+    if (!safePrice) {
+        alert("VERZIJA 10 STOP: Nema cene.");
         return;
     }
 
@@ -31,13 +31,24 @@ export default function BuyButton(props: any) {
     }
 
     try {
-      // 2. Inicijalizacija
       window.Pi.init({ version: "2.0", sandbox: false });
 
-      // 3. DEFINIŠEMO Callbackove - SVIH 5 KOMADA!
-      // Pišemo ih kao 'function' (starinski) da telefon sigurno razume
-      const myCallbacks = {
+      // 2. Authenticate (Sa incomplete handlerom)
+      const user = await window.Pi.authenticate(['payments'], {
+          onIncompletePaymentFound: function(payment: any) {
+              fetch('/api/payments/incomplete', {
+                  method: 'POST',
+                  body: JSON.stringify({ paymentId: payment.identifier })
+              });
+          }
+      });
+
+      console.log("User:", user.username);
+
+      // 3. PRIPREMA CALLBACK-OVA (Samo 4 osnovna)
+      const callbacks = {
           onReadyForServerApproval: function(paymentId: string) {
+              // alert("V10: Odobravam..."); // Debug
               fetch('/api/payments/approve', {
                   method: 'POST',
                   headers: {'Content-Type': 'application/json'},
@@ -45,6 +56,7 @@ export default function BuyButton(props: any) {
               });
           },
           onServerApproval: function(paymentId: string, txid: string) {
+              // alert("V10: Gotovo!"); // Debug
               fetch('/api/payments/complete', {
                   method: 'POST',
                   headers: {'Content-Type': 'application/json'},
@@ -57,43 +69,27 @@ export default function BuyButton(props: any) {
           },
           onError: function(error: any, payment: any) {
               setLoading(false);
-              if (!JSON.stringify(error).includes("cancelled")) {
-                  alert("V9 GREŠKA: " + (error.message || error));
+              var msg = error.message || error;
+              if (!JSON.stringify(msg).includes("cancelled")) {
+                  alert("V10 GREŠKA: " + msg);
               }
-          },
-          // 🚨 OVO JE ONA PETI FUNKCIJA KOJU TVOJ TELEFON TRAŽI 🚨
-          // Ali sada je pišemo unutar objekta, starom sintaksom
-          onIncompletePaymentFound: function(payment: any) {
-              fetch('/api/payments/incomplete', {
-                  method: 'POST',
-                  body: JSON.stringify({ paymentId: payment.identifier })
-              });
           }
       };
 
-      // 4. AUTHENTICATE
-      // Ovde takođe stavljamo incomplete handler jer SDK tako kaže, ali onaj gore u callbacks je za svaki slučaj
-      await window.Pi.authenticate(['payments'], function(payment: any) {
-          fetch('/api/payments/incomplete', {
-              method: 'POST',
-              body: JSON.stringify({ paymentId: payment.identifier })
-          });
-      });
-
-      // 5. CREATE PAYMENT
+      // 4. KREIRANJE PLAĆANJA - BEZ METADATA PODATAKA!
+      // Šaljemo samo ono najnužnije da vidimo da li će proći
+      // alert("V10: Pokrećem createPayment za " + safePrice);
+      
       await window.Pi.createPayment({
         amount: safePrice,
-        memo: "Kupovina " + finalId,
-        metadata: { 
-            listingId: String(finalId), 
-            sellerId: String(finalSeller) 
-        }
-      }, myCallbacks); 
+        memo: "Usluga " + finalId // Samo osnovni opis
+        // IZBACILI SMO METADATA DA VIDIMO DA LI ONA PRAVI PROBLEM
+      }, callbacks);
 
     } catch (err: any) {
       setLoading(false);
       if (!err.message?.includes("user cancelled")) {
-          alert("VERZIJA 9 SISTEMSKA: " + err.message);
+          alert("VERZIJA 10 SISTEMSKA: " + err.message);
       }
     }
   };
@@ -105,7 +101,7 @@ export default function BuyButton(props: any) {
       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
     >
       {loading ? (
-        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 9...</> 
+        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 10...</> 
       ) : (
         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice} π)</>
       )}
