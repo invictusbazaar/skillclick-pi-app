@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -10,101 +10,71 @@ declare global {
   }
 }
 
-// === TRIK: DEFINIŠEMO FUNKCIJE OVDE (VAN KOMPONENTE) ===
-// Ovako ih React ne može "sakriti" od Pi SDK-a.
-const createCallbacks = (onSuccess: any, setLoading: any) => {
-    return {
-        onReadyForServerApproval: (paymentId: string) => {
-            fetch('/api/payments/approve', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId })
-            });
-        },
-        onServerApproval: (paymentId: string, txid: string) => {
-            fetch('/api/payments/complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId, txid })
-            });
-            if (onSuccess) onSuccess();
-        },
-        onCancel: (paymentId: string) => {
-            setLoading(false);
-        },
-        onError: (error: any, payment: any) => {
-            setLoading(false);
-            console.error("Pi Error:", error);
-            // Ignorišemo greške ako je korisnik samo odustao
-            if (!error.message?.includes("cancelled")) {
-                 alert("GREŠKA: " + (error.message || error));
-            }
-        }
-    };
-};
-
 export default function BuyButton({ listingId, price, sellerId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
-  const [isSdkReady, setIsSdkReady] = useState(false);
-
-  // === 1. AUTOMATSKA INICIJALIZACIJA ===
-  // Ovo rešava grešku "SDK not initialized"
-  useEffect(() => {
-    const initPi = () => {
-        if (window.Pi) {
-            try {
-                window.Pi.init({ version: "2.0", sandbox: false });
-                setIsSdkReady(true);
-                console.log("✅ Pi SDK Startovan");
-            } catch (err) {
-                // Ako je već upaljen, samo kažemo da je spreman
-                setIsSdkReady(true);
-            }
-        }
-    };
-
-    initPi();
-    // Provera opet za svaki slučaj
-    setTimeout(initPi, 1000);
-  }, []);
 
   const handleBuy = async () => {
     setLoading(true);
 
-    if (!isSdkReady && !window.Pi) {
-       alert("Sistem se povezuje... Sačekaj trenutak.");
+    if (!window.Pi) {
+       alert("Sistem se još učitava. Pokušaj ponovo.");
        setLoading(false);
        return;
     }
 
     try {
-      // 2. AUTHENTICATE (Obavezno pre plaćanja)
+      // 1. Sigurna inicijalizacija
+      try { window.Pi.init({ version: "2.0", sandbox: false }); } catch (_) {}
+
+      // 2. Auth (Osvežavamo sesiju za plaćanje)
+      // Ovo možda traži auth ponovo, ali je neophodno da bi payment znao ko plaća
       await window.Pi.authenticate(['payments'], (payment: any) => {
-          // Ako usput nađemo neku staru grešku, brišemo je tiho
+          // Tiho čišćenje ako ima smeća
           fetch('/api/payments/incomplete', {
               method: 'POST',
-              headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ paymentId: payment.identifier })
           });
       });
 
-      // 3. PODACI
-      const paymentData = {
+      // 3. KREIRANJE PLAĆANJA SA "INLINE" FUNKCIJAMA
+      // Pišemo ih direktno ovde da ih SDK 100% vidi
+      await window.Pi.createPayment({
         amount: price,
         memo: `Usluga: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' }
-      };
-
-      // 4. UZIMAMO SIGURNE FUNKCIJE
-      const callbacks = createCallbacks(onSuccess, setLoading);
-
-      // 5. KREIRAMO PLAĆANJE
-      await window.Pi.createPayment(paymentData, callbacks);
+      }, {
+        // --- KLJUČNA PROMENA: FUNKCIJE SU DIREKTNO OVDE ---
+        onReadyForServerApproval: function(paymentId: string) {
+          fetch('/api/payments/approve', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ paymentId })
+          });
+        },
+        onServerApproval: function(paymentId: string, txid: string) {
+          fetch('/api/payments/complete', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ paymentId, txid })
+          });
+          if (onSuccess) onSuccess();
+        },
+        onCancel: function(paymentId: string) {
+          setLoading(false);
+        },
+        onError: function(error: any, payment: any) {
+          setLoading(false);
+          // Ignorišemo user cancelled, sve ostalo prijavljujemo
+          if (!error.message?.includes("cancelled")) {
+              alert("GREŠKA: " + (error.message || error));
+          }
+        }
+      });
 
     } catch (err: any) {
       setLoading(false);
       if (!err.message?.includes("user cancelled")) {
-          alert("Greška: " + err.message);
+          alert("Sistemska greška: " + err.message);
       }
     }
   };
