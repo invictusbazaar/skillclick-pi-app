@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/components/LanguageContext"; // DODATO: Za prevod
 
 // Uvoz podataka
 import { SERVICES_DATA } from "@/lib/data";
@@ -18,7 +17,6 @@ import { SERVICES_DATA } from "@/lib/data";
 function ServicesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { language } = useLanguage(); // DODATO: Uzimamo jezik
   
   const initialSearch = searchParams.get("search") || "";
   const initialCategory = searchParams.get("category") || "all";
@@ -30,7 +28,7 @@ function ServicesContent() {
   const [allServices, setAllServices] = useState<any[]>([]);
   const [filteredServices, setFilteredServices] = useState<any[]>([]);
   
-  // State za Pi korisnika
+  // DODATO: State za Pi korisnika (da bismo znali ko je ulogovan)
   const [piUser, setPiUser] = useState<any>(null);
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,75 +36,22 @@ function ServicesContent() {
 
   const [isBackActive, setIsBackActive] = useState(false);
 
-  // --- REČNIK PREVODA ---
-  const txt: Record<string, any> = {
-    en: {
-      back: "Back to Home",
-      find: "Find services",
-      searchPlaceholder: "Search for services...",
-      allServices: "All Services",
-      resultsFound: "Results found",
-      page: "Page",
-      of: "of",
-      noResults: "No services found",
-      tryAdjusting: "Try adjusting your filters or search term.",
-      clearFilters: "Clear all filters",
-      previous: "Previous",
-      next: "Next",
-      startingAt: "Starting at",
-      cats: {
-        'Graphics & Design': 'Graphics & Design',
-        'Programming & Tech': 'Programming & Tech',
-        'Writing & Translation': 'Writing & Translation',
-        'Video & Animation': 'Video & Animation',
-        'Digital Marketing': 'Digital Marketing',
-        'Lifestyle': 'Lifestyle',
-        'Business': 'Business',
-        'Music & Audio': 'Music & Audio'
-      }
-    },
-    sr: {
-      back: "Nazad na početnu",
-      find: "Pronađi usluge",
-      searchPlaceholder: "Pretraži usluge...",
-      allServices: "Sve usluge",
-      resultsFound: "Rezultata nađeno",
-      page: "Strana",
-      of: "od",
-      noResults: "Nema rezultata za ovu pretragu",
-      tryAdjusting: "Probaj da promeniš filtere ili pojam pretrage.",
-      clearFilters: "Očisti filtere",
-      previous: "Prethodna",
-      next: "Sledeća",
-      startingAt: "Počevši od",
-      cats: {
-        'Graphics & Design': 'Grafički Dizajn',
-        'Programming & Tech': 'Programiranje & Tech',
-        'Writing & Translation': 'Pisanje & Prevod',
-        'Video & Animation': 'Video & Animacija',
-        'Digital Marketing': 'Digitalni Marketing',
-        'Lifestyle': 'Životni Stil',
-        'Business': 'Biznis',
-        'Music & Audio': 'Muzika & Audio'
-      }
-    }
-  };
-
-  // Helper za prevod
-  const currentLang = (language && language.startsWith('sr')) ? 'sr' : 'en';
-  const t = txt[currentLang];
-
-  // --- 1. PI AUTHENTICATION ---
+  // --- 1. PI AUTHENTICATION (NOVA LOGIKA) ---
   useEffect(() => {
     const initPi = async () => {
       try {
         const Pi = (window as any).Pi;
         if (Pi) {
+          // Inicijalizacija bez debug konzole
           await Pi.init({ version: "2.0", sandbox: true });
+          
+          // Tražimo samo Username i Payments
           const scopes = ['username', 'payments'];
           const auth = await Pi.authenticate(scopes, (payment: any) => {
              console.log("Nedovršeno plaćanje:", payment);
           });
+          
+          // Čuvamo korisnika
           console.log("Uspešno ulogovan:", auth.user.username);
           setPiUser(auth.user);
         }
@@ -121,15 +66,22 @@ function ServicesContent() {
       window.addEventListener('pi-ready', initPi);
     }
   }, []);
+  // -------------------------------------------
 
-  // --- IKONICE ---
+  // --- GLAVNA FUNKCIJA ZA IKONICE (PAMETNA DETEKCIJA) ---
   const getServiceIcon = (service: any) => {
     const iconClass = "h-14 w-14 text-white/90 drop-shadow-md";
+
     const textToCheck = `${service.icon || ''} ${service.title || ''} ${service.category || ''}`.toLowerCase();
 
-    if (textToCheck.includes('car') || textToCheck.includes('auto') || textToCheck.includes('vehicle')) return <Car className={iconClass} />;
-    if (textToCheck.includes('repair') || textToCheck.includes('fix') || textToCheck.includes('mechanic')) return <Wrench className={iconClass} />;
-    if (textToCheck.includes('mobile') || textToCheck.includes('app') || textToCheck.includes('android')) return <Smartphone className={iconClass} />;
+    if (textToCheck.includes('car') || textToCheck.includes('auto') || textToCheck.includes('vehicle')) 
+      return <Car className={iconClass} />;
+    
+    if (textToCheck.includes('repair') || textToCheck.includes('fix') || textToCheck.includes('mechanic')) 
+      return <Wrench className={iconClass} />;
+
+    if (textToCheck.includes('mobile') || textToCheck.includes('app') || textToCheck.includes('android')) 
+        return <Smartphone className={iconClass} />;
 
     switch (service.category) {
         case "Graphics & Design": return <PenTool className={iconClass} />;
@@ -139,7 +91,8 @@ function ServicesContent() {
         case "Programming & Tech": return <Code className={iconClass} />;
         case "Music & Audio": return <Music className={iconClass} />;
         case "Business": return <Database className={iconClass} />;
-        case "Lifestyle": return <Coffee className={iconClass} />;
+        case "Lifestyle": 
+            return <Coffee className={iconClass} />;
         default: return <Layers className={iconClass} />;
     }
   };
@@ -163,9 +116,10 @@ function ServicesContent() {
     return gradients[(numId - 1) % gradients.length];
   };
 
-  // UČITAVANJE PODATAKA
+  // UČITAVANJE PODATAKA (Local Storage + Data fajl)
   useEffect(() => {
     let combinedData = [...SERVICES_DATA];
+
     if (typeof window !== 'undefined') {
         const localServicesStr = localStorage.getItem('skillclick_services');
         if (localServicesStr) {
@@ -183,15 +137,18 @@ function ServicesContent() {
   // FILTRIRANJE
   useEffect(() => {
     let results = allServices;
+
     if (searchTerm) {
       results = results.filter((service: any) => 
         service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
+
     if (selectedCategory && selectedCategory !== 'all') {
       results = results.filter((service: any) => service.category === selectedCategory);
     }
+
     setFilteredServices(results);
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, allServices]);
@@ -210,15 +167,15 @@ function ServicesContent() {
   };
 
   const categories = [
-    { id: 'all', label: t.allServices },
-    { id: 'Graphics & Design', label: t.cats['Graphics & Design'] },
-    { id: 'Programming & Tech', label: t.cats['Programming & Tech'] },
-    { id: 'Writing & Translation', label: t.cats['Writing & Translation'] },
-    { id: 'Video & Animation', label: t.cats['Video & Animation'] },
-    { id: 'Digital Marketing', label: t.cats['Digital Marketing'] },
-    { id: 'Lifestyle', label: t.cats['Lifestyle'] },
-    { id: 'Business', label: t.cats['Business'] },
-    { id: 'Music & Audio', label: t.cats['Music & Audio'] }
+    { id: 'all', label: 'All Services' },
+    { id: 'Graphics & Design', label: 'Graphics & Design' },
+    { id: 'Programming & Tech', label: 'Programming & Tech' },
+    { id: 'Writing & Translation', label: 'Writing & Translation' },
+    { id: 'Video & Animation', label: 'Video & Animation' },
+    { id: 'Digital Marketing', label: 'Digital Marketing' },
+    { id: 'Lifestyle', label: 'Lifestyle' },
+    { id: 'Business', label: 'Business' },
+    { id: 'Music & Audio', label: 'Music & Audio' }
   ];
 
   return (
@@ -238,9 +195,10 @@ function ServicesContent() {
                     }`}
                 >
                     <ArrowLeft className={`w-4 h-4 mr-2 ${isBackActive ? 'text-purple-400' : ''}`} />
-                    {t.back}
+                    Back to Home
                 </button>
                 
+                {/* Prikaz korisnika ako je ulogovan */}
                 {piUser && (
                    <span className="text-sm font-medium text-green-400 bg-green-400/10 px-3 py-1 rounded-full border border-green-400/20">
                      @{piUser.username}
@@ -250,7 +208,7 @@ function ServicesContent() {
 
             <div className="max-w-3xl">
                 <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 flex items-center gap-3">
-                   {t.find} <Sparkles className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-pulse" />
+                   Find services <Sparkles className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-pulse" />
                 </h1>
                 
                 <div className="relative max-w-2xl mt-6">
@@ -259,7 +217,7 @@ function ServicesContent() {
                     </div>
                     <Input 
                       type="text" 
-                      placeholder={t.searchPlaceholder}
+                      placeholder="Search for services..." 
                       className="pl-12 h-14 text-lg bg-white/10 border-white/20 text-white placeholder:text-gray-400 rounded-2xl focus:bg-white focus:text-gray-900 focus:placeholder:text-gray-500 transition-all shadow-lg backdrop-blur-sm"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -295,10 +253,10 @@ function ServicesContent() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-end mb-6">
             <h2 className="text-xl font-bold text-gray-900">
-               {filteredServices.length} <span className="text-gray-500 font-normal text-base">{t.resultsFound}</span>
+               {filteredServices.length} <span className="text-gray-500 font-normal text-base">Results found</span>
             </h2>
             <span className="text-sm text-gray-400">
-                {t.page} {currentPage} {t.of} {totalPages || 1}
+                Page {currentPage} of {totalPages || 1}
             </span>
         </div>
 
@@ -338,7 +296,7 @@ function ServicesContent() {
                               <span className="text-xs text-amber-600/70 ml-1">({gig.reviews || 0})</span>
                             </div>
                             <div className="text-right">
-                                <span className="block text-xs text-gray-400 font-medium">{t.startingAt}</span>
+                                <span className="block text-xs text-gray-400 font-medium">Starting at</span>
                                 <span className="text-lg font-extrabold text-purple-700">{gig.price} π</span>
                             </div>
                         </div>
@@ -347,25 +305,25 @@ function ServicesContent() {
             ))}
         </div>
 
-        {/* --- EMPTY STATE (PREVEDENO) --- */}
+        {/* --- EMPTY STATE --- */}
         {filteredServices.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                  <Search className="w-10 h-10 text-gray-400" />
              </div>
-             <h3 className="text-xl font-bold text-gray-900 mb-2">{t.noResults}</h3>
-             <p className="text-gray-500 max-w-md">{t.tryAdjusting}</p>
+             <h3 className="text-xl font-bold text-gray-900 mb-2">No services found</h3>
+             <p className="text-gray-500 max-w-md">Try adjusting your filters or search term.</p>
              <Button 
                 onClick={() => {setSearchTerm(''); setSelectedCategory('all');}}
                 variant="outline" 
                 className="mt-6 border-purple-200 text-purple-700 hover:bg-purple-50"
              >
-                {t.clearFilters}
+                Clear all filters
              </Button>
           </div>
         )}
 
-        {/* --- PAGINATION (PREVEDENO) --- */}
+        {/* --- PAGINATION --- */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-4 mt-8">
             <Button
@@ -374,11 +332,11 @@ function ServicesContent() {
               disabled={currentPage === 1}
               className="h-10 px-4 rounded-xl border-gray-300 text-gray-600 hover:text-purple-600 hover:border-purple-300 disabled:opacity-50"
             >
-              <ChevronLeft className="w-4 h-4 mr-1" /> {t.previous}
+              <ChevronLeft className="w-4 h-4 mr-1" /> Previous
             </Button>
             
             <div className="flex items-center gap-2 text-sm font-bold text-gray-700 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-                <span>{t.page}</span>
+                <span>Page</span>
                 <span className="text-purple-600">{currentPage}</span>
                 <span className="text-gray-400">/</span>
                 <span>{totalPages}</span>
@@ -390,7 +348,7 @@ function ServicesContent() {
               disabled={currentPage === totalPages}
               className="h-10 px-4 rounded-xl border-gray-300 text-gray-600 hover:text-purple-600 hover:border-purple-300 disabled:opacity-50"
             >
-              {t.next} <ChevronRight className="w-4 h-4 ml-1" />
+              Next <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         )}
