@@ -10,8 +10,8 @@ declare global {
   }
 }
 
-// === TRIK ZA SPREČAVANJE "CALLBACK MISSING" GREŠKE ===
-// Definišemo funkcije ovde, van React-a, da budu "neuništive"
+// === TRIK: DEFINIŠEMO FUNKCIJE OVDE (VAN KOMPONENTE) ===
+// Ovako ih React ne može "sakriti" od Pi SDK-a.
 const createCallbacks = (onSuccess: any, setLoading: any) => {
     return {
         onReadyForServerApproval: (paymentId: string) => {
@@ -35,6 +35,7 @@ const createCallbacks = (onSuccess: any, setLoading: any) => {
         onError: (error: any, payment: any) => {
             setLoading(false);
             console.error("Pi Error:", error);
+            // Ignorišemo greške ako je korisnik samo odustao
             if (!error.message?.includes("cancelled")) {
                  alert("GREŠKA: " + (error.message || error));
             }
@@ -46,47 +47,40 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
   const [loading, setLoading] = useState(false);
   const [isSdkReady, setIsSdkReady] = useState(false);
 
-  // === 1. INICIJALIZACIJA ČIM SE STRANICA OTVORI ===
+  // === 1. AUTOMATSKA INICIJALIZACIJA ===
+  // Ovo rešava grešku "SDK not initialized"
   useEffect(() => {
     const initPi = () => {
         if (window.Pi) {
             try {
-                // Pokrećemo ga odmah!
                 window.Pi.init({ version: "2.0", sandbox: false });
                 setIsSdkReady(true);
-                console.log("Pi SDK Inicijalizovan!");
+                console.log("✅ Pi SDK Startovan");
             } catch (err) {
-                // Ako je već inicijalizovan, to je ok
-                console.log("Pi SDK već radi.");
+                // Ako je već upaljen, samo kažemo da je spreman
                 setIsSdkReady(true);
             }
         }
     };
 
-    // Probamo odmah
     initPi();
-    
-    // Za svaki slučaj, proverimo opet za pola sekunde ako kasni
-    const timer = setTimeout(initPi, 500);
-    return () => clearTimeout(timer);
+    // Provera opet za svaki slučaj
+    setTimeout(initPi, 1000);
   }, []);
 
   const handleBuy = async () => {
     setLoading(true);
 
     if (!isSdkReady && !window.Pi) {
-       alert("Pi sistem se još povezuje... Pokušaj ponovo.");
+       alert("Sistem se povezuje... Sačekaj trenutak.");
        setLoading(false);
        return;
     }
 
     try {
-      // Za svaki slučaj probamo init još jednom (ne škodi)
-      try { window.Pi.init({ version: "2.0", sandbox: false }); } catch(e) {}
-
-      // 2. PRVO AUTHENTICATE (Obavezno pre plaćanja)
+      // 2. AUTHENTICATE (Obavezno pre plaćanja)
       await window.Pi.authenticate(['payments'], (payment: any) => {
-          // Tihi čistač ako nađe smeće
+          // Ako usput nađemo neku staru grešku, brišemo je tiho
           fetch('/api/payments/incomplete', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
@@ -94,22 +88,21 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
           });
       });
 
-      // 3. KREIRANJE PODATAKA
+      // 3. PODACI
       const paymentData = {
         amount: price,
         memo: `Usluga: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' }
       };
 
-      // 4. KORISTIMO ONE "ČVRSTE" FUNKCIJE
+      // 4. UZIMAMO SIGURNE FUNKCIJE
       const callbacks = createCallbacks(onSuccess, setLoading);
 
-      // 5. POZIV ZA KUPOVINU
+      // 5. KREIRAMO PLAĆANJE
       await window.Pi.createPayment(paymentData, callbacks);
 
     } catch (err: any) {
       setLoading(false);
-      // Ignorišemo ako korisnik odustane
       if (!err.message?.includes("user cancelled")) {
           alert("Greška: " + err.message);
       }
