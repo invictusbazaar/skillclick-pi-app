@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-// Definišemo da window ima Pi objekat
 declare global {
   interface Window {
     Pi: any;
@@ -15,10 +14,8 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
   const [loading, setLoading] = useState(false);
 
   const handleBuy = async () => {
-    // 1. Odmah blokiramo dugme
     setLoading(true);
 
-    // 2. Provera da li Pi postoji
     if (typeof window === "undefined" || !window.Pi) {
        alert("Pi mreža nije detektovana. Osveži stranicu.");
        setLoading(false);
@@ -26,73 +23,56 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
     }
 
     try {
-      // 3. Inicijalizacija (Bez try-catcha, neka pukne ako ne valja)
-      // Koristimo najosnovniju inicijalizaciju
+      // 1. Inicijalizacija
       window.Pi.init({ version: "2.0", sandbox: false });
 
-      // 4. Autentifikacija
-      // Ovde NE STAVLJAMO incomplete handler, da ne zbunjujemo SDK
-      const auth = await window.Pi.authenticate(['payments'], {
-          onIncompletePaymentFound: (payment: any) => {
-              // Samo logujemo, ne prekidamo proces
-              console.log("Nezavršena transakcija:", payment);
-              fetch('/api/payments/incomplete', {
-                  method: 'POST',
-                  body: JSON.stringify({ paymentId: payment.identifier })
-              });
-          }
+      // 2. ISPRAVLJENA AUTENTIFIKACIJA
+      // Ovde šaljemo DIREKTNO funkciju, a ne objekat sa funkcijom!
+      await window.Pi.authenticate(['payments'], function(payment: any) {
+          console.log("Nezavršena transakcija pronađena:", payment.identifier);
+          fetch('/api/payments/incomplete', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ paymentId: payment.identifier })
+          });
       });
 
-      console.log("Korisnik verifikovan:", auth.user.username);
-
-      // 5. DEFINISANJE POVRATNIH FUNKCIJA (CALLBACKS)
-      // Ovo je ključ. Pravimo const objekat TAČNO kako SDK traži.
-      const paymentCallbacks = {
-          onReadyForServerApproval: (paymentId: string) => {
-              console.log("Faza 1: Odobravanje", paymentId);
-              fetch('/api/payments/approve', {
-                  method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({ paymentId })
-              });
-          },
-          onServerApproval: (paymentId: string, txid: string) => {
-              console.log("Faza 2: Završeno", txid);
-              fetch('/api/payments/complete', {
-                  method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({ paymentId, txid })
-              });
-              if (onSuccess) onSuccess();
-          },
-          onCancel: (paymentId: string) => {
-              console.log("Otkazano", paymentId);
-              setLoading(false);
-          },
-          onError: (error: any, payment: any) => {
-              console.error("Greška:", error);
-              setLoading(false);
-              // Filtriramo grešku "user cancelled" da ne plašimo korisnika
-              if (error && !JSON.stringify(error).includes("cancelled")) {
-                  alert("Sistemska greška: " + (error.message || error));
-              }
-          }
-      };
-
-      // 6. KREIRANJE PLAĆANJA
-      // Prosleđujemo objekat koji smo upravo napravili
+      // 3. KREIRANJE PLAĆANJA (Direktno unutar poziva)
       await window.Pi.createPayment({
         amount: price,
         memo: `Usluga: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' }
-      }, paymentCallbacks);
+      }, {
+        onReadyForServerApproval: function(paymentId: string) {
+          fetch('/api/payments/approve', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ paymentId })
+          });
+        },
+        onServerApproval: function(paymentId: string, txid: string) {
+          fetch('/api/payments/complete', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ paymentId, txid })
+          });
+          if (onSuccess) onSuccess();
+        },
+        onCancel: function(paymentId: string) {
+          setLoading(false);
+        },
+        onError: function(error: any, payment: any) {
+          setLoading(false);
+          if (error && !JSON.stringify(error).includes("cancelled")) {
+              alert("Sistemska greška: " + (error.message || error));
+          }
+        }
+      });
 
     } catch (err: any) {
-      console.error("Critical Error:", err);
       setLoading(false);
-      // Ako korisnik otkaže, to nije greška za alert
       if (!err.message?.includes("user cancelled")) {
-          alert("Greška pri pokretanju: " + err.message);
+          alert("Greška: " + err.message);
       }
     }
   };
