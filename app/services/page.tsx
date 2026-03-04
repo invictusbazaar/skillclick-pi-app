@@ -25,6 +25,7 @@ export default function ServiceDetail() {
   const [service, setService] = useState<any>(null);
   const [mainImage, setMainImage] = useState<string>("");
 
+  // Helper za kategorije
   const getTranslatedCategory = (catFromDb: string) => {
       if (!catFromDb) return "";
       const lower = catFromDb.toLowerCase();
@@ -52,11 +53,9 @@ export default function ServiceDetail() {
 
     if (title.includes('auto') || title.includes('alfa')) return <Car className={iconClass} />;
     if (title.includes('popravka') || title.includes('servis')) return <Wrench className={iconClass} />;
-    
     if (cat.includes('design')) return <Palette className={iconClass} />;
     if (cat.includes('tech')) return <Code className={iconClass} />;
     if (cat.includes('market')) return <Monitor className={iconClass} />;
-    if (cat.includes('video')) return <Video className={iconClass} />;
     
     return <Briefcase className={iconClass} />;
   };
@@ -93,13 +92,6 @@ export default function ServiceDetail() {
       
       {/* HEADER */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-          {isPending && (
-              <div className="bg-amber-100 text-amber-800 text-center py-2 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-2 shadow-inner">
-                  <ShieldCheck className="w-4 h-4 shrink-0" /> 
-                  {t('pendingAdWarning') || "PREGLED: Ovaj oglas je na čekanju!"}
-              </div>
-          )}
-
           <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
             <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 text-xs font-bold hover:text-purple-600 uppercase">
                 <ArrowLeft className="w-4 h-4" /> {t('back')}
@@ -113,88 +105,58 @@ export default function ServiceDetail() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="grid md:grid-cols-3 gap-6">
           
+          {/* LEVA STRANA */}
           <div className="md:col-span-2 space-y-4">
             <h1 className="text-xl md:text-2xl font-black text-gray-900 leading-tight">{currentTitle}</h1>
-
-            <div className="flex items-center gap-3 py-2 border-b border-gray-200 overflow-hidden">
-                <Link href={`/seller/${sellerUsername}`} className="flex-shrink-0">
-                    {sellerAvatar ? (
-                        <img src={sellerAvatar} alt={sellerUsername} className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm" />
-                    ) : (
-                        <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold text-sm border border-white shadow-sm">
-                            {sellerUsername && sellerUsername[0] ? sellerUsername[0].toUpperCase() : <UserCircle />}
-                        </div>
-                    )}
-                </Link>
-                <div className="flex flex-col gap-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                        <Link href={`/seller/${sellerUsername}`} className="font-bold text-sm text-gray-800 hover:text-purple-600 hover:underline truncate max-w-[120px]">
-                            @{sellerUsername || "User"}
-                        </Link>
-                        <PresenceIndicator lastSeen={userLastSeen} />
-                        <span className="text-gray-300">|</span>
-                        <div className="flex items-center text-amber-500 text-xs">
-                            <Star className="w-3 h-3 fill-current mr-1" />
-                            <span className="font-bold">{service.sellerRating?.toFixed(1) || "5.0"}</span>
-                        </div>
-                    </div>
+            
+            {/* Seller info */}
+            <div className="flex items-center gap-3 py-2 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-gray-800">@{sellerUsername}</span>
+                    <PresenceIndicator lastSeen={userLastSeen} />
                 </div>
             </div>
 
+            {/* SLIKA */}
             <div className="relative w-full h-52 rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-gray-100">
                 {mainImage ? (
                     <img src={mainImage} alt={currentTitle} className="w-full h-full object-cover" /> 
                 ) : (
                     <div className={`w-full h-full bg-gradient-to-r ${getGradient(service.id)} flex items-center justify-center`}>
-                        <div className="flex flex-col items-center gap-2">
-                             {getSmartIcon(service)}
-                             <span className="text-white/80 text-xs font-bold uppercase tracking-widest">{getTranslatedCategory(service.category)}</span>
-                        </div>
+                         {getSmartIcon(service)}
                     </div>
                 )}
             </div>
 
+            {/* OPIS */}
             <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-wide">
-                    <PenTool className="w-4 h-4 text-purple-500"/> {t('aboutService')}
-                </h3>
                 <div className="prose prose-sm text-gray-600 leading-relaxed whitespace-pre-wrap text-sm">{currentDesc}</div>
             </div>
           </div>
 
+          {/* DESNA STRANA - KUPUJEMO OVDE */}
           <div className="md:col-span-1 space-y-4">
             <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-
                 <div className="flex justify-between items-center mb-4">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('servicePrice')}</span>
                     <span className="text-2xl font-black text-purple-600">{service.price} π</span>
                 </div>
 
-                <div className="space-y-2 mb-6">
-                    <div className="flex items-center gap-2 text-xs text-gray-700 font-bold bg-gray-50 p-2 rounded-lg">
-                        <Clock className="w-4 h-4 text-purple-500" />
-                        <span>{service.deliveryTime} {t('days')} {t('delivery')}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600 px-2">
-                        <CheckCircle className="w-3 h-3 text-green-500" />
-                        <span>{t('satisfaction')}</span>
-                    </div>
-                </div>
-
-                {/* ✅ OVO JE ISPRAVLJEN POZIV DUGMETA ✅ */}
+                {/* 🚨 OVDE JE BILA GREŠKA - SADA ISPRAVLJENO 🚨 */}
+                {/* Šaljemo 'price' i 'listingId' kako Verizija 5 traži */}
                 <BuyButton 
-                    price={parseFloat(service.price)}
+                    price={parseFloat(service.price)} 
                     listingId={service.id}
                     sellerId={sellerUsername}
                     onSuccess={() => {
-                        alert("Uspešno ste kupili uslugu!");
+                        alert("Uspešno kupljeno!");
                         router.push('/profile');
                     }}
                 />
-            </div>
 
-            {sellerUsername && (
+            </div>
+             {/* CHAT */}
+             {sellerUsername && (
                 <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
                      <ChatSystem sellerUsername={sellerUsername} />
                 </div>
