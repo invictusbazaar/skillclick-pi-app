@@ -6,20 +6,26 @@ import { Button } from "@/components/ui/button"
 
 declare global { interface Window { Pi: any; } }
 
-export default function BuyButton({ listingId, price, sellerId, onSuccess }: any) {
+export default function BuyButton(props: any) {
   const [loading, setLoading] = useState(false);
 
+  // === PAMETNO PREUZIMANJE PODATAKA ===
+  // Prihvatamo i "price" i "amount", i "listingId" i "serviceId"
+  const finalPrice = props.price || props.amount;
+  const finalListingId = props.listingId || props.serviceId;
+  const finalSellerId = props.sellerId || props.sellerUsername;
+
   const handleBuy = async () => {
-    // 1. PROVERA PODATAKA
-    if (!listingId || !price || !sellerId) {
-        alert(`VERZIJA 5 - FALE PODACI: Listing: ${listingId}, Cena: ${price}`);
+    // 1. DEBUG ALERT SA SVIM DETALJIMA (Sklonićemo ga kad proradi)
+    if (!finalPrice || !finalListingId || !finalSellerId) {
+        alert(`FALE PODACI!\nPrice: ${finalPrice}\nID: ${finalListingId}\nSeller: ${finalSellerId}`);
         return;
     }
 
     setLoading(true);
 
     if (typeof window === "undefined" || !window.Pi) {
-       alert("VERZIJA 5 - Pi Browser nije nađen.");
+       alert("Pi Browser nije detektovan.");
        setLoading(false);
        return;
     }
@@ -28,7 +34,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
       // 2. INICIJALIZACIJA
       window.Pi.init({ version: "2.0", sandbox: false });
 
-      // 3. AUTHENTICATE (Samo ovde ide onIncompletePaymentFound)
+      // 3. AUTHENTICATE
       const auth = await window.Pi.authenticate(['payments'], {
           onIncompletePaymentFound: (payment: any) => {
               console.log("Nezavršena transakcija:", payment);
@@ -40,14 +46,13 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
           }
       });
 
-      // 4. CREATE PAYMENT (TAČNO 4 FUNKCIJE - BEZ VIŠKA)
-      // Ovo je ključ. SDK traži samo ove 4 funkcije.
+      // 4. KREIRANJE PLAĆANJA
       await window.Pi.createPayment({
-        amount: price,
-        memo: `Kupovina: ${listingId}`, 
+        amount: parseFloat(finalPrice), // Osiguravamo da je broj
+        memo: `Kupovina: ${finalListingId}`, 
         metadata: { 
-            listingId: String(listingId), 
-            sellerId: String(sellerId),
+            listingId: String(finalListingId), 
+            sellerId: String(finalSellerId),
             type: 'service_purchase' 
         }
       }, {
@@ -64,16 +69,15 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
              headers: {'Content-Type': 'application/json'},
              body: JSON.stringify({ paymentId, txid })
           });
-          if (onSuccess) onSuccess();
+          if (props.onSuccess) props.onSuccess();
         },
         onCancel: (paymentId: string) => {
             setLoading(false);
         },
         onError: (error: any, payment: any) => {
           setLoading(false);
-          // Ignorišemo ako korisnik odustane
           if (!JSON.stringify(error).includes("cancelled")) {
-              alert("VERZIJA 5 GREŠKA: " + (error.message || error));
+              alert("GREŠKA: " + (error.message || error));
           }
         }
       });
@@ -81,8 +85,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
     } catch (err: any) {
       setLoading(false);
       if (!err.message?.includes("user cancelled")) {
-          // OVO JE ONAJ ALERT KOJI GLEDAMO
-          alert("VERZIJA 5 SISTEMSKA: " + err.message);
+          alert("Sistemska greška: " + err.message);
       }
     }
   };
@@ -94,9 +97,9 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
     >
       {loading ? (
-        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 5...</> 
+        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Povezivanje...</> 
       ) : (
-        <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({price} π)</>
+        <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({finalPrice} π)</>
       )}
     </Button>
   );
