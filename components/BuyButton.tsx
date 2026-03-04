@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 declare global {
@@ -10,112 +11,93 @@ declare global {
 }
 
 export default function BuyButton({ listingId, price, sellerId, onSuccess }: any) {
-  const [log, setLog] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const addLog = (msg: string) => setLog(prev => [...prev, msg]);
-
-  // OVA FUNKCIJA JE KLJUČ. ONA BRIŠE SMEĆE.
-  const handleCleanup = async (paymentId: string) => {
-      addLog(`🚨 PRONAĐEN ZAGLAVLJEN ID: ${paymentId}`);
-      addLog("⏳ Šaljem zahtev za brisanje...");
-      
-      try {
-          const res = await fetch('/api/payments/incomplete', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ paymentId })
-          });
-          const data = await res.json();
-          addLog(`✅ REZULTAT BRISANJA: ${JSON.stringify(data)}`);
-          alert("TRANSAKCIJA OBRISANA! Sada osveži stranicu i probaj kupovinu.");
-          window.location.reload();
-      } catch (e: any) {
-          addLog(`❌ GREŠKA PRI BRISANJU: ${e.message}`);
-      }
-  };
-
-  const startTrap = async () => {
+  const handleBuy = async () => {
     setLoading(true);
-    setLog(["Započinjem lov na zaglavljenu transakciju..."]);
 
     if (!window.Pi) {
-        addLog("Pi SDK nije detektovan.");
-        return;
+       alert("Pi SDK nije spreman. Osveži stranicu.");
+       setLoading(false);
+       return;
     }
 
     try {
-        // 1. Inicijalizacija
-        try { window.Pi.init({ version: "2.0", sandbox: false }); } catch(e) {}
-        
-        // 2. Definišemo callbacks PRE poziva
-        const callbacks = {
-            onReadyForServerApproval: (paymentId: string) => { 
-                addLog(`Ignorišem approval: ${paymentId}`); 
-            },
-            onServerApproval: (paymentId: string, txid: string) => { 
-                addLog(`Ignorišem complete: ${paymentId}`); 
-            },
-            onCancel: (paymentId: string) => { 
-                addLog(`Cancel trigger: ${paymentId}`); 
-                setLoading(false);
-            },
-            onError: (error: any, payment: any) => {
-                addLog(`⚠️ ERROR OKINUO: ${error.message}`);
-                // AKO NAM OVDJE DA PAYMENT OBJEKAT, BRIŠEMO GA
-                if (payment) {
-                    handleCleanup(payment.identifier);
-                } else {
-                    addLog("Nema payment objekta u grešci. Čekam onIncomplete...");
-                }
-                setLoading(false);
-            },
-            // OVO JE ONO ŠTO NAM TREBA
-            onIncompletePaymentFound: (payment: any) => {
-                handleCleanup(payment.identifier);
-            }
-        };
+      // 1. Inicijalizacija
+      try { window.Pi.init({ version: "2.0", sandbox: false }); } catch (_) {}
 
-        addLog("💣 Pokrećem lažnu transakciju da isprovociram grešku...");
-        
-        // Pokrećemo sa minimalnim iznosom samo da aktiviramo SDK
-        await window.Pi.createPayment({
-            amount: 0.1, 
-            memo: "DEBUG TRAP",
-            metadata: { type: "debug" }
-        }, callbacks);
+      const paymentData = {
+        amount: price,
+        memo: `Usluga: ${listingId}`, 
+        metadata: { listingId, sellerId, type: 'service_purchase' }
+      };
+
+      // 2. Definišemo callback-ove UNAPRED (Ovo sprečava "Callback missing" grešku)
+      const callbacks = {
+        onReadyForServerApproval: (paymentId: string) => {
+          fetch('/api/payments/approve', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ paymentId })
+          });
+        },
+        onServerApproval: (paymentId: string, txid: string) => {
+          fetch('/api/payments/complete', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({ paymentId, txid })
+          });
+          if (onSuccess) onSuccess();
+        },
+        onCancel: (paymentId: string) => {
+          setLoading(false);
+        },
+        onError: (error: any, payment: any) => {
+          setLoading(false);
+          console.error("Greška:", error);
+          
+          // Ako je greška "missing callback", ignorišemo je, jer onIncompletePaymentFound rešava stvar
+          if (error.message && !error.message.includes("callback")) {
+              alert("Greška: " + error.message);
+          }
+        },
+        // OVO JE OBAVEZNO: Ako SDK ipak nađe neku staru mrvicu
+        onIncompletePaymentFound: (payment: any) => {
+            console.log("Pronađena stara transakcija, čistim...", payment);
+            fetch('/api/payments/incomplete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ paymentId: payment.identifier })
+            }).then(() => {
+                // Tiho osvežimo stranicu ili samo pustimo korisnika da proba opet
+                console.log("Očišćeno.");
+            });
+        }
+      };
+
+      // 3. Pokrećemo plaćanje
+      await window.Pi.createPayment(paymentData, callbacks);
 
     } catch (err: any) {
-        setLoading(false);
-        addLog(`CATCH GREŠKA: ${err.message}`);
-        
-        // AKO JE GREŠKA "CALLBACK MISSING", PROBAJ OVO:
-        if (err.message.includes("callback")) {
-            addLog("⚠️ SDK se žali na callbackove. Pokušavam alternativni metod preko AUTH...");
-            try {
-                await window.Pi.authenticate(['payments'], (payment: any) => {
-                    handleCleanup(payment.identifier);
-                });
-            } catch (authErr) {
-                addLog("Ni Auth nije uspeo.");
-            }
-        }
+      setLoading(false);
+      // Ako korisnik otkaže, nije greška
+      if (!err.message?.includes("user cancelled")) {
+          alert("Sistemska greška: " + err.message);
+      }
     }
   };
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      <div className="bg-black text-green-400 p-4 rounded text-xs font-mono h-48 overflow-auto border-2 border-green-600">
-          {log.length === 0 ? "> SPREMAN ZA ČIŠĆENJE..." : log.map((l, i) => <div key={i}>{l}</div>)}
-      </div>
-
-      <Button 
-        onClick={startTrap}
-        disabled={loading}
-        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-xl rounded-xl animate-pulse shadow-[0_0_15px_rgba(255,0,0,0.5)]"
-      >
-        {loading ? "LOVIM GREŠKU..." : "🚨 POKRENI ČIŠĆENJE 🚨"}
-      </Button>
-    </div>
+    <Button
+      onClick={handleBuy}
+      disabled={loading}
+      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
+    >
+      {loading ? (
+         <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Procesuiranje...</>
+      ) : (
+         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah</>
+      )}
+    </Button>
   );
 }
