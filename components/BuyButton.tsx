@@ -12,69 +12,56 @@ declare global {
 
 export default function BuyButton({ listingId, price, sellerId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
-  const [sdkReady, setSdkReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
-  // 1. INICIJALIZACIJA (ODMAH PRI UČITAVANJU)
-  // Ovo sprečava grešku "SDK not initialized"
+  // 1. INICIJALIZACIJA (Kopirano iz Fixera)
   useEffect(() => {
     const initSdk = () => {
         if (window.Pi) {
             try {
                 window.Pi.init({ version: "2.0", sandbox: false });
-                console.log("SDK Inicijalizovan pri startu.");
-                setSdkReady(true);
+                setIsReady(true);
             } catch (err) {
-                // Ako je već inicijalizovan, to je super
-                console.log("SDK već radi.");
-                setSdkReady(true);
+                // Ako je vec inicijalizovan, to je ok
+                setIsReady(true);
             }
         }
     };
-
-    // Probaj odmah
     initSdk();
-    // Probaj opet za 1 sekundu (ako script kasni)
-    const timer = setTimeout(initSdk, 1000);
-    return () => clearTimeout(timer);
+    setTimeout(initSdk, 1000); // Provera opet za svaki slučaj
   }, []);
 
   const handleBuy = async () => {
     setLoading(true);
 
     if (!window.Pi) {
-       alert("Osveži stranicu, Pi mreža nije učitana.");
+       alert("Osveži stranicu.");
        setLoading(false);
        return;
     }
 
     try {
-      // Za svaki slučaj probamo init opet (ne boli glava od viška)
-      try { window.Pi.init({ version: "2.0", sandbox: false }); } catch (_) {}
-
-      // 2. AUTHENTICATE (Mora pre plaćanja)
+      // 2. AUTHENTICATE
       await window.Pi.authenticate(['payments'], (payment: any) => {
-          // Tihi čistač
-          fetch('/api/payments/incomplete', {
-              method: 'POST',
-              body: JSON.stringify({ paymentId: payment.identifier })
-          });
+          // OVO NIJE DOVOLJNO SAMO OVDE...
+          console.log("Incomplete found in auth:", payment);
       });
 
-      // 3. CREATE PAYMENT (SA INLINE FUNKCIJAMA)
-      // Ovo sprečava grešku "Callback functions missing"
+      // 3. CREATE PAYMENT
       await window.Pi.createPayment({
         amount: price,
         memo: `Usluga: ${listingId}`, 
         metadata: { listingId, sellerId, type: 'service_purchase' }
       }, {
-        onReadyForServerApproval: function(paymentId: string) {
+        // --- OBAVEZNE FUNKCIJE ---
+        onReadyForServerApproval: (paymentId: string) => {
           fetch('/api/payments/approve', {
              method: 'POST',
              headers: {'Content-Type': 'application/json'},
              body: JSON.stringify({ paymentId })
           });
         },
-        onServerApproval: function(paymentId: string, txid: string) {
+        onServerApproval: (paymentId: string, txid: string) => {
           fetch('/api/payments/complete', {
              method: 'POST',
              headers: {'Content-Type': 'application/json'},
@@ -82,14 +69,23 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
           });
           if (onSuccess) onSuccess();
         },
-        onCancel: function(paymentId: string) {
+        onCancel: (paymentId: string) => {
           setLoading(false);
         },
-        onError: function(error: any, payment: any) {
+        onError: (error: any, payment: any) => {
           setLoading(false);
           if (!error.message?.includes("cancelled")) {
               alert("GREŠKA: " + (error.message || error));
           }
+        },
+        // --- KLJUČNO: DODAJEMO OVO I OVDE! ---
+        // Bez ovoga ti izbacuje "Callback missing"
+        onIncompletePaymentFound: (payment: any) => {
+            console.log("Incomplete found in payment loop:", payment);
+            fetch('/api/payments/incomplete', {
+                method: 'POST',
+                body: JSON.stringify({ paymentId: payment.identifier })
+            });
         }
       });
 
