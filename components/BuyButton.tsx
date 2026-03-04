@@ -17,10 +17,7 @@ export default function BuyButton(props: any) {
 
   const handleBuy = async () => {
     // 1. Provera
-    if (!safePrice) {
-        alert("VERZIJA 10 STOP: Nema cene.");
-        return;
-    }
+    if (!safePrice) { alert("V11 STOP: Nema cene."); return; }
 
     setLoading(true);
 
@@ -31,24 +28,24 @@ export default function BuyButton(props: any) {
     }
 
     try {
+      // KORAK 1: INIT
+      // alert("1. Pokrećem Init..."); // Otkomentariši ako treba, ali smara
       window.Pi.init({ version: "2.0", sandbox: false });
 
-      // 2. Authenticate (Sa incomplete handlerom)
+      // KORAK 2: AUTH
       const user = await window.Pi.authenticate(['payments'], {
           onIncompletePaymentFound: function(payment: any) {
-              fetch('/api/payments/incomplete', {
-                  method: 'POST',
-                  body: JSON.stringify({ paymentId: payment.identifier })
-              });
+               console.log("Incomplete found");
+               // Ovde ne radimo fetch da ne komplikujemo debug
           }
       });
 
-      console.log("User:", user.username);
+      // POKAŽI DA JE AUTH PROŠAO
+      alert("2. AUTH OK: " + user.username);
 
-      // 3. PRIPREMA CALLBACK-OVA (Samo 4 osnovna)
-      const callbacks = {
+      // KORAK 3: DEFINISANJE POVRATNIH FUNKCIJA
+      const myCallbacks = {
           onReadyForServerApproval: function(paymentId: string) {
-              // alert("V10: Odobravam..."); // Debug
               fetch('/api/payments/approve', {
                   method: 'POST',
                   headers: {'Content-Type': 'application/json'},
@@ -56,7 +53,6 @@ export default function BuyButton(props: any) {
               });
           },
           onServerApproval: function(paymentId: string, txid: string) {
-              // alert("V10: Gotovo!"); // Debug
               fetch('/api/payments/complete', {
                   method: 'POST',
                   headers: {'Content-Type': 'application/json'},
@@ -69,28 +65,28 @@ export default function BuyButton(props: any) {
           },
           onError: function(error: any, payment: any) {
               setLoading(false);
-              var msg = error.message || error;
-              if (!JSON.stringify(msg).includes("cancelled")) {
-                  alert("V10 GREŠKA: " + msg);
+              if (!JSON.stringify(error).includes("cancelled")) {
+                  alert("V11 SDK GREŠKA: " + (error.message || error));
               }
           }
       };
 
-      // 4. KREIRANJE PLAĆANJA - BEZ METADATA PODATAKA!
-      // Šaljemo samo ono najnužnije da vidimo da li će proći
-      // alert("V10: Pokrećem createPayment za " + safePrice);
-      
+      // KORAK 4: PROVERA FUNKCIJA (DETEKTIV)
+      // Ovde ćemo videti da li funkcije uopšte postoje pre slanja!
+      const keys = Object.keys(myCallbacks);
+      alert("3. ŠALJEMO: " + keys.join(", "));
+
+      // KORAK 5: KREIRANJE PLAĆANJA
       await window.Pi.createPayment({
         amount: safePrice,
-        memo: "Usluga " + finalId // Samo osnovni opis
-        // IZBACILI SMO METADATA DA VIDIMO DA LI ONA PRAVI PROBLEM
-      }, callbacks);
+        memo: "Kupovina " + finalId,
+        metadata: { type: 'service' } // Minimalni metadata
+      }, myCallbacks);
 
     } catch (err: any) {
       setLoading(false);
-      if (!err.message?.includes("user cancelled")) {
-          alert("VERZIJA 10 SISTEMSKA: " + err.message);
-      }
+      // Ako pukne pre SDK greške
+      alert("V11 SISTEMSKA: " + err.message);
     }
   };
 
@@ -101,7 +97,7 @@ export default function BuyButton(props: any) {
       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
     >
       {loading ? (
-        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 10...</> 
+        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 11...</> 
       ) : (
         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice} π)</>
       )}
