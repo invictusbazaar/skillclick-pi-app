@@ -18,7 +18,7 @@ export default function BuyButton(props: any) {
   const handleBuy = async () => {
     // 1. Provera podataka
     if (!safePrice || !finalId || !finalSeller) {
-        alert("VERZIJA 8 STOP: Fale podaci.");
+        alert("VERZIJA 9 STOP: Fale podaci.");
         return;
     }
 
@@ -34,8 +34,8 @@ export default function BuyButton(props: any) {
       // 2. Inicijalizacija
       window.Pi.init({ version: "2.0", sandbox: false });
 
-      // 3. DEFINIŠEMO Callbackove ZASEBNO (Stari način)
-      // Ovo radimo da bismo bili 100% sigurni da objekat postoji pre slanja
+      // 3. DEFINIŠEMO Callbackove - SVIH 5 KOMADA!
+      // Pišemo ih kao 'function' (starinski) da telefon sigurno razume
       const myCallbacks = {
           onReadyForServerApproval: function(paymentId: string) {
               fetch('/api/payments/approve', {
@@ -57,24 +57,28 @@ export default function BuyButton(props: any) {
           },
           onError: function(error: any, payment: any) {
               setLoading(false);
-              // Ignorisi cancel gresku
               if (!JSON.stringify(error).includes("cancelled")) {
-                  alert("V8 GREŠKA: " + (error.message || error));
+                  alert("V9 GREŠKA: " + (error.message || error));
               }
+          },
+          // 🚨 OVO JE ONA PETI FUNKCIJA KOJU TVOJ TELEFON TRAŽI 🚨
+          // Ali sada je pišemo unutar objekta, starom sintaksom
+          onIncompletePaymentFound: function(payment: any) {
+              fetch('/api/payments/incomplete', {
+                  method: 'POST',
+                  body: JSON.stringify({ paymentId: payment.identifier })
+              });
           }
       };
 
-      // 4. AUTHENTICATE (Starija sintaksa - funkcija direktno, ne objekat)
-      // Možda tvoj telefon ne voli objekat ovde
+      // 4. AUTHENTICATE
+      // Ovde takođe stavljamo incomplete handler jer SDK tako kaže, ali onaj gore u callbacks je za svaki slučaj
       await window.Pi.authenticate(['payments'], function(payment: any) {
           fetch('/api/payments/incomplete', {
               method: 'POST',
               body: JSON.stringify({ paymentId: payment.identifier })
           });
       });
-
-      // DEBUG: Proveravamo da li React vidi funkcije
-      // alert("V8 INFO: Šaljem funkcije: " + Object.keys(myCallbacks).join(", "));
 
       // 5. CREATE PAYMENT
       await window.Pi.createPayment({
@@ -84,12 +88,12 @@ export default function BuyButton(props: any) {
             listingId: String(finalId), 
             sellerId: String(finalSeller) 
         }
-      }, myCallbacks); // Šaljemo onaj objekat od malopre
+      }, myCallbacks); 
 
     } catch (err: any) {
       setLoading(false);
       if (!err.message?.includes("user cancelled")) {
-          alert("VERZIJA 8 SISTEMSKA: " + err.message);
+          alert("VERZIJA 9 SISTEMSKA: " + err.message);
       }
     }
   };
@@ -101,7 +105,7 @@ export default function BuyButton(props: any) {
       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
     >
       {loading ? (
-        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 8...</> 
+        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 9...</> 
       ) : (
         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice} π)</>
       )}
