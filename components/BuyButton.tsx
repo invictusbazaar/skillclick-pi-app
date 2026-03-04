@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -9,50 +9,57 @@ declare global { interface Window { Pi: any; } }
 export default function BuyButton(props: any) {
   const [loading, setLoading] = useState(false);
 
-  // === PAMETNO PREUZIMANJE PODATAKA ===
-  // Prihvatamo i "price" i "amount", i "listingId" i "serviceId"
-  const finalPrice = props.price || props.amount;
-  const finalListingId = props.listingId || props.serviceId;
-  const finalSellerId = props.sellerId || props.sellerUsername;
+  // 1. UHVATI BILO KOJI PODATAK KOJI DOĐE
+  // Ovo pokriva i staru i novu verziju page.tsx
+  const rawPrice = props.price || props.amount;
+  const rawId = props.listingId || props.serviceId;
+  const rawSeller = props.sellerId || props.sellerUsername;
 
-  const handleBuy = async () => {
-    // 1. DEBUG ALERT SA SVIM DETALJIMA (Sklonićemo ga kad proradi)
-    if (!finalPrice || !finalListingId || !finalSellerId) {
-        alert(`FALE PODACI!\nPrice: ${finalPrice}\nID: ${finalListingId}\nSeller: ${finalSellerId}`);
-        return;
-    }
+  // 2. SIGURNA KONVERZIJA (Da ne dobijemo NaN grešku)
+  const safePrice = parseFloat(rawPrice) > 0 ? parseFloat(rawPrice) : 0;
 
+  // DEBUG ALERT PRILIKOM KLIKA
+  const handleDebugAndBuy = async () => {
+      // Ako podaci fale, vičemo ODMAH
+      if (!safePrice || !rawId || !rawSeller) {
+          alert(`VERZIJA 6 - STOP!\nStigli su loši podaci:\nCena: ${rawPrice}\nID: ${rawId}\nProdavac: ${rawSeller}`);
+          return;
+      }
+      
+      // Ako su podaci tu, pokrećemo plaćanje
+      handleBuy(safePrice, rawId, rawSeller);
+  };
+
+  const handleBuy = async (price: number, listingId: any, sellerId: any) => {
     setLoading(true);
 
     if (typeof window === "undefined" || !window.Pi) {
-       alert("Pi Browser nije detektovan.");
+       alert("VERZIJA 6: Pi Browser nije nađen.");
        setLoading(false);
        return;
     }
 
     try {
-      // 2. INICIJALIZACIJA
+      // INICIJALIZACIJA
       window.Pi.init({ version: "2.0", sandbox: false });
 
-      // 3. AUTHENTICATE
+      // AUTHENTICATE (Sa onom specijalnom funkcijom OVDE)
       const auth = await window.Pi.authenticate(['payments'], {
           onIncompletePaymentFound: (payment: any) => {
-              console.log("Nezavršena transakcija:", payment);
               fetch('/api/payments/incomplete', {
                   method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
                   body: JSON.stringify({ paymentId: payment.identifier })
               });
           }
       });
 
-      // 4. KREIRANJE PLAĆANJA
+      // CREATE PAYMENT (ČISTO KAO SUZA)
       await window.Pi.createPayment({
-        amount: parseFloat(finalPrice), // Osiguravamo da je broj
-        memo: `Kupovina: ${finalListingId}`, 
+        amount: price, 
+        memo: `Kupovina: ${listingId}`, 
         metadata: { 
-            listingId: String(finalListingId), 
-            sellerId: String(finalSellerId),
+            listingId: String(listingId), 
+            sellerId: String(sellerId),
             type: 'service_purchase' 
         }
       }, {
@@ -71,13 +78,11 @@ export default function BuyButton(props: any) {
           });
           if (props.onSuccess) props.onSuccess();
         },
-        onCancel: (paymentId: string) => {
-            setLoading(false);
-        },
+        onCancel: (paymentId: string) => setLoading(false),
         onError: (error: any, payment: any) => {
           setLoading(false);
           if (!JSON.stringify(error).includes("cancelled")) {
-              alert("GREŠKA: " + (error.message || error));
+              alert("VERZIJA 6 GREŠKA: " + (error.message || error));
           }
         }
       });
@@ -85,21 +90,21 @@ export default function BuyButton(props: any) {
     } catch (err: any) {
       setLoading(false);
       if (!err.message?.includes("user cancelled")) {
-          alert("Sistemska greška: " + err.message);
+          alert("VERZIJA 6 SISTEMSKA: " + err.message);
       }
     }
   };
 
   return (
     <Button 
-      onClick={handleBuy} 
+      onClick={handleDebugAndBuy} 
       disabled={loading} 
       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
     >
       {loading ? (
-        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Povezivanje...</> 
+        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 6...</> 
       ) : (
-        <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({finalPrice} π)</>
+        <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice || "?"} π)</>
       )}
     </Button>
   );
