@@ -32,13 +32,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        {/* 🚨 OVO JE BILA GREŠKA! MORA BITI 'afterInteractive' 🚨 */}
+        {/* ✅ OBAVEZNO: 'beforeInteractive' da bi Profil i Admin radili */}
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
-          strategy="afterInteractive" 
+          strategy="beforeInteractive" 
         />
 
         <LanguageProvider>
+          {/* AuthProvider mora biti ovde */}
           <AuthProvider>
             <Navbar />
             <main className="flex-grow">
