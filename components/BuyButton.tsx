@@ -3,110 +3,109 @@
 import { useState } from "react"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/components/AuthContext" 
 
-declare global { interface Window { Pi: any; } }
+declare global {
+  interface Window {
+    Pi: any;
+  }
+}
 
-export default function BuyButton(props: any) {
+export default function BuyButton({ listingId, price, sellerId, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
+  const { user, isLoading: authLoading } = useAuth();
 
-  const finalPrice = props.price || props.amount;
-  const finalId = props.listingId || props.serviceId;
-  const finalSeller = props.sellerId || props.sellerUsername;
-  const safePrice = parseFloat(finalPrice) > 0 ? parseFloat(finalPrice) : 0;
+  const handleBuy = async () => {
+    // 1. Provere
+    if (authLoading) {
+        alert("Aplikacija se još uvek povezuje sa Pi Mrežom. Molimo sačekajte par sekundi.");
+        return;
+    }
 
-  // DEFINIŠEMO OVO KAO ZASEBNU PROMENLJIVU (DA BUDEMO SIGURNI DA POSTOJI)
-  const handleIncomplete = function(payment: any) {
-      // alert("V14: Čistim zaglavljenu transakciju..."); 
-      fetch('/api/payments/incomplete', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ paymentId: payment.identifier })
-      });
-  };
+    if (!user) {
+        alert("Niste prijavljeni. Molimo osvežite stranicu kako bi vas Pi Browser prepoznao.");
+        return;
+    }
 
-  const handleBuy = () => { // Nema async ovde, koristimo .then
-    if (!safePrice) { alert("V14 STOP: Nema cene."); return; }
+    if (!price || price <= 0) {
+        alert("Sistemska greška: Cena nije validna.");
+        return;
+    }
 
     setLoading(true);
 
     if (typeof window === "undefined" || !window.Pi) {
-       alert("Nema Pi Browser-a.");
+       alert("Pi mreža nije detektovana. Da li koristite Pi Browser?");
        setLoading(false);
        return;
     }
 
     try {
-      // 1. INIT
-      window.Pi.init({ version: "2.0", sandbox: false });
-
-      // 2. AUTH - STARA ŠKOLA (BEZ VITIČASTIH ZAGRADA)
-      // Ovako se radilo u verziji 1.0, i ovo radi na svakom telefonu
-      window.Pi.authenticate(['payments'], handleIncomplete).then(function(auth: any) {
-          
-          // 3. CREATE PAYMENT
-          const paymentData = {
-            amount: safePrice,
-            memo: "Kupovina " + finalId,
-            metadata: { 
-                listingId: String(finalId), 
-                sellerId: String(finalSeller),
-                type: 'service_purchase'
-            }
-          };
-
-          const callbacks = {
-            onReadyForServerApproval: function(paymentId: string) {
+      // ✅ 2. OVO JE ISPRAVLJEN OBJEKAT (Pravi naziv za kompletiranje)
+      const paymentCallbacks = {
+          onReadyForServerApproval: (paymentId: string) => {
+              console.log("Faza 1: Odobravanje", paymentId);
               fetch('/api/payments/approve', {
-                 method: 'POST',
-                 headers: {'Content-Type': 'application/json'},
-                 body: JSON.stringify({ paymentId })
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ paymentId })
               });
-            },
-            onServerApproval: function(paymentId: string, txid: string) {
+          },
+          // 🚨 OVO JE BILA GREŠKA. SADA JE ISPRAVNO!
+          onReadyForServerCompletion: (paymentId: string, txid: string) => { 
+              console.log("Faza 2: Završeno", txid);
               fetch('/api/payments/complete', {
-                 method: 'POST',
-                 headers: {'Content-Type': 'application/json'},
-                 body: JSON.stringify({ paymentId, txid })
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({ paymentId, txid })
               });
-              if (props.onSuccess) props.onSuccess();
-            },
-            onCancel: function(paymentId: string) {
+              if (onSuccess) onSuccess();
+          },
+          onCancel: (paymentId: string) => {
+              console.log("Otkazano", paymentId);
               setLoading(false);
-            },
-            onError: function(error: any, payment: any) {
+          },
+          onError: (error: any, payment: any) => {
+              console.error("Greška pri plaćanju:", error);
               setLoading(false);
-              var msg = error.message || error;
-              if (!JSON.stringify(msg).includes("cancelled")) {
-                  alert("V14 GREŠKA: " + msg);
+              if (error && !JSON.stringify(error).includes("cancelled")) {
+                  alert("SDK Greška: " + (error.message || error));
               }
-            },
-            // DUPLA ZAŠTITA - UBACUJEMO GA I OVDE
-            onIncompletePaymentFound: handleIncomplete
-          };
+          }
+      };
 
-          return window.Pi.createPayment(paymentData, callbacks);
+      console.log("Pokrećem plaćanje za iznos:", price);
 
-      }).catch(function(err: any) {
-          setLoading(false);
-          alert("V14 AUTH/SYS GREŠKA: " + (err.message || err));
-      });
+      // 3. Pokretanje plaćanja
+      await window.Pi.createPayment({
+        amount: parseFloat(price), 
+        memo: `Usluga: ${listingId}`, 
+        metadata: { 
+            listingId: String(listingId), 
+            sellerId: String(sellerId), 
+            type: 'service_purchase' 
+        }
+      }, paymentCallbacks);
 
     } catch (err: any) {
+      console.error("Critical Error:", err);
       setLoading(false);
-      alert("V14 CRITICAL: " + err.message);
+      if (!err.message?.includes("user cancelled")) {
+          alert("Sistemska greška: " + err.message);
+      }
     }
   };
 
   return (
-    <Button 
-      onClick={handleBuy} 
-      disabled={loading} 
-      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg"
+    <Button
+      onClick={handleBuy}
+      disabled={loading || authLoading} 
+      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg disabled:opacity-50"
     >
-      {loading ? (
-        <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> VERZIJA 14...</> 
+      {loading || authLoading ? (
+         <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Povezivanje...</>
       ) : (
-        <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice} π)</>
+         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({price} π)</>
       )}
     </Button>
   );
