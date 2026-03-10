@@ -11,9 +11,19 @@ declare global {
   }
 }
 
-export default function BuyButton({ listingId, price, sellerId, onSuccess }: any) {
+// VRAĆAMO PROPS: ANY DA MOŽEMO DA UHVATIMO ŠTA GOD STRANICA POŠALJE
+export default function BuyButton(props: any) {
   const [loading, setLoading] = useState(false);
   const { user, isLoading: authLoading } = useAuth();
+
+  // ✅ PAMETNO HVATANJE PODATAKA:
+  // Ako stranica pošalje 'price', uzima to. Ako pošalje 'amount', uzima to.
+  const rawPrice = props.price || props.amount;
+  const finalId = props.listingId || props.serviceId || props.id;
+  const finalSeller = props.sellerId || props.sellerUsername;
+  
+  // Pretvaramo u siguran broj (da ne bi bilo NaN ili prazno)
+  const safePrice = parseFloat(rawPrice) > 0 ? parseFloat(rawPrice) : 0;
 
   const handleBuy = async () => {
     // 1. Provere
@@ -27,8 +37,9 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
         return;
     }
 
-    if (!price || price <= 0) {
-        alert("Sistemska greška: Cena nije validna.");
+    // SADA PROVERAVAMO SAFEPRICE
+    if (safePrice <= 0) {
+        alert("Sistemska greška: Cena nije validna ili nije prosleđena dugmetu.");
         return;
     }
 
@@ -41,7 +52,6 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
     }
 
     try {
-      // ✅ 2. OVO JE ISPRAVLJEN OBJEKAT (Pravi naziv za kompletiranje)
       const paymentCallbacks = {
           onReadyForServerApproval: (paymentId: string) => {
               console.log("Faza 1: Odobravanje", paymentId);
@@ -51,7 +61,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
                   body: JSON.stringify({ paymentId })
               });
           },
-          // 🚨 OVO JE BILA GREŠKA. SADA JE ISPRAVNO!
+          // PRAVI NAZIV - NAŠA NAJVEĆA POBEDA
           onReadyForServerCompletion: (paymentId: string, txid: string) => { 
               console.log("Faza 2: Završeno", txid);
               fetch('/api/payments/complete', {
@@ -59,7 +69,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
                   headers: {'Content-Type': 'application/json'},
                   body: JSON.stringify({ paymentId, txid })
               });
-              if (onSuccess) onSuccess();
+              if (props.onSuccess) props.onSuccess();
           },
           onCancel: (paymentId: string) => {
               console.log("Otkazano", paymentId);
@@ -74,15 +84,15 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
           }
       };
 
-      console.log("Pokrećem plaćanje za iznos:", price);
+      console.log("Pokrećem plaćanje za iznos:", safePrice);
 
-      // 3. Pokretanje plaćanja
+      // 3. Pokretanje plaćanja (koristimo safePrice)
       await window.Pi.createPayment({
-        amount: parseFloat(price), 
-        memo: `Usluga: ${listingId}`, 
+        amount: safePrice, 
+        memo: `Usluga: ${finalId}`, 
         metadata: { 
-            listingId: String(listingId), 
-            sellerId: String(sellerId), 
+            listingId: String(finalId), 
+            sellerId: String(finalSeller), 
             type: 'service_purchase' 
         }
       }, paymentCallbacks);
@@ -105,7 +115,7 @@ export default function BuyButton({ listingId, price, sellerId, onSuccess }: any
       {loading || authLoading ? (
          <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Povezivanje...</>
       ) : (
-         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({price} π)</>
+         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice || "?"} π)</>
       )}
     </Button>
   );
