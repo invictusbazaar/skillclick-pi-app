@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/AuthContext"
+// ✅ UVOZIMO TVOJ SISTEM ZA JEZIKE
+import { useLanguage } from "@/components/LanguageContext"
 
 declare global {
   interface Window {
@@ -14,8 +16,10 @@ declare global {
 export default function BuyButton(props: any) {
   const [loading, setLoading] = useState(false);
   const { user, isLoading: authLoading } = useAuth();
+  
+  // ✅ AKTIVIRAMO PREVODE
+  const { t } = useLanguage();
 
-  // Pametno hvatanje podataka
   const rawPrice = props.price || props.amount;
   const finalId = props.listingId || props.serviceId || props.id;
   const finalSeller = props.sellerId || props.sellerUsername;
@@ -23,33 +27,31 @@ export default function BuyButton(props: any) {
 
   const handleBuy = async () => {
     if (authLoading) {
-        alert("Aplikacija se još uvek povezuje sa Pi Mrežom. Molimo sačekajte par sekundi.");
+        alert(t('loading')); // Prati jezik (Učitavanje...)
         return;
     }
 
     if (!user) {
-        alert("Niste prijavljeni. Molimo osvežite stranicu kako bi vas Pi Browser prepoznao.");
+        alert(t('loginReq') || "Morate se prijaviti."); // Prati jezik
         return;
     }
 
     if (safePrice <= 0) {
-        alert("Sistemska greška: Cena nije validna.");
+        alert(t('error') || "Sistemska greška: Cena nije validna.");
         return;
     }
 
     setLoading(true);
 
     if (typeof window === "undefined" || !window.Pi) {
-       alert("Pi mreža nije detektovana. Da li koristite Pi Browser?");
+       alert(t('piBrowserError') || "Pi mreža nije detektovana."); // Prati jezik
        setLoading(false);
        return;
     }
 
     try {
-      // 1. TRAŽIMO DOZVOLU ZA PLAĆANJE (Agresivni mod pre samog plaćanja)
       await window.Pi.authenticate(['payments'], {
           onIncompletePaymentFound: function(payment: any) {
-              console.log("Brisanje stare transakcije...", payment.identifier);
               fetch('/api/payments/incomplete', {
                   method: 'POST',
                   headers: {'Content-Type': 'application/json'},
@@ -58,7 +60,6 @@ export default function BuyButton(props: any) {
           }
       });
 
-      // 2. KREIRANJE PLAĆANJA
       const paymentCallbacks = {
           onReadyForServerApproval: (paymentId: string) => {
               fetch('/api/payments/approve', {
@@ -67,13 +68,11 @@ export default function BuyButton(props: any) {
                   body: JSON.stringify({ paymentId })
               });
           },
-          // 🛑 ISPRAVLJEN NAZIV FUNKCIJE 🛑
           onReadyForServerCompletion: async (paymentId: string, txid: string) => { 
               try {
                   const response = await fetch('/api/payments/complete', {
                       method: 'POST',
                       headers: {'Content-Type': 'application/json'},
-                      // ✅ ŠALJEMO TVOJE IME U BAZU
                       body: JSON.stringify({ 
                           paymentId, 
                           txid, 
@@ -81,18 +80,24 @@ export default function BuyButton(props: any) {
                       }) 
                   });
                   
-                  // 🛑 OVO ZAUSTAVLJA VRTENJE DUGMETA 🛑
+                  const data = await response.json(); // ✅ ČITAMO TAJNI ODGOVOR BAZE
                   setLoading(false); 
                   
                   if (response.ok) {
-                      alert("Uspešno plaćeno i upisano u profil!");
-                      if (props.onSuccess) props.onSuccess();
+                      // AKO BAZA PRIJAVI GREŠKU, SADA ĆEMO JE VIDETI!
+                      if (data.error_log) {
+                          alert("GREŠKA U BAZI (Slikaj mi ovo): " + data.error_log);
+                      } else {
+                          // ✅ USPEH - BEZ onog "upisano u profil"
+                          alert(t('paymentSuccess') || "Payment successful!");
+                          if (props.onSuccess) props.onSuccess();
+                      }
                   } else {
-                      alert("Plaćanje uspešno, ali postoji problem sa profilom.");
+                      alert(t('error') || "Problem sa serverom.");
                   }
               } catch (error) {
                   setLoading(false);
-                  alert("Greška pri komunikaciji sa serverom nakon plaćanja.");
+                  alert(t('error') || "Greška u komunikaciji.");
               }
           },
           onCancel: (paymentId: string) => {
@@ -101,12 +106,11 @@ export default function BuyButton(props: any) {
           onError: (error: any, payment: any) => {
               setLoading(false);
               if (error && !JSON.stringify(error).includes("cancelled")) {
-                  alert("SDK Greška: " + (error.message || error));
+                  alert("SDK Error: " + (error.message || error));
               }
           }
       };
 
-      // 3. POKREĆEMO PLAĆANJE
       await window.Pi.createPayment({
         amount: safePrice, 
         memo: `Usluga: ${finalId}`, 
@@ -120,7 +124,7 @@ export default function BuyButton(props: any) {
     } catch (err: any) {
       setLoading(false);
       if (!err.message?.includes("user cancelled")) {
-          alert("Sistemska greška: " + err.message);
+          alert("Error: " + err.message);
       }
     }
   };
@@ -132,9 +136,9 @@ export default function BuyButton(props: any) {
       className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg disabled:opacity-50"
     >
       {loading || authLoading ? (
-         <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Povezivanje...</>
+         <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t('processing')}</>
       ) : (
-         <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice || "?"} π)</>
+         <><ShoppingCart className="mr-2 h-5 w-5" /> {t('buyNow')} ({safePrice || "?"} π)</>
       )}
     </Button>
   );

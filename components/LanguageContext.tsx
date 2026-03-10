@@ -146,7 +146,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Not Logged In",
       loginReq: "You must login via Pi Browser to view your profile.",
       error: "Error loading profile data.",
-      rated: "Rated" 
+      rated: "Rated",
+      paymentSuccess: "Payment successful!"
     },
 
     // === 🇷🇸 SRPSKI ===
@@ -264,7 +265,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Nisi ulogovan",
       loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
       error: "Greška pri učitavanju podataka profila.",
-      rated: "Ocenjeno" 
+      rated: "Ocenjeno",
+      paymentSuccess: "Plaćanje uspešno!"
     },
 
     // === 🇮🇳 HINDI ===
@@ -381,7 +383,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "लॉग इन नहीं है",
       loginReq: "अपनी प्रोफ़ाइल देखने के लिए आपको Pi Browser के माध्यम से लॉग इन करना होगा।",
       error: "प्रोफ़ाइल डेटा लोड करने में त्रुटि।",
-      rated: "रेट किया गया"
+      rated: "रेट किया गया",
+      paymentSuccess: "भुगतान सफल!"
     },
 
     // === 🇨🇳 KINESKI ===
@@ -498,7 +501,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "未登录",
       loginReq: "您必须通过 Pi 浏览器登录才能查看个人资料。",
       error: "加载个人资料数据时出错。",
-      rated: "已评价" 
+      rated: "已评价",
+      paymentSuccess: "支付成功！"
     },
 
     // === 🇹🇼 TAJVANSKI ===
@@ -615,7 +619,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "未登錄",
       loginReq: "您必須通過 Pi 瀏覽器登錄才能查看個人資料。",
       error: "加載個人資料數據時出錯。",
-      rated: "已評價"
+      rated: "已評價",
+      paymentSuccess: "支付成功！"
     },
 
     // === 🇮🇩 INDONEŽANSKI ===
@@ -732,7 +737,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Belum Masuk",
       loginReq: "Anda harus masuk melalui Pi Browser untuk melihat profil.",
       error: "Kesalahan memuat data profil.",
-      rated: "Dinilai"
+      rated: "Dinilai",
+      paymentSuccess: "Pembayaran berhasil!"
     },
 
     // === 🇰🇷 KOREJSKI ===
@@ -850,7 +856,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "로그인되지 않음",
       loginReq: "프로필을 보려면 Pi 브라우저를 통해 로그인해야 합니다.",
       error: "프로필 데이터를 불러오는 중 오류가 발생했습니다.",
-      rated: "평가됨"
+      rated: "평가됨",
+      paymentSuccess: "결제 성공!"
     },
 
     // === 🇩🇪 NEMAČKI ===
@@ -968,7 +975,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Nicht angemeldet",
       loginReq: "Sie müssen sich über den Pi Browser anmelden, um Ihr Profil anzuzeigen.",
       error: "Fehler beim Laden der Profildaten.",
-      rated: "Bewertet"
+      rated: "Bewertet",
+      paymentSuccess: "Zahlung erfolgreich!"
     },
 
     // === 🇷🇺 RUSKI ===
@@ -1086,7 +1094,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Вы не вошли в систему",
       loginReq: "Вам необходимо войти через Pi Browser для просмотра профиля.",
       error: "Ошибка загрузки данных профиля.",
-      rated: "Оценено"
+      rated: "Оценено",
+      paymentSuccess: "Оплата прошла успешно!"
     },
 
     // === 🇫🇷 FRANCUSKI ===
@@ -1204,7 +1213,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       notLogged: "Non connecté",
       loginReq: "Vous devez vous connecter via le navigateur Pi pour voir votre profil.",
       error: "Erreur de chargement des données du profil.",
-      rated: "Évalué"
+      rated: "Évalué",
+      paymentSuccess: "Paiement réussi !"
     }
   };
 
