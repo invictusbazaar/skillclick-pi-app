@@ -82,7 +82,7 @@ export default function UserProfilePage() {
       setSavingWallet(true);
       try {
           await updateWalletAddress(fullProfile.username, walletInput);
-          alert(t('savedMsg') || "Uspešno sačuvano!");
+          alert(t('savedMsg'));
       } catch (e: any) {
           alert("Error: " + e.message);
       } finally {
@@ -101,7 +101,7 @@ export default function UserProfilePage() {
           }
 
           setFullProfile({ ...fullProfile, avatar: base64Image });
-          alert(t('avatarSaved') || "Slika uspešno sačuvana!");
+          alert(t('avatarSaved'));
       } catch (error: any) {
           console.error("Greška pri čuvanju slike:", error);
           alert("Sistemska greška: " + error.message);
@@ -128,7 +128,7 @@ export default function UserProfilePage() {
   };
 
   const handleDispute = async (orderId: string, role: 'buyer' | 'seller') => {
-      if (!confirm(t('confirmDispute') || "Da li ste sigurni da želite da pokrenete spor? Sredstva će biti zamrznuta.")) return;
+      if (!confirm(t('confirmDispute'))) return;
       
       const newStatus = role === 'buyer' ? 'disputed_buyer' : 'disputed_seller';
       setDisputingId(orderId);
@@ -156,7 +156,7 @@ export default function UserProfilePage() {
               return newProfile;
           });
 
-          alert(t('disputeOpened') || "Spor je uspešno pokrenut. Admin je obavešten.");
+          alert(t('disputeOpened'));
           window.location.reload(); 
       } catch (error: any) {
           console.error(error);
@@ -167,7 +167,7 @@ export default function UserProfilePage() {
   };
 
   const handleCancelDispute = async (orderId: string) => {
-      if (!confirm(t('confirmCancelDispute') || "Da li ste sigurni da želite da poništite spor? Narudžbina će se vratiti na čekanje.")) return;
+      if (!confirm(t('confirmCancelDispute'))) return;
       
       setDisputingId(orderId);
       try {
@@ -194,7 +194,7 @@ export default function UserProfilePage() {
               return newProfile;
           });
 
-          alert(t('disputeCanceled') || "Spor je uspešno poništen.");
+          alert(t('disputeCanceled'));
           window.location.reload(); 
       } catch (error: any) {
           console.error(error);
@@ -280,8 +280,12 @@ export default function UserProfilePage() {
                         </div>
                         
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end gap-2">
+                            {/* ✅ STATUSI SADA PRATE JEZIK BEZ FALLBACK TEKSTA */}
                             <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status==='completed' ? 'bg-green-100 text-green-700' : order.status.includes('disputed') ? 'bg-red-100 text-red-700' : order.status==='refunded' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-700'}`}>
-                                {order.status === 'completed' ? t('statusPaid') : order.status.includes('disputed') ? (t('statusDisputed') || "U SPORU") : order.status === 'refunded' ? (t('statusRefunded') || "REFUNDIRANO") : t('statusPending')}
+                                {order.status === 'completed' ? t('statusPaid') : 
+                                 order.status.includes('disputed') ? t('statusDisputed') : 
+                                 order.status === 'refunded' ? t('statusRefunded') : 
+                                 t('statusPending')}
                             </span>
 
                             {order.status !== 'completed' && !order.status.includes('disputed') && order.status !== 'refunded' && (
@@ -299,7 +303,7 @@ export default function UserProfilePage() {
                                         disabled={disputingId === order.id}
                                     >
                                         {disputingId === order.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2"/>}
-                                        {t('btnDispute') || "Pokreni spor"}
+                                        {t('btnDispute')}
                                     </Button>
                                 </div>
                             )}
@@ -313,7 +317,7 @@ export default function UserProfilePage() {
                                     disabled={disputingId === order.id}
                                 >
                                     {disputingId === order.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2"/>}
-                                    {t('btnCancelDispute') || "Poništi spor"}
+                                    {t('btnCancelDispute')}
                                 </Button>
                             )}
 
@@ -344,7 +348,10 @@ export default function UserProfilePage() {
                         <div className="text-right flex flex-col items-end gap-2">
                             <p className="font-bold text-green-600 text-lg">+{sale.amount} π</p>
                             <span className={`text-xs px-2 py-1 rounded ${sale.status==='completed' ? 'bg-green-100 text-green-600' : sale.status.includes('disputed') ? 'bg-red-100 text-red-600' : sale.status==='refunded' ? 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-500'}`}>
-                                {sale.status === 'completed' ? t('statusPaid') : sale.status.includes('disputed') ? (t('statusDisputed') || "U SPORU") : sale.status === 'refunded' ? (t('statusRefunded') || "REFUNDIRANO") : t('statusWaiting')}
+                                {sale.status === 'completed' ? t('statusPaid') : 
+                                 sale.status.includes('disputed') ? t('statusDisputed') : 
+                                 sale.status === 'refunded' ? t('statusRefunded') : 
+                                 t('statusWaiting')}
                             </span>
 
                             {sale.status !== 'completed' && !sale.status.includes('disputed') && sale.status !== 'refunded' && (
@@ -356,7 +363,7 @@ export default function UserProfilePage() {
                                     disabled={disputingId === sale.id}
                                 >
                                     {disputingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2"/>}
-                                    {t('btnDispute') || "Pokreni spor"}
+                                    {t('btnDispute')}
                                 </Button>
                             )}
 
@@ -369,7 +376,7 @@ export default function UserProfilePage() {
                                     disabled={disputingId === sale.id}
                                 >
                                     {disputingId === sale.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2"/>}
-                                    {t('btnCancelDispute') || "Poništi spor"}
+                                    {t('btnCancelDispute')}
                                 </Button>
                             )}
 

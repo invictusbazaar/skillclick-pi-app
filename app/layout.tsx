@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"; 
 import { LanguageProvider } from "@/components/LanguageContext";
-import { AuthProvider } from "@/components/AuthContext"; 
+import { AuthProvider } from "@/components/AuthContext";
 import Script from "next/script";
 
 const inter = Inter({ 
@@ -32,14 +32,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        {/* ✅ OBAVEZNO: 'beforeInteractive' da bi Profil i Admin radili */}
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
-          strategy="beforeInteractive" 
+          strategy="afterInteractive" 
         />
 
         <LanguageProvider>
-          {/* AuthProvider mora biti ovde */}
           <AuthProvider>
             <Navbar />
             <main className="flex-grow">
