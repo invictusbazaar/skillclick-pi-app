@@ -15,7 +15,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Funkcija za sinhronizaciju sa bazom
   const syncUserToDatabase = async (username: string, uid?: string) => {
     try {
         await fetch('/api/auth/sync', {
@@ -34,26 +33,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedUser) {
         try {
             setUser(JSON.parse(savedUser));
-            setIsLoading(false);
+            // 🚨 UKLONILI SMO setIsLoading(false) ODAVDE! 🚨
+            // Sada dugme ostaje na "Povezivanje..." sve dok se Pi SDK potpuno ne učita sa 'payments' dozvolom.
         } catch (e) { console.error(e); }
     }
 
-    // 2. PC Detekcija (za lokalno testiranje)
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         setTimeout(() => {
-            if (!savedUser) {
-                const adminData = { username: ADMIN_USERNAME, isAdmin: true };
-                setUser(adminData);
-                localStorage.setItem("pi_user", JSON.stringify(adminData));
-                setIsLoading(false);
-            }
+            const adminData = { username: ADMIN_USERNAME, isAdmin: true };
+            setUser(adminData);
+            localStorage.setItem("pi_user", JSON.stringify(adminData));
+            setIsLoading(false);
         }, 500);
         return; 
     }
 
-    // 3. PI NETWORK LOGIKA (Telefon) - SA ČEKANJEM SDK
     let attempts = 0;
-    
+
     const initPiNetwork = () => {
         // @ts-ignore
         if (typeof window !== "undefined" && window.Pi) {
@@ -76,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             Pi.init({ version: "2.0", sandbox: false });
             
+            // 2. Tražimo obe dozvole (username i payments)
             Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
                 .then((res: any) => {
                     const u = res.user;
@@ -85,24 +82,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(userData);
                     syncUserToDatabase(u.username, u.uid);
                     
-                    if (!savedUser) setIsLoading(false);
+                    // ✅ TEK OVDE OSLOBAĐAMO DUGME (Kada imamo sigurnu dozvolu)
+                    setIsLoading(false);
                 })
                 .catch((err: any) => {
                     console.error("Auth error:", err);
-                    if (!savedUser) setIsLoading(false);
+                    setIsLoading(false);
                 });
         } else {
-            // Ako Pi SDK još nije učitan, pokušaj ponovo za 300ms (maksimalno 10 puta)
             attempts++;
             if (attempts < 10) {
                 setTimeout(initPiNetwork, 300);
             } else {
-                if (!savedUser) setIsLoading(false);
+                setIsLoading(false);
             }
         }
     };
 
-    // Pokreni proces
     initPiNetwork();
 
   }, []);
