@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/components/AuthContext"
 
 declare global {
   interface Window {
@@ -12,6 +13,7 @@ declare global {
 
 export default function BuyButton(props: any) {
   const [loading, setLoading] = useState(false);
+  const { user, isLoading: authLoading } = useAuth();
 
   // Pametno hvatanje podataka
   const rawPrice = props.price || props.amount;
@@ -20,6 +22,16 @@ export default function BuyButton(props: any) {
   const safePrice = parseFloat(rawPrice) > 0 ? parseFloat(rawPrice) : 0;
 
   const handleBuy = async () => {
+    if (authLoading) {
+        alert("Aplikacija se još uvek povezuje sa Pi Mrežom. Molimo sačekajte par sekundi.");
+        return;
+    }
+
+    if (!user) {
+        alert("Niste prijavljeni. Molimo osvežite stranicu kako bi vas Pi Browser prepoznao.");
+        return;
+    }
+
     if (safePrice <= 0) {
         alert("Sistemska greška: Cena nije validna.");
         return;
@@ -34,7 +46,7 @@ export default function BuyButton(props: any) {
     }
 
     try {
-      // 1. TRAŽIMO DOZVOLU ZA PLAĆANJE
+      // 1. TRAŽIMO DOZVOLU ZA PLAĆANJE (Agresivni mod pre samog plaćanja)
       await window.Pi.authenticate(['payments'], {
           onIncompletePaymentFound: function(payment: any) {
               console.log("Brisanje stare transakcije...", payment.identifier);
@@ -46,7 +58,7 @@ export default function BuyButton(props: any) {
           }
       });
 
-      // 2. KREIRANJE PLAĆANJA SA ISPRAVLJENIM NAZIVIMA CALLBACK-A
+      // 2. KREIRANJE PLAĆANJA
       const paymentCallbacks = {
           onReadyForServerApproval: (paymentId: string) => {
               fetch('/api/payments/approve', {
@@ -55,22 +67,28 @@ export default function BuyButton(props: any) {
                   body: JSON.stringify({ paymentId })
               });
           },
-          // PRAVI NAZIV - SADA ZAUSTAVLJA VRTENJE DUGMETA
+          // 🛑 ISPRAVLJEN NAZIV FUNKCIJE 🛑
           onReadyForServerCompletion: async (paymentId: string, txid: string) => { 
               try {
                   const response = await fetch('/api/payments/complete', {
                       method: 'POST',
                       headers: {'Content-Type': 'application/json'},
-                      body: JSON.stringify({ paymentId, txid })
+                      // ✅ ŠALJEMO TVOJE IME U BAZU
+                      body: JSON.stringify({ 
+                          paymentId, 
+                          txid, 
+                          buyerUsername: user.username 
+                      }) 
                   });
                   
-                  setLoading(false); // 🛑 ZAUSTAVLJA VRTENJE
+                  // 🛑 OVO ZAUSTAVLJA VRTENJE DUGMETA 🛑
+                  setLoading(false); 
                   
                   if (response.ok) {
-                      alert("Uspešno plaćeno!");
+                      alert("Uspešno plaćeno i upisano u profil!");
                       if (props.onSuccess) props.onSuccess();
                   } else {
-                      alert("Plaćanje uspešno, ali postoji problem sa upisom u bazu.");
+                      alert("Plaćanje uspešno, ali postoji problem sa profilom.");
                   }
               } catch (error) {
                   setLoading(false);
@@ -110,10 +128,10 @@ export default function BuyButton(props: any) {
   return (
     <Button
       onClick={handleBuy}
-      disabled={loading} 
+      disabled={loading || authLoading} 
       className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg disabled:opacity-50"
     >
-      {loading ? (
+      {loading || authLoading ? (
          <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Povezivanje...</>
       ) : (
          <><ShoppingCart className="mr-2 h-5 w-5" /> Kupi Odmah ({safePrice || "?"} π)</>
