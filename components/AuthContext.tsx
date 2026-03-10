@@ -38,10 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) { console.error(e); }
     }
 
-    // 2. PC Detekcija (za testiranje)
+    // 2. PC Detekcija (za lokalno testiranje)
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
         setTimeout(() => {
-            if (!savedUser) { // Samo ako nije već ulogovan
+            if (!savedUser) {
                 const adminData = { username: ADMIN_USERNAME, isAdmin: true };
                 setUser(adminData);
                 localStorage.setItem("pi_user", JSON.stringify(adminData));
@@ -51,37 +51,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return; 
     }
 
-    // 3. PI NETWORK LOGIKA (Telefon)
-    // @ts-ignore
-    if (typeof window !== "undefined" && window.Pi) {
+    // 3. PI NETWORK LOGIKA (Telefon) - SA ČEKANJEM SDK
+    let attempts = 0;
+    
+    const initPiNetwork = () => {
         // @ts-ignore
-        const Pi = window.Pi;
+        if (typeof window !== "undefined" && window.Pi) {
+            // @ts-ignore
+            const Pi = window.Pi;
 
-        // 🔥 OVO JE KLJUČNO ZA TVOJ PROBLEM
-        // Ova funkcija se poziva automatski ako Pi nađe zaglavljenu transakciju pri startu
-        const onIncompletePaymentFound = async (payment: any) => {
-            console.log("🧹 AUTO-CLEAN: Detektovana zaglavljena transakcija:", payment.identifier);
-            try {
-                // Tiho šaljemo zahtev serveru da otkaže/očisti transakciju
-                await fetch('/api/payments/incomplete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentId: payment.identifier })
-                });
-                console.log("✅ AUTO-CLEAN: Uspešno očišćeno.");
-            } catch (err) {
-                console.error("Greška pri automatskom čišćenju:", err);
-            }
-        };
+            const onIncompletePaymentFound = async (payment: any) => {
+                console.log("🧹 AUTO-CLEAN: Detektovana zaglavljena transakcija:", payment.identifier);
+                try {
+                    await fetch('/api/payments/incomplete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paymentId: payment.identifier })
+                    });
+                    console.log("✅ AUTO-CLEAN: Uspešno očišćeno.");
+                } catch (err) {
+                    console.error("Greška pri automatskom čišćenju:", err);
+                }
+            };
 
-        Pi.init({ version: "2.0", sandbox: false }).then(() => {
-            // Umesto prazne funkcije (), sada prosleđujemo onIncompletePaymentFound
+            Pi.init({ version: "2.0", sandbox: false });
+            
             Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
                 .then((res: any) => {
                     const u = res.user;
                     const userData = { username: u.username, isAdmin: u.username === ADMIN_USERNAME };
                     
-                    // Osvežavamo podatke (ako je novi token ili uid)
                     localStorage.setItem("pi_user", JSON.stringify(userData));
                     setUser(userData);
                     syncUserToDatabase(u.username, u.uid);
@@ -92,12 +91,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.error("Auth error:", err);
                     if (!savedUser) setIsLoading(false);
                 });
-        }).catch(() => {
-             if (!savedUser) setIsLoading(false);
-        });
-    } else {
-        if (!savedUser) setIsLoading(false);
-    }
+        } else {
+            // Ako Pi SDK još nije učitan, pokušaj ponovo za 300ms (maksimalno 10 puta)
+            attempts++;
+            if (attempts < 10) {
+                setTimeout(initPiNetwork, 300);
+            } else {
+                if (!savedUser) setIsLoading(false);
+            }
+        }
+    };
+
+    // Pokreni proces
+    initPiNetwork();
+
   }, []);
 
   return (
