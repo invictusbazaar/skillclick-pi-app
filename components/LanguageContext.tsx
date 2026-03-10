@@ -14,7 +14,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState('en');
 
   useEffect(() => {
-    // Provera da li smo u browser-u pre pristupa localStorage
     if (typeof window !== 'undefined') {
         const storedLang = localStorage.getItem('skillclick_lang');
         if (storedLang) {
@@ -31,7 +30,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const translations: Record<string, Record<string, string>> = {
-    // === 🇺🇸 ENGLESKI ===
     en: {
       buyNow: "Buy Now",
       processing: "Processing...",
@@ -137,20 +135,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "Date",
       statusPaid: "PAID",
       statusPending: "PENDING",
+      statusRefunded: "REFUNDED",
+      statusDisputed: "DISPUTED",
       statusWaiting: "Waiting for buyer",
       walletTitle: "Your Pi Payout Wallet",
       walletDesc: "Enter your Public Key (starts with 'G'). Earnings will be sent here automatically.",
       labelWallet: "Pi Wallet Address (G...)",
       btnSave: "Save Address",
       savedMsg: "✅ Address saved! Earnings will arrive automatically.",
+      avatarSaved: "Avatar saved successfully!",
       notLogged: "Not Logged In",
       loginReq: "You must login via Pi Browser to view your profile.",
       error: "Error loading profile data.",
       rated: "Rated",
-      paymentSuccess: "Payment successful!"
+      paymentSuccess: "Payment successful!",
+      btnConfirm: "Confirm Receipt",
+      btnDispute: "Dispute",
+      btnCancelDispute: "Cancel Dispute",
+      confirmDispute: "Are you sure you want to open a dispute? Funds will be frozen.",
+      confirmCancelDispute: "Are you sure you want to cancel the dispute?",
+      disputeOpened: "Dispute successfully opened. Admin notified.",
+      disputeCanceled: "Dispute successfully canceled."
     },
-
-    // === 🇷🇸 SRPSKI ===
     sr: {
       buyNow: "Kupi Odmah",
       processing: "Obrađujem...",
@@ -256,20 +262,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "Datum",
       statusPaid: "ISPLAĆENO",
       statusPending: "NA ČEKANJU",
+      statusRefunded: "VRAĆENO",
+      statusDisputed: "U SPORU",
       statusWaiting: "Čeka se kupac",
       walletTitle: "Tvoj Pi Novčanik za Isplatu",
       walletDesc: "Ovde unesi svoju Javnu Adresu (Public Key). Tu ti leže zarada automatski.",
       labelWallet: "Pi Wallet Adresa (G...)",
       btnSave: "Sačuvaj Adresu",
       savedMsg: "✅ Adresa sačuvana! Sada ti zarada leže automatski.",
+      avatarSaved: "Slika uspešno sačuvana!",
       notLogged: "Nisi ulogovan",
       loginReq: "Moraš se ulogovati kroz Pi Browser da bi video profil.",
       error: "Greška pri učitavanju podataka profila.",
       rated: "Ocenjeno",
-      paymentSuccess: "Plaćanje uspešno!"
+      paymentSuccess: "Plaćanje uspešno!",
+      btnConfirm: "Potvrdi prijem",
+      btnDispute: "Pokreni spor",
+      btnCancelDispute: "Poništi spor",
+      confirmDispute: "Da li ste sigurni da želite da pokrenete spor? Sredstva će biti zamrznuta.",
+      confirmCancelDispute: "Da li ste sigurni da želite da poništite spor?",
+      disputeOpened: "Spor je uspešno pokrenut. Admin je obavešten.",
+      disputeCanceled: "Spor je uspešno poništen."
     },
-
-    // === 🇮🇳 HINDI ===
     hi: {
       buyNow: "Abhi Khariden",
       processing: "Process ho raha hai...",
@@ -374,20 +388,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "तारीख",
       statusPaid: "भुगतान किया गया",
       statusPending: "लंबित",
+      statusRefunded: "वापस किया",
+      statusDisputed: "विवादित",
       statusWaiting: "खरीदार की प्रतीक्षा",
       walletTitle: "आपका Pi पेआउट वॉलेट",
       walletDesc: "अपनी पब्लिक की (G से शुरू) दर्ज करें। कमाई स्वचालित रूप से यहां भेजी जाएगी।",
       labelWallet: "Pi वॉलेट पता (G...)",
       btnSave: "पता सहेजें",
       savedMsg: "✅ पता सहेजा गया! कमाई स्वचालित रूप से आ जाएगी।",
+      avatarSaved: "अवतार सफलतापूर्वक सहेजा गया!",
       notLogged: "लॉग इन नहीं है",
       loginReq: "अपनी प्रोफ़ाइल देखने के लिए आपको Pi Browser के माध्यम से लॉग इन करना होगा।",
       error: "प्रोफ़ाइल डेटा लोड करने में त्रुटि।",
       rated: "रेट किया गया",
-      paymentSuccess: "भुगतान सफल!"
+      paymentSuccess: "भुगतान सफल!",
+      btnConfirm: "प्राप्ति की पुष्टि",
+      btnDispute: "विवाद",
+      btnCancelDispute: "विवाद रद्द करें",
+      confirmDispute: "क्या आप वाकई विवाद खोलना चाहते हैं?",
+      confirmCancelDispute: "क्या आप वाकई विवाद रद्द करना चाहते हैं?",
+      disputeOpened: "विवाद सफलतापूर्वक खोला गया।",
+      disputeCanceled: "विवाद सफलतापूर्वक रद्द कर दिया गया।"
     },
-
-    // === 🇨🇳 KINESKI ===
     zh: {
       buyNow: "立即购买",
       processing: "处理中...",
@@ -492,20 +514,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "日期",
       statusPaid: "已支付",
       statusPending: "待处理",
+      statusRefunded: "已退款",
+      statusDisputed: "争议中",
       statusWaiting: "等待买家",
       walletTitle: "您的 Pi 收款钱包",
       walletDesc: "输入您的公钥（以 'G' 開头）。收入将自动发送到此处。",
       labelWallet: "Pi 钱包地址 (G...)",
       btnSave: "保存地址",
       savedMsg: "✅ 地址已保存！收入将自动到账。",
+      avatarSaved: "头像保存成功！",
       notLogged: "未登录",
       loginReq: "您必须通过 Pi 浏览器登录才能查看个人资料。",
       error: "加载个人资料数据时出错。",
       rated: "已评价",
-      paymentSuccess: "支付成功！"
+      paymentSuccess: "支付成功！",
+      btnConfirm: "确认收货",
+      btnDispute: "争议",
+      btnCancelDispute: "取消争议",
+      confirmDispute: "您确定要发起争议吗？资金将被冻结。",
+      confirmCancelDispute: "您确定要取消争议吗？",
+      disputeOpened: "争议已成功发起。已通知管理员。",
+      disputeCanceled: "争议已成功取消。"
     },
-
-    // === 🇹🇼 TAJVANSKI ===
     tw: {
       buyNow: "立即購買",
       processing: "處理中...",
@@ -610,20 +640,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "日期",
       statusPaid: "已支付",
       statusPending: "待處理",
+      statusRefunded: "已退款",
+      statusDisputed: "爭議中",
       statusWaiting: "等待買家",
       walletTitle: "您的 Pi 收款錢包",
       walletDesc: "輸入您的公鑰（以 'G' 開頭）。收入將自動發送到此處。",
       labelWallet: "Pi 錢包地址 (G...)",
       btnSave: "保存地址",
       savedMsg: "✅ 地址已保存！收入將自動到帳。",
+      avatarSaved: "頭像保存成功！",
       notLogged: "未登錄",
       loginReq: "您必須通過 Pi 瀏覽器登錄才能查看個人資料。",
       error: "加載個人資料數據時出錯。",
       rated: "已評價",
-      paymentSuccess: "支付成功！"
+      paymentSuccess: "支付成功！",
+      btnConfirm: "確認收貨",
+      btnDispute: "爭議",
+      btnCancelDispute: "取消爭議",
+      confirmDispute: "您確定要發起爭議嗎？資金將被凍結。",
+      confirmCancelDispute: "您確定要取消爭議嗎？",
+      disputeOpened: "爭議已成功發起。已通知管理員。",
+      disputeCanceled: "爭議已成功取消。"
     },
-
-    // === 🇮🇩 INDONEŽANSKI ===
     id: {
       buyNow: "Beli Sekarang",
       processing: "Memproses...",
@@ -728,20 +766,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "Tanggal",
       statusPaid: "DIBAYAR",
       statusPending: "TERTUNDA",
+      statusRefunded: "DIKEMBALIKAN",
+      statusDisputed: "SENGKETA",
       statusWaiting: "Menunggu pembeli",
       walletTitle: "Dompet Pencairan Pi Anda",
       walletDesc: "Masukkan Public Key Anda (dimulai dengan 'G'). Pendapatan akan dikirim ke sini secara otomatis.",
       labelWallet: "Alamat Dompet Pi (G...)",
       btnSave: "Simpan Alamat",
       savedMsg: "✅ Alamat disimpan! Pendapatan akan masuk secara otomatis.",
+      avatarSaved: "Avatar berhasil disimpan!",
       notLogged: "Belum Masuk",
       loginReq: "Anda harus masuk melalui Pi Browser untuk melihat profil.",
       error: "Kesalahan memuat data profil.",
       rated: "Dinilai",
-      paymentSuccess: "Pembayaran berhasil!"
+      paymentSuccess: "Pembayaran berhasil!",
+      btnConfirm: "Konfirmasi Penerimaan",
+      btnDispute: "Sengketa",
+      btnCancelDispute: "Batalkan Sengketa",
+      confirmDispute: "Anda yakin ingin membuka sengketa? Dana akan dibekukan.",
+      confirmCancelDispute: "Anda yakin ingin membatalkan sengketa?",
+      disputeOpened: "Sengketa berhasil dibuka. Admin diberitahu.",
+      disputeCanceled: "Sengketa berhasil dibatalkan."
     },
-
-    // === 🇰🇷 KOREJSKI ===
     ko: {
       buyNow: "지금 구매하기",
       processing: "처리 중...",
@@ -847,20 +893,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "날짜",
       statusPaid: "지급 완료",
       statusPending: "대기 중",
+      statusRefunded: "환불됨",
+      statusDisputed: "분쟁 중",
       statusWaiting: "구매자 대기",
       walletTitle: "Pi 지급 지갑",
       walletDesc: "공개 키('G'로 시작)를 입력하세요. 수익이 이곳으로 자동 전송됩니다.",
       labelWallet: "Pi 지갑 주소 (G...)",
       btnSave: "주소 저장",
       savedMsg: "✅ 주소가 저장되었습니다! 수익이 자동으로 도착합니다.",
+      avatarSaved: "아바타가 성공적으로 저장되었습니다!",
       notLogged: "로그인되지 않음",
       loginReq: "프로필을 보려면 Pi 브라우저를 통해 로그인해야 합니다.",
       error: "프로필 데이터를 불러오는 중 오류가 발생했습니다.",
       rated: "평가됨",
-      paymentSuccess: "결제 성공!"
+      paymentSuccess: "결제 성공!",
+      btnConfirm: "수령 확인",
+      btnDispute: "분쟁",
+      btnCancelDispute: "분쟁 취소",
+      confirmDispute: "분쟁을 여시겠습니까? 자금이 동결됩니다.",
+      confirmCancelDispute: "분쟁을 취소하시겠습니까?",
+      disputeOpened: "분쟁이 성공적으로 제기되었습니다. 관리자에게 알림이 전송되었습니다.",
+      disputeCanceled: "분쟁이 성공적으로 취소되었습니다."
     },
-
-    // === 🇩🇪 NEMAČKI ===
     de: {
       buyNow: "Jetzt kaufen",
       processing: "Verarbeitung...",
@@ -966,20 +1020,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "Datum",
       statusPaid: "BEZAHLT",
       statusPending: "AUSSTEHEND",
+      statusRefunded: "ERSTATTET",
+      statusDisputed: "UMSTRITTEN",
       statusWaiting: "Wartet auf Käufer",
       walletTitle: "Ihre Pi Auszahlungs-Wallet",
       walletDesc: "Geben Sie Ihren Public Key ein (beginnt mit 'G'). Einnahmen werden automatisch hierhin gesendet.",
       labelWallet: "Pi Wallet Adresse (G...)",
       btnSave: "Adresse speichern",
       savedMsg: "✅ Adresse gespeichert! Einnahmen kommen automatisch an.",
+      avatarSaved: "Avatar erfolgreich gespeichert!",
       notLogged: "Nicht angemeldet",
       loginReq: "Sie müssen sich über den Pi Browser anmelden, um Ihr Profil anzuzeigen.",
       error: "Fehler beim Laden der Profildaten.",
       rated: "Bewertet",
-      paymentSuccess: "Zahlung erfolgreich!"
+      paymentSuccess: "Zahlung erfolgreich!",
+      btnConfirm: "Erhalt bestätigen",
+      btnDispute: "Streitfall",
+      btnCancelDispute: "Streitfall abbrechen",
+      confirmDispute: "Sind Sie sicher, dass Sie einen Streitfall eröffnen wollen?",
+      confirmCancelDispute: "Sind Sie sicher, dass Sie den Streitfall abbrechen wollen?",
+      disputeOpened: "Streitfall erfolgreich eröffnet. Admin wurde benachrichtigt.",
+      disputeCanceled: "Streitfall erfolgreich abgebrochen."
     },
-
-    // === 🇷🇺 RUSKI ===
     ru: {
       buyNow: "Купить сейчас",
       processing: "Обработка...",
@@ -1085,20 +1147,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "Дата",
       statusPaid: "ОПЛАЧЕНО",
       statusPending: "В ОЖИДАНИИ",
+      statusRefunded: "ВОЗВРАЩЕНО",
+      statusDisputed: "В СПОРЕ",
       statusWaiting: "Ожидание покупателя",
       walletTitle: "Ваш кошелек Pi для выплат",
       walletDesc: "Введите ваш публичный ключ (начинается с 'G'). Заработок будет автоматически отправляться сюда.",
       labelWallet: "Адрес кошелька Pi (G...)",
       btnSave: "Сохранить адрес",
-      savedMsg: "✅ Адрес сохранен! Заработок будет поступать автоматически.",
+      savedMsg: "✅ Адresa sačuvana! Sada ti zarada leže automatski.",
+      avatarSaved: "Аватар успешно сохранен!",
       notLogged: "Вы не вошли в систему",
       loginReq: "Вам необходимо войти через Pi Browser для просмотра профиля.",
       error: "Ошибка загрузки данных профиля.",
       rated: "Оценено",
-      paymentSuccess: "Оплата прошла успешно!"
+      paymentSuccess: "Оплата прошла успешно!",
+      btnConfirm: "Подтвердить получение",
+      btnDispute: "Спор",
+      btnCancelDispute: "Отменить спор",
+      confirmDispute: "Вы уверены, что хотите открыть спор? Средства будут заморожены.",
+      confirmCancelDispute: "Вы уверены, что хотите отменить спор?",
+      disputeOpened: "Спор успешно открыт. Администратор уведомлен.",
+      disputeCanceled: "Спор успешно отменен."
     },
-
-    // === 🇫🇷 FRANCUSKI ===
     fr: {
       buyNow: "Acheter maintenant",
       processing: "Traitement...",
@@ -1204,17 +1274,27 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       date: "Date",
       statusPaid: "PAYÉ",
       statusPending: "EN ATTENTE",
+      statusRefunded: "REMBOURSÉ",
+      statusDisputed: "EN LITIGE",
       statusWaiting: "En attente de l'acheteur",
       walletTitle: "Votre portefeuille de paiement Pi",
       walletDesc: "Entrez votre clé publique (commence par 'G'). Les gains seront envoyés ici automatiquement.",
       labelWallet: "Adresse du portefeuille Pi (G...)",
       btnSave: "Enregistrer l'adresse",
       savedMsg: "✅ Adresse enregistrée ! Les gains arriveront automatiquement.",
+      avatarSaved: "Avatar enregistré avec succès !",
       notLogged: "Non connecté",
       loginReq: "Vous devez vous connecter via le navigateur Pi pour voir votre profil.",
       error: "Erreur de chargement des données du profil.",
       rated: "Évalué",
-      paymentSuccess: "Paiement réussi !"
+      paymentSuccess: "Paiement réussi !",
+      btnConfirm: "Confirmer la Réception",
+      btnDispute: "Litige",
+      btnCancelDispute: "Annuler le litige",
+      confirmDispute: "Êtes-vous sûr de vouloir ouvrir un litige ? Les fonds seront gelés.",
+      confirmCancelDispute: "Êtes-vous sûr de vouloir annuler le litige ?",
+      disputeOpened: "Le litige a été ouvert avec succès. L'administrateur a été informé.",
+      disputeCanceled: "Le litige a été annulé avec succès."
     }
   };
 
