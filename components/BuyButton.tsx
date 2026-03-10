@@ -34,8 +34,7 @@ export default function BuyButton(props: any) {
     }
 
     try {
-      // 1. TRAŽIMO DOZVOLU ZA PLAĆANJE TIK PRE SAMOG PLAĆANJA!
-      // Ovo garantuje da nema šanse da fali 'payments' scope kada se otvori novčanik.
+      // 1. TRAŽIMO DOZVOLU ZA PLAĆANJE
       await window.Pi.authenticate(['payments'], {
           onIncompletePaymentFound: function(payment: any) {
               console.log("Brisanje stare transakcije...", payment.identifier);
@@ -56,14 +55,27 @@ export default function BuyButton(props: any) {
                   body: JSON.stringify({ paymentId })
               });
           },
-          // NAŠA NAJVEĆA POBEDA - PRAVI NAZIV
-          onReadyForServerCompletion: (paymentId: string, txid: string) => { 
-              fetch('/api/payments/complete', {
-                  method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({ paymentId, txid })
-              });
-              if (props.onSuccess) props.onSuccess();
+          // PRAVI NAZIV - SADA ZAUSTAVLJA VRTENJE DUGMETA
+          onReadyForServerCompletion: async (paymentId: string, txid: string) => { 
+              try {
+                  const response = await fetch('/api/payments/complete', {
+                      method: 'POST',
+                      headers: {'Content-Type': 'application/json'},
+                      body: JSON.stringify({ paymentId, txid })
+                  });
+                  
+                  setLoading(false); // 🛑 ZAUSTAVLJA VRTENJE
+                  
+                  if (response.ok) {
+                      alert("Uspešno plaćeno!");
+                      if (props.onSuccess) props.onSuccess();
+                  } else {
+                      alert("Plaćanje uspešno, ali postoji problem sa upisom u bazu.");
+                  }
+              } catch (error) {
+                  setLoading(false);
+                  alert("Greška pri komunikaciji sa serverom nakon plaćanja.");
+              }
           },
           onCancel: (paymentId: string) => {
               setLoading(false);
