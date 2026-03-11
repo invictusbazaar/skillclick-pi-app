@@ -66,6 +66,38 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
         confirmMsg: "Apakah Anda mengonfirmasi bahwa pekerjaan telah selesai? Ini akan mentransfer dana ke penjual.",
         success: "🎉 Sukses! Dana ditransfer ke penjual.",
         error: "Kesalahan: "
+    },
+    ko: {
+        btn: "수령 확인",
+        loading: "처리 중...",
+        alertNoWallet: "⚠️ 판매자가 아직 Pi 지갑을 연결하지 않았습니다. 고객 지원팀에 문의하세요.",
+        confirmMsg: "작업이 완료되었음을 확인하십니까? 판매자에게 자금이 이체됩니다.",
+        success: "🎉 성공! 판매자에게 자금이 이체되었습니다.",
+        error: "오류: "
+    },
+    de: {
+        btn: "Empfang bestätigen",
+        loading: "Verarbeitung...",
+        alertNoWallet: "⚠️ Der Verkäufer hat seine Pi-Wallet noch nicht verbunden. Bitte kontaktieren Sie den Support.",
+        confirmMsg: "Bestätigen Sie, dass die Arbeit erledigt ist? Dadurch werden Gelder an den Verkäufer überwiesen.",
+        success: "🎉 Erfolg! Gelder an den Verkäufer überwiesen.",
+        error: "Fehler: "
+    },
+    ru: {
+        btn: "Подтвердить получение",
+        loading: "Обработка...",
+        alertNoWallet: "⚠️ Продавец еще не подключил свой кошелек Pi. Пожалуйста, обратитесь в поддержку.",
+        confirmMsg: "Вы подтверждаете, что работа выполнена? Средства будут переведены продавцу.",
+        success: "🎉 Успешно! Средства переведены продавцу.",
+        error: "Ошибка: "
+    },
+    fr: {
+        btn: "Confirmer la réception",
+        loading: "Traitement...",
+        alertNoWallet: "⚠️ Le vendeur n'a pas encore connecté son portefeuille Pi. Veuillez contacter le support.",
+        confirmMsg: "Confirmez-vous que le travail est terminé ? Cela transférera les fonds au vendeur.",
+        success: "🎉 Succès ! Fonds transférés au vendeur.",
+        error: "Erreur : "
     }
   };
 
@@ -82,10 +114,8 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
   const executeLogic = async () => {
     setIsAnimating(false);
 
-    // 1. DEBUG: Šta tačno šaljemo? (Pogledaj Console u browseru F12)
     console.log("🛒 POKUŠAJ ISPLATE:", { orderId, amount, sellerWallet });
 
-    // 2. Provera Walleta (Mora biti G...)
     if (!sellerWallet || sellerWallet.length < 20 || !sellerWallet.startsWith('G')) {
         alert(`${T('alertNoWallet')}\n(Wallet: ${sellerWallet})`);
         return;
@@ -106,7 +136,6 @@ export default function CompleteOrderButton({ orderId, amount, sellerWallet }: P
             })
         });
 
-        // Čitamo odgovor kao tekst prvo, za svaki slučaj
         const text = await res.text();
         console.log("📩 Odgovor sa servera:", text);
 
