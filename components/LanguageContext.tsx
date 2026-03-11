@@ -1154,7 +1154,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       walletDesc: "Введите ваш публичный ключ (начинается с 'G'). Заработок будет автоматически отправляться сюда.",
       labelWallet: "Адрес кошелька Pi (G...)",
       btnSave: "Сохранить адрес",
-      savedMsg: "✅ Адresa sačuvana! Sada ti zarada leže automatski.",
+      savedMsg: "✅ Адрес сохранен! Заработок будет поступать автоматически.",
       avatarSaved: "Аватар успешно сохранен!",
       notLogged: "Вы не вошли в систему",
       loginReq: "Вам необходимо войти через Pi Browser для просмотра профиля.",
