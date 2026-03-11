@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 
+// OBAVEZNO: Sprečava Vercel da kešira "duhove", uvek vuče sveže iz baze
+export const dynamic = 'force-dynamic';
+
 // GET: Daj mi sve notifikacije za ulogovanog korisnika
 export async function POST(req: Request) { 
   try {
@@ -32,12 +35,19 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
     try {
         const { notificationId } = await req.json();
+        
+        if (!notificationId) {
+            return NextResponse.json({ error: "Nedostaje ID notifikacije" }, { status: 400 });
+        }
+
         await prisma.notification.update({
             where: { id: notificationId },
             data: { isRead: true }
         });
+        
         return NextResponse.json({ success: true });
     } catch (error) {
+        console.error("Greška pri ažuriranju notifikacije:", error);
         return NextResponse.json({ error: "Error updating" }, { status: 500 });
     }
 }
