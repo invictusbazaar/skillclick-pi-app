@@ -64,9 +64,13 @@ export async function POST(request: Request) {
 
     // 4. PROVERA USLUGE
     let finalServiceId = serviceId;
+    let serviceTitle = "uslugu"; // Podrazumevani tekst za notifikaciju
+    
     if (serviceId) {
         const serviceExists = await prisma.service.findUnique({ where: { id: serviceId } });
-        if (!serviceExists) {
+        if (serviceExists) {
+            serviceTitle = serviceExists.title; // Uzimamo pravo ime usluge za notifikaciju
+        } else {
             const anyService = await prisma.service.findFirst();
             finalServiceId = anyService ? anyService.id : null;
         }
@@ -88,6 +92,7 @@ export async function POST(request: Request) {
         const sellerUser = await prisma.user.findUnique({ where: { username: sellerUsername } });
         const sellerDbId = sellerUser ? sellerUser.id : buyer.id; 
 
+        // Zapisujemo porudžbinu
         await prisma.order.create({
             data: {
                 amount: parseFloat(amount),
@@ -99,6 +104,18 @@ export async function POST(request: Request) {
                 serviceId: finalServiceId
             }
         });
+
+        // ✅ HIRURŠKI REZ: Kreiranje notifikacije za prodavca!
+        if (sellerDbId !== buyer.id) { 
+            await prisma.notification.create({
+                data: {
+                    userId: sellerDbId,
+                    message: `Nova porudžbina! Korisnik ${buyerUsername} je kupio: ${serviceTitle}.`,
+                    type: "new_order",
+                    link: "/profile", 
+                }
+            });
+        }
     }
 
     return NextResponse.json({ success: true });
