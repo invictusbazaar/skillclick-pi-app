@@ -60,11 +60,12 @@ function NavbarContent() {
   const fetchNotifications = async () => {
     if (!user?.username) return;
     try {
-        const res = await fetch('/api/notifications', {
+        const timestamp = new Date().getTime(); // HIRURŠKI REZ: Razbija browser keš
+        const res = await fetch(`/api/notifications?_t=${timestamp}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: user.username }),
-            cache: 'no-store' // HIRURŠKI REZ: Sprečava klijentsko keširanje duhova
+            cache: 'no-store' 
         });
         const data = await res.json();
         if (data.notifications) {
@@ -72,7 +73,7 @@ function NavbarContent() {
             setUnreadCount(data.unreadCount);
         }
     } catch (error) {
-        console.error("Failed to fetch notifications");
+        console.error("Failed to fetch notifications", error);
     }
   };
 
@@ -106,15 +107,25 @@ function NavbarContent() {
 
 
   const markAsRead = async (id: string, link: string | null) => {
+      // Optimizam - sakrivamo sa ekrana odmah
       setUnreadCount(prev => Math.max(0, prev - 1));
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       
-      await fetch('/api/notifications', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notificationId: id }),
-          cache: 'no-store' // HIRURŠKI REZ: Osiguravamo da i update prođe mimo keša
-      });
+      try {
+          const timestamp = new Date().getTime(); // HIRURŠKI REZ: Ubijamo keš
+          const res = await fetch(`/api/notifications?_t=${timestamp}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notificationId: id }),
+              cache: 'no-store'
+          });
+
+          if (!res.ok) {
+              console.error("Backend nije upisao u bazu! Status:", res.status);
+          }
+      } catch (error) {
+          console.error("Mrežna greška pri ažuriranju notifikacije", error);
+      }
 
       if (link) {
           router.push(link);
@@ -329,7 +340,6 @@ function NavbarContent() {
       {/* SUŽENA TRAKA SA LINKOVIMA KATEGORIJA */}
       <div className="block border-t border-gray-100 bg-white/95 backdrop-blur-md shadow-sm">
          <div className="container mx-auto px-2 md:px-4">
-            {/* Smanjen vertikalni padding (py-1.5 umesto py-3) i manji razmak */}
             <div className="flex items-center gap-4 md:gap-6 overflow-x-auto py-1.5 md:py-2 scrollbar-hide no-scrollbar">
                 {categories.map((cat) => (
                     <Link key={cat.slug} href={`/?category=${encodeURIComponent(cat.slug)}`} className={`whitespace-nowrap flex-shrink-0 text-[10px] sm:text-xs md:text-sm font-bold uppercase tracking-wide transition-colors ${activeCategory === cat.slug ? "text-purple-600 border-b-2 border-purple-600 pb-0.5" : "text-gray-500 hover:text-purple-500"}`}>
