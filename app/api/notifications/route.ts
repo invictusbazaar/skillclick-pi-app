@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 
+// OBAVEZNO: Sprečava Vercel da kešira "duhove", uvek vuče sveže iz baze
 export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-export const revalidate = 0;
 
 // GET: Daj mi sve notifikacije za ulogovanog korisnika
 export async function POST(req: Request) { 
   try {
-    const { username } = await req.json(); 
+    const { username } = await req.json(); // Šaljemo username sa frontenda
 
     if (!username) return NextResponse.json({ error: "No user" }, { status: 400 });
 
@@ -17,25 +16,38 @@ export async function POST(req: Request) {
 
     const notifications = await prisma.notification.findMany({
         where: { userId: user.id },
-        orderBy: [
-            { isRead: 'asc' }, // HIRURŠKI REZ: Nepročitane (false) UVEK idu na vrh liste!
-            { createdAt: 'desc' } // Zatim ih sortiraj po datumu
-        ],
-        take: 10 
+        orderBy: { createdAt: 'desc' },
+        take: 10 // Poslednjih 10
     });
 
+    // Broj nepročitanih
     const unreadCount = await prisma.notification.count({
         where: { userId: user.id, isRead: false }
     });
 
-    const response = NextResponse.json({ notifications, unreadCount });
-    
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-
-    return response;
+    return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
     return NextResponse.json({ error: "Error fetching notifications" }, { status: 500 });
   }
+}
+
+// PUT: Označi kao pročitano
+export async function PUT(req: Request) {
+    try {
+        const { notificationId } = await req.json();
+        
+        if (!notificationId) {
+            return NextResponse.json({ error: "Nedostaje ID notifikacije" }, { status: 400 });
+        }
+
+        await prisma.notification.update({
+            where: { id: notificationId },
+            data: { isRead: true }
+        });
+        
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Greška pri ažuriranju notifikacije:", error);
+        return NextResponse.json({ error: "Error updating" }, { status: 500 });
+    }
 }
