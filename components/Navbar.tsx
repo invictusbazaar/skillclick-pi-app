@@ -60,7 +60,7 @@ function NavbarContent() {
   const fetchNotifications = async () => {
     if (!user?.username) return;
     try {
-        const timestamp = new Date().getTime(); // HIRURŠKI REZ: Razbija browser keš
+        const timestamp = new Date().getTime(); 
         const res = await fetch(`/api/notifications?_t=${timestamp}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -112,12 +112,14 @@ function NavbarContent() {
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       
       try {
-          const timestamp = new Date().getTime(); // HIRURŠKI REZ: Ubijamo keš
+          const timestamp = new Date().getTime(); 
+          // HIRURŠKI REZ: keepalive=true naređuje mobilnom browseru da ne prekida zahtev čak ni kada se stranica promeni!
           const res = await fetch(`/api/notifications?_t=${timestamp}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ notificationId: id }),
-              cache: 'no-store'
+              cache: 'no-store',
+              keepalive: true 
           });
 
           if (!res.ok) {
