@@ -119,8 +119,59 @@ export default function TrustPage() {
               </div>
             </div>
 
-            {/* KONTAKT SEKCIJA (ISPRAVLJENO DUGME) */}
-            <div className="bg-gray-50 rounded-3xl p-5 md:p-10 text-center border border-gray-100">
+            {/* DISPUTE RESOLUTION SEKCIJA - DODATO HIRURŠKI */}
+            <div className="pt-8 border-t border-gray-100">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">Dispute Resolution Policy</h2>
+              <div className="space-y-6 max-w-4xl mx-auto">
+                
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-4">
+                  <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0 font-bold text-lg">1</div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Mutual Agreement (48 Hours)</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">Before opening an official dispute, buyers and sellers must attempt to resolve the issue directly through the SkillClick chat. Most issues can be resolved with a simple revision.</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-4">
+                  <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0 font-bold text-lg">2</div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Escrow Freeze</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">If an agreement isn't reached, either party can open a dispute. Pi funds remain securely locked in the Escrow system and cannot be withdrawn until the Admin resolves the case.</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-red-100 shadow-sm flex items-start gap-4 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                  <div className="w-10 h-10 bg-red-50 text-red-600 rounded-full flex items-center justify-center shrink-0 font-bold text-lg">3</div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Official Communication Rule</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">The Admin team will review <strong>only</strong> messages, agreements, and files shared within the SkillClick chat. Communication outside the platform (Telegram, WhatsApp, etc.) will <strong>not</strong> be considered as evidence. This protects both parties from fraud.</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-4">
+                  <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0 font-bold text-lg">4</div>
+                  <div className="w-full">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Final Admin Decision</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-4">Based on the evidence provided in the chat, the Admin will make one of two final and binding decisions:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <h4 className="font-bold text-gray-900 mb-1 text-sm">Full Refund (To Buyer)</h4>
+                        <p className="text-xs text-gray-500">If the seller fails to deliver the work on time or the delivered work completely misses the original job description.</p>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <h4 className="font-bold text-gray-900 mb-1 text-sm">Release Funds (To Seller)</h4>
+                        <p className="text-xs text-gray-500">If evidence shows the seller delivered everything exactly as agreed, but the buyer unjustifiably refuses the work.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* KONTAKT SEKCIJA */}
+            <div className="bg-gray-50 rounded-3xl p-5 md:p-10 text-center border border-gray-100 mt-12">
                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-purple-600">
                   <Mail className="w-7 h-7" />
                </div>
