@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma"; 
 import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
-import AdminDisputeButtons from "@/components/AdminDisputeButtons"; // ✅ Nova komponenta za sporove
-import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle } from "lucide-react";
+import AdminDisputeButtons from "@/components/AdminDisputeButtons"; 
+import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle, MessageSquare } from "lucide-react"; // ✅ Dodat MessageSquare
 
 // 🚀 Zabranjujemo keširanje, uvek vuče najnovije podatke!
 export const dynamic = "force-dynamic";
@@ -108,7 +108,6 @@ export default async function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {orders.map((order) => {
-                  // ✅ DEFINIŠEMO ŠTA JE SPOR (Kupac ili Prodavac)
                   const isInDispute = order.status === "disputed_buyer" || order.status === "disputed_seller" || order.status === "disputed";
 
                   return (
@@ -169,6 +168,10 @@ export default async function AdminDashboard() {
                                            <AlertTriangle className="w-4 h-4"/> ZAHTEVA PAŽNJU
                                        </span>
                                        <AdminDisputeButtons orderId={order.id} amount={order.amount} />
+                                       {/* ✅ HIRURŠKI REZ: NOVO DUGME ZA ADMIN CHAT PREGLED */}
+                                       <Link href={`/admin/chat/${order.id}`} className="mt-1 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition">
+                                           <MessageSquare className="w-4 h-4" /> Pregled prepiske
+                                       </Link>
                                    </>
                                )}
                             </div>
@@ -234,7 +237,13 @@ export default async function AdminDashboard() {
                                       <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
                                   )}
                                   {isInDispute && (
-                                      <AdminDisputeButtons orderId={order.id} amount={order.amount} />
+                                      <>
+                                          <AdminDisputeButtons orderId={order.id} amount={order.amount} />
+                                          {/* ✅ HIRURŠKI REZ: DUGME ZA MOBILNI */}
+                                          <Link href={`/admin/chat/${order.id}`} className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition">
+                                              <MessageSquare className="w-4 h-4" /> Prepiska
+                                          </Link>
+                                      </>
                                   )}
                               </div>
                            )}
