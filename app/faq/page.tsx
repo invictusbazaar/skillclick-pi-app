@@ -11,7 +11,11 @@ const faqs = [
   },
   {
     question: "How do I pay for services?",
-    answer: "All payments are processed securely using the Pi Network blockchain. When you order a service, you will be prompted to approve the transaction in your Pi Wallet."
+    answer: "All payments are processed securely using the Pi Network blockchain. Funds are held in our Escrow system until you approve the delivered work, ensuring your Pi is safe."
+  },
+  {
+    question: "How do I withdraw my Pi coins?",
+    answer: "You can withdraw your earned Pi coins directly to your Pi Wallet through your profile dashboard. The transfer is processed securely on the Pi Network blockchain."
   },
   {
     question: "Is there a fee for selling?",
@@ -22,8 +26,12 @@ const faqs = [
     answer: "Simply click on 'Become a Seller' or 'Post a Service', create an account, and fill out the details of your gig. Once published, it will be visible to all users."
   },
   {
-    question: "What if I'm not satisfied with the work?",
-    answer: "We encourage communication first. Use the 'Contact Seller' button to resolve issues. If a resolution cannot be reached, contact our support team for mediation."
+    question: "What if I'm not satisfied with the work or the freelancer is late?",
+    answer: "We encourage communication first. If a seller misses a deadline or the work is unsatisfactory, you can cancel or open a dispute. Locked Pi funds can be fully or partially refunded based on Admin mediation."
+  },
+  {
+    question: "Can I communicate with clients outside the platform?",
+    answer: "No, this is strictly against our terms. For your protection, all communication and file sharing must happen within SkillClick. We cannot protect you in a dispute if you communicate elsewhere."
   }
 ];
 
