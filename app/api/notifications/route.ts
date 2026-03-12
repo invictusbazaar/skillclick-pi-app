@@ -25,7 +25,14 @@ export async function POST(req: Request) {
         where: { userId: user.id, isRead: false }
     });
 
-    return NextResponse.json({ notifications, unreadCount });
+    const response = NextResponse.json({ notifications, unreadCount });
+    
+    // HIRURŠKI REZ: Apsolutna zabrana keširanja za browser i klijenta
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
   } catch (error) {
     return NextResponse.json({ error: "Error fetching notifications" }, { status: 500 });
   }
