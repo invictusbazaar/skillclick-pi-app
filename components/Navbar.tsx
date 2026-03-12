@@ -63,7 +63,8 @@ function NavbarContent() {
         const res = await fetch('/api/notifications', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: user.username })
+            body: JSON.stringify({ username: user.username }),
+            cache: 'no-store' // HIRURŠKI REZ: Sprečava klijentsko keširanje duhova
         });
         const data = await res.json();
         if (data.notifications) {
@@ -111,7 +112,8 @@ function NavbarContent() {
       await fetch('/api/notifications', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notificationId: id })
+          body: JSON.stringify({ notificationId: id }),
+          cache: 'no-store' // HIRURŠKI REZ: Osiguravamo da i update prođe mimo keša
       });
 
       if (link) {
