@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 
-// OBAVEZNO: Potpuno gašenje svakog oblika keširanja u Next.js
+// OBAVEZNO: Sprečava Vercel da kešira "duhove", uvek vuče sveže iz baze
 export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-export const revalidate = 0;
 
 // GET: Daj mi sve notifikacije za ulogovanog korisnika
 export async function POST(req: Request) { 
@@ -27,14 +25,7 @@ export async function POST(req: Request) {
         where: { userId: user.id, isRead: false }
     });
 
-    const response = NextResponse.json({ notifications, unreadCount });
-    
-    // HIRURŠKI REZ: Apsolutna zabrana keširanja za browser i klijenta
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-
-    return response;
+    return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
     return NextResponse.json({ error: "Error fetching notifications" }, { status: 500 });
   }
@@ -56,7 +47,7 @@ export async function PUT(req: Request) {
         
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error("Greška pri ažuriranju notifikacije u bazi:", error);
-        return NextResponse.json({ error: "Error updating DB" }, { status: 500 });
+        console.error("Greška pri ažuriranju notifikacije:", error);
+        return NextResponse.json({ error: "Error updating" }, { status: 500 });
     }
 }

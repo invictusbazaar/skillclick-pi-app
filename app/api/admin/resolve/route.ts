@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache"; 
 
-// OBAVEZNO: Sprečava da aplikacija zapamti "zaglavljeno" stanje
-export const dynamic = 'force-dynamic';
-
 var StellarSdk = require('stellar-sdk');
 const PI_HORIZON_URL = "https://api.testnet.minepi.com";
 
@@ -109,10 +106,7 @@ export async function POST(req: Request) {
         console.error("Greška pri slanju notifikacija:", notifErr);
     }
 
-    // OBAVEZNO: Potpuno osvežavanje svih ruta kako bi aplikacija shvatila da je transakcija gotova
     revalidatePath("/admin"); 
-    revalidatePath("/profile"); 
-    revalidatePath("/", "layout"); 
 
     return NextResponse.json({ success: true, txHash: result.hash, status: newStatus });
 
