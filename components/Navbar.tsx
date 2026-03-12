@@ -107,31 +107,31 @@ function NavbarContent() {
 
 
   const markAsRead = async (id: string, link: string | null) => {
-      // Optimizam - sakrivamo sa ekrana odmah
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-      
       try {
           const timestamp = new Date().getTime(); 
-          // HIRURŠKI REZ: keepalive=true naređuje mobilnom browseru da ne prekida zahtev čak ni kada se stranica promeni!
-          const res = await fetch(`/api/notifications?_t=${timestamp}`, {
-              method: 'PUT',
+          
+          // HIRURŠKI REZ: Čekamo API odgovor. Gađamo novu stabilnu rutu.
+          const res = await fetch(`/api/notifications/read?_t=${timestamp}`, {
+              method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ notificationId: id }),
-              cache: 'no-store',
-              keepalive: true 
+              cache: 'no-store'
           });
 
-          if (!res.ok) {
-              console.error("Backend nije upisao u bazu! Status:", res.status);
+          if (res.ok) {
+              // Brisanje sa ekrana tek kada baza pošalje potvrdu 200 OK
+              setUnreadCount(prev => Math.max(0, prev - 1));
+              setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+
+              if (link) {
+                  router.push(link);
+                  setIsNotifOpen(false);
+              }
+          } else {
+              console.error("Backend je odbio upis u bazu! Status:", res.status);
           }
       } catch (error) {
-          console.error("Mrežna greška pri ažuriranju notifikacije", error);
-      }
-
-      if (link) {
-          router.push(link);
-          setIsNotifOpen(false);
+          console.error("Mrežna greška pri ažuriranju notifikacije, proverite konekciju.", error);
       }
   };
 
