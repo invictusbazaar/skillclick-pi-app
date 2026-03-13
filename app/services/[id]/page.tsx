@@ -6,8 +6,8 @@ import { useLanguage } from '@/components/LanguageContext';
 import { useAuth } from '@/components/AuthContext'; 
 import { 
   ArrowLeft, Clock, PenTool, Car, Wrench, Palette, Code, 
-  UserCircle, Star, ShieldCheck, CheckCircle, Briefcase, Video, Monitor 
-} from 'lucide-react';
+  UserCircle, Star, ShieldCheck, CheckCircle, Briefcase, Video, Monitor, RefreshCw 
+} from 'lucide-react'; // ✅ Dodata RefreshCw ikonica za revizije
 import Link from 'next/link';
 import BuyButton from '@/components/BuyButton'; 
 import ChatSystem from '@/components/ChatSystem'; 
@@ -89,6 +89,10 @@ export default function ServiceDetail() {
   
   const userLastSeen = service.author?.lastSeen || service.seller?.lastSeen;
   const sellerAvatar = service.author?.avatar || service.seller?.avatar;
+
+  // ✅ NOVO: Izvlačimo tačne podatke iz baze (ako fale, stavljamo default vrednosti)
+  const deliveryDays = service.deliveryDays || 3; 
+  const revisionsCount = service.revisions || 1;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-20">
@@ -185,19 +189,33 @@ export default function ServiceDetail() {
             <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
 
-                <div className="flex justify-between items-center mb-4">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('servicePrice')}</span>
+                <div className="flex justify-between items-center mb-4 mt-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('servicePrice') || "Cena"}</span>
                     <span className="text-2xl font-black text-purple-600">{service.price} π</span>
                 </div>
 
-                <div className="space-y-2 mb-6">
-                    <div className="flex items-center gap-2 text-xs text-gray-700 font-bold bg-gray-50 p-2 rounded-lg">
-                        <Clock className="w-4 h-4 text-purple-500" />
-                        <span>{service.deliveryTime} {t('days')} {t('delivery')}</span>
+                <div className="space-y-3 mb-6 border-t border-gray-100 pt-4">
+                    {/* ✅ VREME ISPORUKE */}
+                    <div className="flex items-center justify-between text-xs text-gray-700 font-bold bg-gray-50 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-purple-500" />
+                            <span className="text-gray-500 font-medium">Isporuka:</span>
+                        </div>
+                        <span>{deliveryDays} {deliveryDays === 1 ? 'dan' : 'dana'}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600 px-2">
+
+                    {/* ✅ BROJ REVIZIJA */}
+                    <div className="flex items-center justify-between text-xs text-gray-700 font-bold bg-gray-50 px-3 py-2 rounded-lg">
+                        <div className="flex items-center gap-2">
+                            <RefreshCw className="w-4 h-4 text-blue-500" />
+                            <span className="text-gray-500 font-medium">Revizije:</span>
+                        </div>
+                        <span>{revisionsCount}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-gray-500 px-2 pt-2">
                         <CheckCircle className="w-3 h-3 text-green-500" />
-                        <span>{t('satisfaction')}</span>
+                        <span>{t('satisfaction') || "100% garancija kvaliteta"}</span>
                     </div>
                 </div>
 
