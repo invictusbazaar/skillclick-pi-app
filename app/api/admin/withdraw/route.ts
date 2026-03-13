@@ -18,7 +18,8 @@ export async function POST(req: Request) {
     console.log(`💸 ADMIN POVLAČI PROFIT: ${withdrawAmount} Pi na ${ADMIN_PERSONAL_WALLET}`);
 
     const secretKey = process.env.PI_WALLET_SECRET;
-    if (!secretKey) return NextResponse.json({ error: "Fali S-Key u .env fajlu!" }, { status: 500 });
+    // ✅ NOVI KOD: Preciznija poruka koja će naterati Vercel na novi Build
+    if (!secretKey) return NextResponse.json({ error: "Vercel ne vidi PI_WALLET_SECRET iz Settings-a!" }, { status: 500 });
 
     const server = new StellarSdk.Server(PI_HORIZON_URL);
     const sourceKeypair = StellarSdk.Keypair.fromSecret(secretKey);
