@@ -2,14 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma"; 
 import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
 import AdminDisputeButtons from "@/components/AdminDisputeButtons"; 
-import WithdrawProfit from "@/components/WithdrawProfit"; // ✅ Uvezeno novo dugme za profit
-import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle } from "lucide-react";
+import WithdrawProfit from "@/components/WithdrawProfit"; 
+import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle, Activity } from "lucide-react";
 
 // 🚀 Zabranjujemo keširanje, uvek vuče najnovije podatke!
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  // --- DOHVATANJE PODATAKA ---
+  // --- 1. DOHVATANJE PODATAKA IZ BAZE (ISTORIJA) ---
   const usersCount = await prisma.user.count();
 
   const orders = await prisma.order.findMany({
@@ -21,10 +21,35 @@ export default async function AdminDashboard() {
     },
   });
 
-  // Računamo ukupnu zaradu platforme (5% od svih ZAVRŠENIH porudžbina)
   const totalRevenue = orders.reduce((acc, order) => {
     return order.status === 'completed' ? acc + (order.amount * 0.05) : acc;
   }, 0);
+
+  // --- 2. DOHVATANJE LIVE STANJA SA BLOKČEJNA (TRENUTNI NOVAC) ---
+  let liveBalance = "0.0000";
+  try {
+    const StellarSdk = require('stellar-sdk');
+    const secretKey = process.env.PI_WALLET_SECRET;
+    
+    if (secretKey) {
+      // Iz tajnog ključa (S) izvlačimo javnu adresu (G)
+      const sourceKeypair = StellarSdk.Keypair.fromSecret(secretKey);
+      const publicKey = sourceKeypair.publicKey();
+      
+      // Kačimo se na Pi mrežu da pročitamo stanje
+      const server = new StellarSdk.Server("https://api.testnet.minepi.com");
+      const account = await server.loadAccount(publicKey);
+      
+      // Nalazimo tačan broj Pi novčića
+      const nativeBalance = account.balances.find((b: any) => b.asset_type === 'native');
+      if (nativeBalance) {
+        liveBalance = parseFloat(nativeBalance.balance).toFixed(4);
+      }
+    }
+  } catch (error) {
+    console.error("Greška pri čitanju Live stanja sa blokčejna:", error);
+    liveBalance = "Greška";
+  }
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 font-sans pb-20">
@@ -33,7 +58,7 @@ export default async function AdminDashboard() {
         {/* ZAGLAVLJE SA STATISTIKOM */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
              <div className="flex items-center gap-4 w-full md:w-auto">
-                 <div className="p-4 bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-purple-200">
+                 <div className="p-4 bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-purple-200 shrink-0">
                     <ShieldCheck className="h-8 w-8" />
                  </div>
                  <div>
@@ -44,19 +69,38 @@ export default async function AdminDashboard() {
                  </div>
              </div>
 
-             {/* KARTICA ZARADE */}
-             <div className="w-full md:w-auto bg-green-50 border border-green-100 p-4 rounded-2xl flex items-center gap-4">
-                <div className="p-3 bg-white text-green-600 rounded-xl shadow-sm">
-                    <TrendingUp className="h-6 w-6"/>
-                </div>
-                <div>
-                    <p className="text-xs text-green-600 font-bold uppercase tracking-wider">Zarada App (5%)</p>
-                    <p className="text-2xl font-black text-gray-900">{totalRevenue.toFixed(4)} π</p>
-                </div>
+             {/* KARTICE ZARADE (BAZA vs LIVE) */}
+             <div className="w-full md:w-auto flex flex-col sm:flex-row gap-4">
+                 
+                 {/* ISTORIJSKA ZARADA (BAZA) */}
+                 <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex items-center gap-4">
+                    <div className="p-3 bg-white text-gray-500 rounded-xl shadow-sm shrink-0">
+                        <TrendingUp className="h-6 w-6"/>
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Ukupno (Baza)</p>
+                        <p className="text-xl font-black text-gray-700">{totalRevenue.toFixed(4)} π</p>
+                    </div>
+                 </div>
+
+                 {/* LIVE STANJE (BLOKČEJN) */}
+                 <div className="bg-green-50 border border-green-200 p-4 rounded-2xl flex items-center gap-4 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-green-500 animate-pulse"></div>
+                    <div className="p-3 bg-white text-green-600 rounded-xl shadow-sm relative z-10 shrink-0">
+                        <Activity className="h-6 w-6"/>
+                    </div>
+                    <div className="relative z-10">
+                        <p className="text-[10px] text-green-600 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Live Stanje <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping inline-block"></span>
+                        </p>
+                        <p className="text-2xl font-black text-gray-900">{liveBalance} π</p>
+                    </div>
+                 </div>
+
              </div>
         </div>
 
-        {/* ✅ DUGME ZA POVLAČENJE PROFITA (Prikazuje se odmah ispod zaglavlja) */}
+        {/* ✅ DUGME ZA POVLAČENJE PROFITA */}
         <WithdrawProfit />
 
         {/* BRZI LINKOVI */}
