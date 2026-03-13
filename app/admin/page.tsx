@@ -2,11 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma"; 
 import ReleaseFundsButton from "@/components/ReleaseFundsButton"; 
 import AdminDisputeButtons from "@/components/AdminDisputeButtons"; 
-import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle, MessageSquare } from "lucide-react"; 
+import WithdrawProfit from "@/components/WithdrawProfit"; // ✅ Uvezeno novo dugme za profit
+import { ShieldCheck, Users, Layers, ArrowRight, Banknote, TrendingUp, AlertTriangle } from "lucide-react";
 
+// 🚀 Zabranjujemo keširanje, uvek vuče najnovije podatke!
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
+  // --- DOHVATANJE PODATAKA ---
   const usersCount = await prisma.user.count();
 
   const orders = await prisma.order.findMany({
@@ -18,6 +21,7 @@ export default async function AdminDashboard() {
     },
   });
 
+  // Računamo ukupnu zaradu platforme (5% od svih ZAVRŠENIH porudžbina)
   const totalRevenue = orders.reduce((acc, order) => {
     return order.status === 'completed' ? acc + (order.amount * 0.05) : acc;
   }, 0);
@@ -26,7 +30,7 @@ export default async function AdminDashboard() {
     <div className="min-h-screen bg-gray-50/50 p-4 md:p-8 font-sans pb-20">
       <div className="max-w-6xl mx-auto space-y-6"> 
         
-        {/* ZAGLAVLJE */}
+        {/* ZAGLAVLJE SA STATISTIKOM */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
              <div className="flex items-center gap-4 w-full md:w-auto">
                  <div className="p-4 bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-purple-200">
@@ -40,6 +44,7 @@ export default async function AdminDashboard() {
                  </div>
              </div>
 
+             {/* KARTICA ZARADE */}
              <div className="w-full md:w-auto bg-green-50 border border-green-100 p-4 rounded-2xl flex items-center gap-4">
                 <div className="p-3 bg-white text-green-600 rounded-xl shadow-sm">
                     <TrendingUp className="h-6 w-6"/>
@@ -50,6 +55,9 @@ export default async function AdminDashboard() {
                 </div>
              </div>
         </div>
+
+        {/* ✅ DUGME ZA POVLAČENJE PROFITA (Prikazuje se odmah ispod zaglavlja) */}
+        <WithdrawProfit />
 
         {/* BRZI LINKOVI */}
         <div className="grid grid-cols-2 gap-4">
@@ -164,9 +172,6 @@ export default async function AdminDashboard() {
                                            <AlertTriangle className="w-4 h-4"/> ZAHTEVA PAŽNJU
                                        </span>
                                        <AdminDisputeButtons orderId={order.id} amount={order.amount} />
-                                       <Link href={`/admin/chat/${order.id}`} className="mt-1 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition">
-                                           <MessageSquare className="w-4 h-4" /> Pregled prepiske
-                                       </Link>
                                    </>
                                )}
                             </div>
@@ -232,13 +237,7 @@ export default async function AdminDashboard() {
                                       <ReleaseFundsButton orderId={order.id} amount={order.amount} sellerWallet={order.seller.piWallet || order.seller.username} />
                                   )}
                                   {isInDispute && (
-                                      <>
-                                          <AdminDisputeButtons orderId={order.id} amount={order.amount} />
-                                          {/* ✅ HIRURŠKI REZ: EVO GA DUGME ZA MOBILNI PRIKAZ! */}
-                                          <Link href={`/admin/chat/${order.id}`} className="w-full flex items-center justify-center gap-2 mt-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition border border-blue-200">
-                                              <MessageSquare className="w-4 h-4" /> Pregled prepiske
-                                          </Link>
-                                      </>
+                                      <AdminDisputeButtons orderId={order.id} amount={order.amount} />
                                   )}
                               </div>
                            )}
