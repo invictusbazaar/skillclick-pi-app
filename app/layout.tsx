@@ -30,9 +30,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Eksplicitna deklaracija origin-a koja sprečava postMessage blokadu */}
+        <meta name="pi:origin" content="https://skillclick-pi-app-j18p.vercel.app" />
+      </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
-        {/* ISPRAVKA: beforeInteractive osigurava da SDK bude spreman pre klika! */}
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
           strategy="beforeInteractive" 
