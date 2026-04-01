@@ -6,7 +6,6 @@ import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { AuthProvider } from "@/components/AuthContext";
 import Script from "next/script";
-import { Suspense } from "react";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -31,24 +30,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        {/* Ispravljen origin za lokalno testiranje */}
-        <meta name="pi:origin" content="https://localhost:3000" />
-      </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
-          strategy="beforeInteractive" 
+          strategy="afterInteractive" 
         />
 
         <LanguageProvider>
           <AuthProvider>
             <Navbar />
             <main className="flex-grow">
-              <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]">Učitavanje...</div>}>
-                {children}
-              </Suspense>
+              {children}
             </main>
             <Footer />
           </AuthProvider>
