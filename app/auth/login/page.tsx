@@ -10,56 +10,68 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)
 
-  const finishLogin = (user: any) => {
-    localStorage.setItem("user", JSON.stringify(user));
-    const redirectUrl = searchParams.get('redirect') || "/";
-    router.push(redirectUrl);
+  const syncUserToDatabase = async (username: string, uid?: string) => {
+    try {
+        await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, uid }) 
+        });
+    } catch (error) {
+        console.error("Greška pri sinhronizaciji:", error);
+    }
   };
 
-  // --- 1. PROVERA SDK-A (BEZ AUTO-LOGINA) ---
+  const finishLogin = (userData: any) => {
+    // ISPRAVKA: Čuvamo pod ključem "pi_user"
+    const finalUser = {
+        username: userData.username,
+        isAdmin: userData.role === "admin"
+    };
+    localStorage.setItem("pi_user", JSON.stringify(finalUser));
+    
+    const redirectUrl = searchParams.get('redirect') || "/";
+    // Reload stranice da bi AuthContext povukao nove podatke
+    window.location.href = redirectUrl;
+  };
+
   useEffect(() => {
     let attempts = 0;
-    
     const checkSdk = async () => {
         if (window.Pi) {
-            // Samo gasimo loader čim prepoznamo da je Pi SDK spreman
             setIsLoading(false);
         } else {
             attempts++;
             if (attempts < 20) {
                 setTimeout(checkSdk, 100);
             } else {
-                console.log("Pi SDK nije nađen (PC mod).");
                 setIsLoading(false);
             }
         }
     };
-
     checkSdk();
   }, []);
 
-  // --- 2. RUČNI LOGIN ZA PC (ADMIN) ---
   const handleDevLogin = () => {
-      const adminUser = {
-          username: "Ilija1969",
-          uid: "dev-admin-uid-123",
-          role: "admin", 
-          accessToken: "dev-access-token"
-      };
-      finishLogin(adminUser);
+      finishLogin({ username: "Ilija1969", role: "admin" });
   }
 
-  // --- 3. PRAVI PI LOGIN NA KLIK (Ovde iskače Sandbox kôd) ---
   const handleManualPiLogin = async () => {
       setIsLoading(true);
       if (window.Pi) {
           try {
-              // Inicijalizujemo Sandbox tek na klik
               await window.Pi.init({ version: "2.0", sandbox: true });
               
               const scopes = ['username', 'payments'];
-              const authResults = await window.Pi.authenticate(scopes, (payment: any) => {
+              const authResults = await window.Pi.authenticate(scopes, async (payment: any) => {
                   console.log("Nedovršeno plaćanje:", payment);
+                  try {
+                      await fetch('/api/payments/incomplete', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ paymentId: payment.identifier })
+                      });
+                  } catch (err) {}
               });
 
               const username = authResults.user.username;
@@ -69,16 +81,15 @@ export default function LoginPage() {
                   role = "admin";
               }
 
+              await syncUserToDatabase(username, authResults.user.uid);
+
               finishLogin({
                   username: username,
-                  uid: authResults.user.uid,
-                  role: role,
-                  accessToken: authResults.accessToken
+                  role: role
               });
 
           } catch (err) {
               console.error("Pi login greška:", err);
-              // Ako korisnik zatvori prozor ili se desi greška, vraćamo dugme
               setIsLoading(false); 
           }
       } else {
@@ -90,7 +101,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc] font-sans p-4">
       <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md text-center">
-            
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">SkillClick</h1>
             
             {isLoading ? (
@@ -101,7 +111,6 @@ export default function LoginPage() {
             ) : (
                 <>
                     <p className="text-gray-500 text-sm mb-8">Odaberite način prijave</p>
-
                     <Button 
                         onClick={handleManualPiLogin}
                         className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 rounded-2xl text-lg mb-4"
@@ -109,7 +118,6 @@ export default function LoginPage() {
                         <Smartphone className="mr-2" />
                         Login with Pi
                     </Button>
-
                     <div className="mt-6 border-t pt-4">
                         <p className="text-xs text-gray-400 mb-2">Programerski pristup (PC):</p>
                         <button 
