@@ -23,7 +23,6 @@ export default function LoginPage() {
   };
 
   const finishLogin = (userData: any) => {
-    // ISPRAVKA: Čuvamo pod ključem "pi_user"
     const finalUser = {
         username: userData.username,
         isAdmin: userData.role === "admin"
@@ -31,7 +30,6 @@ export default function LoginPage() {
     localStorage.setItem("pi_user", JSON.stringify(finalUser));
     
     const redirectUrl = searchParams.get('redirect') || "/";
-    // Reload stranice da bi AuthContext povukao nove podatke
     window.location.href = redirectUrl;
   };
 
@@ -60,8 +58,16 @@ export default function LoginPage() {
       setIsLoading(true);
       if (window.Pi) {
           try {
-              await window.Pi.init({ version: "2.0", sandbox: true });
+              // Hvatamo grešku ako je Pi SDK već inicijalizovan da ne bi prekinuo proces
+              try {
+                  await window.Pi.init({ version: "2.0", sandbox: true });
+              } catch (initError) {
+                  console.log("Pi SDK je već inicijalizovan, nastavljamo...", initError);
+              }
               
+              // Kratka pauza da pretraživač procesira zahtev pre nego što iskoči prozor
+              await new Promise(resolve => setTimeout(resolve, 500));
+
               const scopes = ['username', 'payments'];
               const authResults = await window.Pi.authenticate(scopes, async (payment: any) => {
                   console.log("Nedovršeno plaćanje:", payment);
