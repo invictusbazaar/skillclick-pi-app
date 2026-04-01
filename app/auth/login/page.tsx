@@ -8,76 +8,38 @@ import { Button } from "@/components/ui/button"
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  // Počinjemo sa učitavanjem dok proveravamo okruženje
   const [isLoading, setIsLoading] = useState(true)
 
-  // Funkcija za preusmeravanje nakon logovanja
   const finishLogin = (user: any) => {
-    // Čuvamo korisnika
     localStorage.setItem("user", JSON.stringify(user));
-    
-    // Odmah prebacujemo na početnu (ili gde je korisnik krenuo)
     const redirectUrl = searchParams.get('redirect') || "/";
     router.push(redirectUrl);
   };
 
-  // --- 1. GLAVNA LOGIKA (AUTO-START) ---
+  // --- 1. PROVERA SDK-A (BEZ AUTO-LOGINA) ---
   useEffect(() => {
     let attempts = 0;
     
-    const checkAndLogin = async () => {
-        // A) Ako je Pi SDK učitan, probaj auto-login
+    const checkSdk = async () => {
         if (window.Pi) {
-            try {
-                await window.Pi.init({ version: "2.0", sandbox: true });
-                
-                // Pokušaj autentifikacije
-                const scopes = ['username', 'payments'];
-                const authResults = await window.Pi.authenticate(scopes, (payment: any) => {
-                    console.log("Nedovršeno plaćanje:", payment);
-                });
-
-                const username = authResults.user.username;
-                let role = "user";
-
-                // PROVERA: Da li je ovo gazda?
-                if (username === "Ilija1969" || username === "ilijabrdar") {
-                    role = "admin";
-                }
-
-                // Uspešan login - završi i preusmeri
-                finishLogin({
-                    username: username,
-                    uid: authResults.user.uid,
-                    role: role,
-                    accessToken: authResults.accessToken
-                });
-
-            } catch (err) {
-                console.error("Auto-login greška:", err);
-                setIsLoading(false); // Pusti korisnika da proba ručno
-            }
-        } 
-        // B) Ako Pi SDK nije tu (PC), čekamo malo pa odustanemo od auto-logina
-        else {
+            // Samo gasimo loader čim prepoznamo da je Pi SDK spreman
+            setIsLoading(false);
+        } else {
             attempts++;
-            if (attempts < 20) { // Pokušavaj oko 2 sekunde (20 x 100ms)
-                setTimeout(checkAndLogin, 100);
+            if (attempts < 20) {
+                setTimeout(checkSdk, 100);
             } else {
-                // Isteklo vreme - verovatno smo na PC-u
                 console.log("Pi SDK nije nađen (PC mod).");
                 setIsLoading(false);
             }
         }
     };
 
-    checkAndLogin();
-  }, [router, searchParams]);
-
+    checkSdk();
+  }, []);
 
   // --- 2. RUČNI LOGIN ZA PC (ADMIN) ---
   const handleDevLogin = () => {
-      // Ovaj login ne čeka ništa, radi odmah!
       const adminUser = {
           username: "Ilija1969",
           uid: "dev-admin-uid-123",
@@ -87,11 +49,38 @@ export default function LoginPage() {
       finishLogin(adminUser);
   }
 
-  // --- 3. RUČNI PI LOGIN (Za svaki slučaj) ---
-  const handleManualPiLogin = () => {
+  // --- 3. PRAVI PI LOGIN NA KLIK (Ovde iskače Sandbox kôd) ---
+  const handleManualPiLogin = async () => {
       setIsLoading(true);
-      if(window.Pi) {
-          window.location.reload(); // Najlakši način da ponovo pokrene auto-login
+      if (window.Pi) {
+          try {
+              // Inicijalizujemo Sandbox tek na klik
+              await window.Pi.init({ version: "2.0", sandbox: true });
+              
+              const scopes = ['username', 'payments'];
+              const authResults = await window.Pi.authenticate(scopes, (payment: any) => {
+                  console.log("Nedovršeno plaćanje:", payment);
+              });
+
+              const username = authResults.user.username;
+              let role = "user";
+
+              if (username === "Ilija1969" || username === "ilijabrdar") {
+                  role = "admin";
+              }
+
+              finishLogin({
+                  username: username,
+                  uid: authResults.user.uid,
+                  role: role,
+                  accessToken: authResults.accessToken
+              });
+
+          } catch (err) {
+              console.error("Pi login greška:", err);
+              // Ako korisnik zatvori prozor ili se desi greška, vraćamo dugme
+              setIsLoading(false); 
+          }
       } else {
           alert("Pi SDK nije učitan. Osveži stranicu.");
           setIsLoading(false);
@@ -107,13 +96,12 @@ export default function LoginPage() {
             {isLoading ? (
                 <div className="py-10">
                     <Loader2 className="animate-spin h-12 w-12 text-purple-600 mx-auto mb-4" />
-                    <p className="text-gray-500">Provera korisnika...</p>
+                    <p className="text-gray-500">Provera okruženja...</p>
                 </div>
             ) : (
                 <>
                     <p className="text-gray-500 text-sm mb-8">Odaberite način prijave</p>
 
-                    {/* Dugme za Pi Browser */}
                     <Button 
                         onClick={handleManualPiLogin}
                         className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 rounded-2xl text-lg mb-4"
@@ -122,7 +110,6 @@ export default function LoginPage() {
                         Login with Pi
                     </Button>
 
-                    {/* Dugme za PC Admina */}
                     <div className="mt-6 border-t pt-4">
                         <p className="text-xs text-gray-400 mb-2">Programerski pristup (PC):</p>
                         <button 
