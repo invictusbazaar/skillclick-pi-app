@@ -70,7 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             };
 
-            Pi.init({ version: "2.0", sandbox: false });
+            // IZMENA: sandbox postavljeno na true za dobijanje koda!
+            Pi.init({ version: "2.0", sandbox: true });
             
             // 2. Tražimo obe dozvole (username i payments)
             Pi.authenticate(['username', 'payments'], onIncompletePaymentFound)
