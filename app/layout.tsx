@@ -32,9 +32,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
+        {/* ISPRAVKA: beforeInteractive osigurava da SDK bude spreman pre klika! */}
         <Script 
           src="https://sdk.minepi.com/pi-sdk.js" 
-          strategy="afterInteractive" 
+          strategy="beforeInteractive" 
         />
 
         <LanguageProvider>
