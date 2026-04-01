@@ -1,142 +1,61 @@
-"use client"
+import type { Metadata } from "next";
+import { Inter, Poppins } from "next/font/google"; 
+import "./globals.css";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer"; 
+import { LanguageProvider } from "@/components/LanguageContext";
+import { AuthProvider } from "@/components/AuthContext";
+import Script from "next/script";
+import { Suspense } from "react"; // 1. DODATO: Uvozimo Suspense alatku
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Smartphone, Loader2, Laptop } from "lucide-react"
-import { Button } from "@/components/ui/button"
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
-export default function LoginPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isLoading, setIsLoading] = useState(true)
+const poppins = Poppins({ 
+  weight: ["400", "600", "700", "800"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
+});
 
-  const syncUserToDatabase = async (username: string, uid?: string) => {
-    try {
-        await fetch('/api/auth/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, uid }) 
-        });
-    } catch (error) {
-        console.error("Greška pri sinhronizaciji:", error);
-    }
-  };
+export const metadata: Metadata = {
+  title: "SkillClick - Pi Network Marketplace",
+  description: "Find skills, pay with Pi.",
+};
 
-  const finishLogin = (userData: any) => {
-    const finalUser = {
-        username: userData.username,
-        isAdmin: userData.role === "admin"
-    };
-    localStorage.setItem("pi_user", JSON.stringify(finalUser));
-    
-    const redirectUrl = searchParams.get('redirect') || "/";
-    window.location.href = redirectUrl;
-  };
-
-  useEffect(() => {
-    let attempts = 0;
-    const checkSdk = async () => {
-        if (window.Pi) {
-            setIsLoading(false);
-        } else {
-            attempts++;
-            if (attempts < 20) {
-                setTimeout(checkSdk, 100);
-            } else {
-                setIsLoading(false);
-            }
-        }
-    };
-    checkSdk();
-  }, []);
-
-  const handleDevLogin = () => {
-      finishLogin({ username: "Ilija1969", role: "admin" });
-  }
-
-  const handleManualPiLogin = async () => {
-      setIsLoading(true);
-      if (window.Pi) {
-          try {
-              // Hvatamo grešku ako je Pi SDK već inicijalizovan da ne bi prekinuo proces
-              try {
-                  await window.Pi.init({ version: "2.0", sandbox: true });
-              } catch (initError) {
-                  console.log("Pi SDK je već inicijalizovan, nastavljamo...", initError);
-              }
-              
-              // Kratka pauza da pretraživač procesira zahtev pre nego što iskoči prozor
-              await new Promise(resolve => setTimeout(resolve, 500));
-
-              const scopes = ['username', 'payments'];
-              const authResults = await window.Pi.authenticate(scopes, async (payment: any) => {
-                  console.log("Nedovršeno plaćanje:", payment);
-                  try {
-                      await fetch('/api/payments/incomplete', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ paymentId: payment.identifier })
-                      });
-                  } catch (err) {}
-              });
-
-              const username = authResults.user.username;
-              let role = "user";
-
-              if (username === "Ilija1969" || username === "ilijabrdar") {
-                  role = "admin";
-              }
-
-              await syncUserToDatabase(username, authResults.user.uid);
-
-              finishLogin({
-                  username: username,
-                  role: role
-              });
-
-          } catch (err) {
-              console.error("Pi login greška:", err);
-              setIsLoading(false); 
-          }
-      } else {
-          alert("Pi SDK nije učitan. Osveži stranicu.");
-          setIsLoading(false);
-      }
-  }
-
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc] font-sans p-4">
-      <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md text-center">
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">SkillClick</h1>
-            
-            {isLoading ? (
-                <div className="py-10">
-                    <Loader2 className="animate-spin h-12 w-12 text-purple-600 mx-auto mb-4" />
-                    <p className="text-gray-500">Provera okruženja...</p>
-                </div>
-            ) : (
-                <>
-                    <p className="text-gray-500 text-sm mb-8">Odaberite način prijave</p>
-                    <Button 
-                        onClick={handleManualPiLogin}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-6 rounded-2xl text-lg mb-4"
-                    >
-                        <Smartphone className="mr-2" />
-                        Login with Pi
-                    </Button>
-                    <div className="mt-6 border-t pt-4">
-                        <p className="text-xs text-gray-400 mb-2">Programerski pristup (PC):</p>
-                        <button 
-                            onClick={handleDevLogin}
-                            className="w-full py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-900 flex items-center justify-center gap-2 font-medium transition-all"
-                        >
-                            <Laptop size={18} />
-                            Uloguj se kao Admin
-                        </button>
-                    </div>
-                </>
-            )}
-      </div>
-    </div>
-  )
+    <html lang="en">
+      <head>
+        {/* Eksplicitna deklaracija origin-a koja sprečava postMessage blokadu */}
+        <meta name="pi:origin" content="https://skillclick-pi-app-j18p.vercel.app" />
+      </head>
+      <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
+        
+        <Script 
+          src="https://sdk.minepi.com/pi-sdk.js" 
+          strategy="beforeInteractive" 
+        />
+
+        <LanguageProvider>
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-grow">
+              {/* 2. DODATO: Suspense hvata sve useSearchParams greške na svim stranicama */}
+              <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]">Učitavanje...</div>}>
+                {children}
+              </Suspense>
+            </main>
+            <Footer />
+          </AuthProvider>
+        </LanguageProvider>
+
+      </body>
+    </html>
+  );
 }
