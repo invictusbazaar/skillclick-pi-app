@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { AuthProvider } from "@/components/AuthContext";
 import Script from "next/script";
-import { Suspense } from "react"; // 1. DODATO: Uvozimo Suspense alatku
+import { Suspense } from "react";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -32,8 +32,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Eksplicitna deklaracija origin-a koja sprečava postMessage blokadu */}
-        <meta name="pi:origin" content="https://skillclick-pi-app-j18p.vercel.app" />
+        {/* Ispravljen origin za lokalno testiranje */}
+        <meta name="pi:origin" content="https://localhost:3000" />
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans bg-[#f8f9fc] antialiased flex flex-col min-h-screen`}>
         
@@ -46,7 +46,6 @@ export default function RootLayout({
           <AuthProvider>
             <Navbar />
             <main className="flex-grow">
-              {/* 2. DODATO: Suspense hvata sve useSearchParams greške na svim stranicama */}
               <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]">Učitavanje...</div>}>
                 {children}
               </Suspense>
